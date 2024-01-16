@@ -1,4 +1,6 @@
 pub enum Token {
+    Any,
+
     Ident(String),
     Bool(bool),
     Int(i32),
