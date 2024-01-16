@@ -28,7 +28,7 @@ impl Lexer {
     fn eat(&mut self) -> char {
         let prev = self.curr;
         self.curr = self.read_char();
-        return prev;
+        prev
     }
 
     pub fn get_token(&mut self) -> Token {
@@ -77,7 +77,7 @@ impl Lexer {
                 ident.push(self.eat());
             }
 
-            return Token::Ident(String::from(ident));
+            return Token::Ident(ident);
         }
 
         // numbers
@@ -119,12 +119,12 @@ impl Lexer {
                 '*' => Token::StarAssign,
                 '/' => Token::SlashAssign,
                 '%' => Token::PercentAssign,
-                _ => Invalid(String::from(format!("{prev}="))),
+                _ => Invalid(format!("{prev}=")),
             };
         }
 
         // match singletons
-        return match prev {
+        match prev {
             '+' => Token::Plus,
             '-' => Token::Minus,
             '*' => Token::Star,
@@ -146,6 +146,6 @@ impl Lexer {
             '<' => Token::LAngle,
             '>' => Token::RAngle,
             _ => Invalid(prev.to_string()),
-        };
+        }
     }
 }
