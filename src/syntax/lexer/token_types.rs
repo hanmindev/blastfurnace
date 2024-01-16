@@ -47,6 +47,8 @@ pub enum Token {
     RAngle,
 
     // Key words
+    Const,
+
     VoidType,
     IntType,
     FloatType,
@@ -54,6 +56,8 @@ pub enum Token {
     BoolType,
     StringType,
     StructType,
+
+    Impl,
 
     Fn,
     Rec,

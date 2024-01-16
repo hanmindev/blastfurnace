@@ -100,6 +100,9 @@ impl Lexer {
                 "string" => return Token::StringType,
                 "struct" => return Token::StructType,
 
+                "impl" => return Token::Impl,
+                "const" => return Token::Const,
+
                 _ => {}
             }
 
