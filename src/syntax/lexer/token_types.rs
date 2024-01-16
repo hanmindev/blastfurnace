@@ -53,6 +53,7 @@ pub enum Token {
     DoubleType,
     BoolType,
     StringType,
+    StructType,
 
     Fn,
     Rec,

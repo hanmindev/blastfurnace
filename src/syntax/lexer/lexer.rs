@@ -77,6 +77,32 @@ impl Lexer {
                 ident.push(self.eat());
             }
 
+            match ident.as_str() {
+                "fn" => return Token::Fn,
+                "rec" => return Token::Rec,
+
+                "if" => return Token::If,
+                "else" => return Token::Else,
+                "while" => return Token::While,
+                "for" => return Token::For,
+                "return" => return Token::Return,
+                "break" => return Token::Break,
+                "continue" => return Token::Continue,
+
+                "true" => return Token::Bool(true),
+                "false" => return Token::Bool(false),
+
+                "void" => return Token::VoidType,
+                "int" => return Token::IntType,
+                "float" => return Token::FloatType,
+                "double" => return Token::DoubleType,
+                "bool" => return Token::BoolType,
+                "string" => return Token::StringType,
+                "struct" => return Token::StructType,
+
+                _ => {}
+            }
+
             return Token::Ident(ident);
         }
 
