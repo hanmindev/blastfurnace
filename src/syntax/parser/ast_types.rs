@@ -71,7 +71,7 @@ pub struct FnDecl {
 #[derive(Debug)]
 pub struct FnCall {
     pub path: NamePath,
-    pub args: Vec<Expression>,
+    pub args: Vec<Box<Expression>>,
 }
 
 #[derive(Debug)]

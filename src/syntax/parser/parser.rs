@@ -105,7 +105,7 @@ impl Parser {
         }
     }
 
-    fn parse_bin_op_rhs(&mut self, expr_prec: i32, mut lhs: Expression) -> ParseResult<Expression> {
+    fn parse_bin_op_rhs(&mut self, expr_prec: i32, mut lhs: Box<Expression>) -> ParseResult<Box<Expression>> {
         loop {
             let binop = match self.curr_token {
                 Token::Plus => BinOp::Add,
@@ -133,12 +133,12 @@ impl Parser {
                 rhs = self.parse_bin_op_rhs(next_prec, rhs)?;
             }
 
-            lhs = Expression::Binary(Box::from(lhs), binop, Box::from(rhs));
+            lhs = Box::from(Expression::Binary(lhs, binop, rhs));
         }
         Ok(lhs)
     }
 
-    fn parse_expression(&mut self) -> ParseResult<Expression> {
+    fn parse_expression(&mut self) -> ParseResult<Box<Expression>> {
         match self.curr_token {
             Token::LParen => {
                 self.eat(&Token::LParen)?;
@@ -165,9 +165,9 @@ impl Parser {
                         }
                     };
 
-                    Ok(Expression::Unary(unop, Box::from(right)))
+                    Ok(Box::from(Expression::Unary(unop, right)))
                 } else {
-                    let expr = Expression::AtomicExpression(self.parse_atomic_expression()?);
+                    let expr = Box::from(Expression::AtomicExpression(self.parse_atomic_expression()?));
                     Ok(self.parse_bin_op_rhs(0, expr)?)
                 }
             }
@@ -177,7 +177,7 @@ impl Parser {
     fn parse_if_statement(&mut self) -> ParseResult<If> {
         self.eat(&Token::If)?;
         self.eat(&Token::LParen)?;
-        let cond = Box::from(self.parse_expression()?);
+        let cond = self.parse_expression()?;
         self.eat(&Token::RParen)?;
         let body = Box::from(self.parse_block()?);
         let mut else_ = None;
@@ -201,7 +201,7 @@ impl Parser {
         self.eat(&Token::For)?;
         self.eat(&Token::LParen)?;
         let init = Box::from(self.parse_statement()?);
-        let cond = Box::from(self.parse_expression()?);
+        let cond = self.parse_expression()?;
         self.eat(&Token::Semicolon)?;
         let inc = Box::from(self.parse_statement()?);
         self.eat(&Token::RParen)?;
@@ -218,7 +218,7 @@ impl Parser {
     fn parse_while_statement(&mut self) -> ParseResult<While> {
         self.eat(&Token::While)?;
         self.eat(&Token::LParen)?;
-        let cond = Box::from(self.parse_expression()?);
+        let cond = self.parse_expression()?;
         self.eat(&Token::RParen)?;
         let body = Box::from(self.parse_block()?);
 
@@ -238,7 +238,7 @@ impl Parser {
             }
             Token::Return => {
                 self.eat(&Token::Return)?;
-                Ok(Statement::Return(Box::from(self.parse_expression()?)))
+                Ok(Statement::Return(self.parse_expression()?))
             }
 
             _ => {
