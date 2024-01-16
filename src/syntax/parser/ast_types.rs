@@ -51,7 +51,7 @@ pub struct VarDecl {
 #[derive(Debug)]
 struct Assignment {
     pub path: NamePath,
-    pub expr: Expression,
+    pub expr: Box<Expression>,
 }
 
 #[derive(Debug)]
@@ -92,26 +92,29 @@ pub enum AtomicExpression {
 
 #[derive(Debug)]
 pub enum Expression {
-    AtomicExpression(AtomicExpression),
+    AtomicExpression(Box<AtomicExpression>),
     Unary(UnOp, Box<Expression>),
     Binary(Box<Expression>, BinOp, Box<Expression>),
 }
 
+#[derive(Debug)]
 pub struct If {
-    pub cond: Expression,
-    pub body: Block,
+    pub cond: Box<Expression>,
+    pub body: Box<Block>,
     pub else_: Option<Box<If>>,
 }
 
+#[derive(Debug)]
 pub struct While {
-    pub cond: Expression,
-    pub body: Block,
+    pub cond: Box<Expression>,
+    pub body: Box<Block>,
 }
 
+#[derive(Debug)]
 pub struct For {
-    pub init: Option<Statement>,
-    pub cond: Option<Expression>,
-    pub step: Option<Statement>,
+    pub init: Option<Box<Statement>>,
+    pub cond: Option<Box<Expression>>,
+    pub step: Option<Box<Statement>>,
     pub body: Block,
 }
 
@@ -121,10 +124,19 @@ pub enum Statement {
     Assignment(Assignment),
     FnDecl(FnDecl),
     FnCall(FnCall),
-    Return(Expression),
+    If(If),
+    While(While),
+    For(For),
+    Return(Box<Expression>),
+}
+
+#[derive(Debug)]
+pub enum StatementBlock {
+    Statement(Statement),
+    Block(Block),
 }
 
 #[derive(Debug)]
 pub struct Block {
-    pub statements: Vec<Statement>,
+    pub statements: Vec<StatementBlock>,
 }
