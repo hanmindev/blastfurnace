@@ -46,6 +46,26 @@ pub enum Token {
     LAngle, // <>
     RAngle,
 
+    // Key words
+    VoidType,
+    IntType,
+    FloatType,
+    DoubleType,
+    BoolType,
+    StringType,
+
+    Fn,
+    Rec,
+
+    If,
+    Else,
+    While,
+    For,
+
+    Return,
+    Break,
+    Continue,
+
     // Misc
     EOF,
     Invalid(String),
