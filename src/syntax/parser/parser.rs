@@ -1,7 +1,7 @@
 use std::mem;
 use crate::syntax::lexer::lexer::Lexer;
 use crate::syntax::lexer::token_types::Token;
-use crate::syntax::parser::ast_types::{AtomicExpression, BinOp, Expression, FnCall, LiteralValue, NamePath, UnOp};
+use crate::syntax::parser::ast_types::{AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, UnOp, While};
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -173,4 +173,94 @@ impl Parser {
             }
         }
     }
+
+    fn parse_if_statement(&mut self) -> ParseResult<If> {
+        self.eat(&Token::If)?;
+        self.eat(&Token::LParen)?;
+        let cond = Box::from(self.parse_expression()?);
+        self.eat(&Token::RParen)?;
+        let body = Box::from(self.parse_block()?);
+        let mut else_ = None;
+        if matches!(self.curr_token, Token::Else) {
+            self.eat(&Token::Else)?;
+            if matches!(self.curr_token, Token::If) {
+                else_ = Some(Box::from(self.parse_if_statement()?));
+            } else {
+                else_ = Some(Box::from(If {
+                    cond: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Bool(true)))),
+                    body: Box::from(self.parse_block()?),
+                    else_: None,
+                }));
+            }
+        }
+
+        Ok(If { cond, body, else_ })
+    }
+
+    fn parse_for_statement(&mut self) -> ParseResult<For> {
+        self.eat(&Token::For)?;
+        self.eat(&Token::LParen)?;
+        let init = Box::from(self.parse_statement()?);
+        let cond = Box::from(self.parse_expression()?);
+        self.eat(&Token::Semicolon)?;
+        let inc = Box::from(self.parse_statement()?);
+        self.eat(&Token::RParen)?;
+        let body = self.parse_block()?;
+
+        Ok(For {
+            init: Some(init),
+            cond: Some(cond),
+            step: Some(inc),
+            body,
+        })
+    }
+
+    fn parse_while_statement(&mut self) -> ParseResult<While> {
+        self.eat(&Token::While)?;
+        self.eat(&Token::LParen)?;
+        let cond = Box::from(self.parse_expression()?);
+        self.eat(&Token::RParen)?;
+        let body = Box::from(self.parse_block()?);
+
+        Ok(While { cond, body })
+    }
+
+    fn parse_statement(&mut self) -> ParseResult<Statement> {
+        match self.curr_token {
+            Token::If => {
+                Ok(Statement::If(self.parse_if_statement()?))
+            }
+            Token::While => {
+                Ok(Statement::While(self.parse_while_statement()?))
+            }
+            Token::For => {
+                Ok(Statement::For(self.parse_for_statement()?))
+            }
+            Token::Return => {
+                self.eat(&Token::Return)?;
+                Ok(Statement::Return(Box::from(self.parse_expression()?)))
+            }
+
+            _ => {
+                Err(ParseError::Unexpected(self.curr_token.clone()))
+            }
+        }
+    }
+
+    fn parse_block(&mut self) -> ParseResult<Block> {
+        self.eat(&Token::LBrace)?;
+        let mut statements = Vec::new();
+        while !matches!(self.curr_token, Token::RBrace) {
+            if matches!(self.curr_token, Token::LBrace) {
+                statements.push(StatementBlock::Block(self.parse_block()?));
+            } else {
+                statements.push(StatementBlock::Statement(self.parse_statement()?));
+            }
+        }
+        self.eat(&Token::RBrace)?;
+
+        Ok(Block { statements })
+    }
+
+
 }

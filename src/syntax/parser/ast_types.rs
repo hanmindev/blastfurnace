@@ -92,7 +92,7 @@ pub enum AtomicExpression {
 
 #[derive(Debug)]
 pub enum Expression {
-    AtomicExpression(Box<AtomicExpression>),
+    AtomicExpression(AtomicExpression),
     Unary(UnOp, Box<Expression>),
     Binary(Box<Expression>, BinOp, Box<Expression>),
 }
