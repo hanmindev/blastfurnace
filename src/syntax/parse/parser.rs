@@ -1340,4 +1340,72 @@ mod tests {
             Box::from(Expression::Binary(a_plus, BinOp::Sub, mod_f))
         );
     }
+
+    #[test]
+    fn expression_order_bracket_test() {
+        let statement = "a + b * (c - d) / e % f";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let expr = parser.parse_expression().unwrap();
+
+        // should result in tree
+        //                    %
+        //                /      \
+        //              /         f
+        //          /        \
+        //         +          e
+        //      /       \
+        //     a         *
+        //           /       \
+        //          b         -
+        //                  /   \
+        //                 c     d
+
+        // (a + (((b * (c - d)) / e) % f))
+
+        let c_minus_d = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["c".to_string()],
+            ))),
+            BinOp::Sub,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["d".to_string()],
+            ))),
+        ));
+
+        let b_times_c_minus_d = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["b".to_string()],
+            ))),
+            BinOp::Mul,
+            c_minus_d,
+        ));
+
+        let b_times_c_minus_d_div_e = Box::from(Expression::Binary(
+            b_times_c_minus_d,
+            BinOp::Div,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["e".to_string()],
+            ))),
+        ));
+
+        let b_times_c_minus_d_div_e_mod_f = Box::from(Expression::Binary(
+            b_times_c_minus_d_div_e,
+            BinOp::Mod,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["f".to_string()],
+            ))),
+        ));
+
+        let a_plus_b_times_c_minus_d_div_e_mod_f = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["a".to_string()],
+            ))),
+            BinOp::Add,
+            b_times_c_minus_d_div_e_mod_f,
+        ));
+
+        assert_eq!(expr, a_plus_b_times_c_minus_d_div_e_mod_f);
+    }
 }
