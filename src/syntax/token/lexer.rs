@@ -372,12 +372,14 @@ mod tests {
     }
 
     #[test]
-    fn and_or_test() {
-        let statement = "&& ||";
+    fn other_symbols_test() {
+        let statement = "&& || ++ --";
         let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
 
         assert_eq!(lexer.next().unwrap(), Token::And);
         assert_eq!(lexer.next().unwrap(), Token::Or);
+        assert_eq!(lexer.next().unwrap(), Token::PlusPlus);
+        assert_eq!(lexer.next().unwrap(), Token::MinusMinus);
     }
 
     #[test]
