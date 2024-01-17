@@ -322,18 +322,14 @@ impl<T: TokenStream> Parser<T> {
             | Token::Const
             | Token::Static => {
                 // variable declaration
-                let decl = self.parse_struct_or_var_decl()?;
-                self.eat(&Token::Semicolon)?;
-                Ok(decl)
+                Ok(self.parse_struct_or_var_decl()?)
             }
 
             Token::Ident(_) => {
                 match &self.next_token {
                     Token::Ident(_) => {
                         // struct declaration
-                        let decl = self.parse_struct_or_var_decl()?;
-                        self.eat(&Token::Semicolon)?;
-                        Ok(decl)
+                        Ok(self.parse_struct_or_var_decl()?)
                     }
 
                     // variable / struct assignment
@@ -342,16 +338,8 @@ impl<T: TokenStream> Parser<T> {
                     | Token::MinusAssign
                     | Token::StarAssign
                     | Token::SlashAssign
-                    | Token::PercentAssign => {
-                        let statement = self.parse_assignment();
-                        self.eat(&Token::Semicolon)?;
-                        statement
-                    }
-                    _ => {
-                        let expr = self.parse_expression()?;
-                        self.eat(&Token::Semicolon)?;
-                        Ok(Statement::Expression(expr))
-                    }
+                    | Token::PercentAssign => self.parse_assignment(),
+                    _ => Ok(Statement::Expression(self.parse_expression()?)),
                 }
             }
 
@@ -360,9 +348,7 @@ impl<T: TokenStream> Parser<T> {
             Token::For => Ok(Statement::For(self.parse_for_statement()?)),
             Token::Return => {
                 self.eat(&Token::Return)?;
-                let expr = self.parse_expression()?;
-                self.eat(&Token::Semicolon)?;
-                Ok(Statement::Return(expr))
+                Ok(Statement::Return(self.parse_expression()?))
             }
             Token::Break => {
                 self.eat(&Token::Break)?;
@@ -386,7 +372,10 @@ impl<T: TokenStream> Parser<T> {
         while !matches!(self.curr_token, Token::RBrace) {
             match self.curr_token {
                 Token::LBrace => statements.push(StatementBlock::Block(self.parse_block()?)),
-                _ => statements.push(StatementBlock::Statement(self.parse_statement()?)),
+                _ => {
+                    statements.push(StatementBlock::Statement(self.parse_statement()?));
+                    self.eat(&Token::Semicolon)?;
+                }
             }
         }
         self.eat(&Token::RBrace)?;
@@ -607,6 +596,7 @@ impl<T: TokenStream> Parser<T> {
         let mut statements = Vec::new();
         while !matches!(self.curr_token, Token::EOF) {
             statements.push(StatementBlock::Statement(self.parse_statement()?));
+            self.eat(&Token::Semicolon)?;
         }
         self.eat(&Token::EOF)?;
 
