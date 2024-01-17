@@ -918,4 +918,43 @@ mod tests {
             }))
         );
     }
+
+    #[test]
+    fn struct_assignment_tests() {
+        let statement = "a = { a: 0, b: 1, c: 2 }; b = { a: 0, b: \"hello\", c: 2.54 };";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 2);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::StructAssign(StructAssign {
+                path: vec!["a".to_string()],
+                compound: vec![
+                    (
+                        "a".to_string(),
+                        CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                            AtomicExpression::Literal(LiteralValue::Int(0))
+                        )))
+                    ),
+                    (
+                        "b".to_string(),
+                        CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                            AtomicExpression::Literal(LiteralValue::Int(1))
+                        )))
+                    ),
+                    (
+                        "c".to_string(),
+                        CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                            AtomicExpression::Literal(LiteralValue::Int(2))
+                        )))
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            }))
+        );
+    }
 }
