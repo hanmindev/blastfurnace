@@ -33,8 +33,8 @@ impl<T: TokenStream> Parser<T> {
             curr_token: Token::EOF,
             next_token: Token::EOF,
         };
-        let tok = Token::EOF;
-        parser.eat(&tok).unwrap();
+        parser.eat(&Token::EOF).unwrap();
+        parser.eat(&Token::EOF).unwrap();
         parser
     }
 
