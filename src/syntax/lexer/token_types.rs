@@ -48,6 +48,7 @@ pub enum Token {
 
     // Key words
     Const,
+    Static,
 
     VoidType,
     IntType,
