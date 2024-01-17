@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::mem;
-use crate::syntax::lexer::lexer::Lexer;
-use crate::syntax::lexer::token_types::Token;
-use crate::syntax::lexer::token_types::Token::{Any};
-use crate::syntax::parser::ast_types::{VarAssign, AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, Type, UnOp, VarDecl, VarMod, While, Compound, StructDecl, StructAssign, CompoundValue, FnDef, FnMod};
+use crate::syntax::token::lexer::Lexer;
+use crate::syntax::token::token_types::Token;
+use crate::syntax::token::token_types::Token::{Any};
+use crate::syntax::parse::ast_types::{VarAssign, AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, Type, UnOp, VarDecl, VarMod, While, Compound, StructDecl, StructAssign, CompoundValue, FnDef, FnMod};
 
 #[derive(Debug)]
 pub enum ParseError {

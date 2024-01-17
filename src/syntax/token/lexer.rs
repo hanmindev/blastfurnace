@@ -1,7 +1,7 @@
 use std::io;
 use std::io::Read;
-use crate::syntax::lexer::token_types::Token;
-use crate::syntax::lexer::token_types::Token::Invalid;
+use crate::syntax::token::token_types::Token;
+use crate::syntax::token::token_types::Token::Invalid;
 
 pub struct Lexer {
     curr: char,
