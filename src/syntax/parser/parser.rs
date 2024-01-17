@@ -4,7 +4,7 @@ use std::mem;
 use crate::syntax::lexer::lexer::Lexer;
 use crate::syntax::lexer::token_types::Token;
 use crate::syntax::lexer::token_types::Token::{Any};
-use crate::syntax::parser::ast_types::{VarAssign, AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, Type, UnOp, VarDecl, VarMod, While, Compound, StructDecl, StructAssign};
+use crate::syntax::parser::ast_types::{VarAssign, AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, Type, UnOp, VarDecl, VarMod, While, Compound, StructDecl, StructAssign, CompoundValue};
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -340,8 +340,40 @@ impl Parser {
         Ok(Block { statements })
     }
 
+    fn parse_compound_value(&mut self) -> ParseResult<CompoundValue> {
+        match self.curr_token {
+            Token::LBrace => {
+                Ok(CompoundValue::Compound(Box::from(self.parse_compound()?)))
+            }
+            _ => {
+                Ok(CompoundValue::Expression(self.parse_expression()?))
+            }
+        }
+
+    }
+
     fn parse_compound(&mut self) -> ParseResult<Compound> {
-        todo!()
+        let mut compound: Compound = HashMap::new();
+
+        self.eat(&Token::LBrace)?;
+
+        while let Token::String(key) = &mut self.curr_token {
+            let key = key.clone();
+
+            self.eat(&Any)?;
+            self.eat(&Token::Colon)?;
+            compound.insert(key, self.parse_compound_value()?);
+
+            if matches!(self.curr_token, Token::RBrace) {
+                break;
+            } else {
+                self.eat(&Token::Comma)?;
+            }
+        }
+
+        self.eat(&Token::RBrace)?;
+
+        Ok(compound)
     }
     fn parse_struct_decl(&mut self, mods: Vec<VarMod>) -> ParseResult<StructDecl> {
         match self.eat(&Any)? {
