@@ -69,6 +69,24 @@ impl<T: ByteStream> Lexer<T> {
             }
         }
 
+        // read string
+        if self.curr == '"' {
+            let mut string = String::new();
+            self.eat();
+            let mut escaped = false;
+
+            while self.curr != '"' && !escaped {
+                escaped = false;
+                string.push(self.curr);
+                if self.eat() == '\\' {
+                    escaped = true;
+                }
+            }
+
+            self.eat();
+            return Ok(Token::String(string));
+        }
+
         // identifiers
         if self.curr.is_alphabetic() {
             let mut ident = String::new();
