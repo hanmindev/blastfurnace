@@ -157,6 +157,7 @@ pub enum Statement {
     StructDecl(StructDecl),
     VarAssign(VarAssign),
     StructAssign(StructAssign),
+    StructDef(StructDef),
     FnDef(FnDef),
     FnCall(FnCall),
     If(If),

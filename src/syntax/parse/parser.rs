@@ -1,7 +1,7 @@
 use crate::syntax::parse::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
-    If, LiteralValue, NamePath, Statement, StatementBlock, StructAssign, StructDecl, Type, UnOp,
-    VarAssign, VarDecl, VarMod, While,
+    If, LiteralValue, NamePath, Statement, StatementBlock, StructAssign, StructDecl, StructDef,
+    Type, UnOp, VarAssign, VarDecl, VarMod, While,
 };
 use crate::syntax::token::lexer::TokenError;
 use crate::syntax::token::token_types::Token;
@@ -401,6 +401,7 @@ impl<T: TokenStream> Parser<T> {
                 Ok(Statement::Continue)
             }
             Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
+            Token::StructType => Ok(Statement::StructDef(self.parse_struct_def()?)),
             tok => Err(ParseError::Unexpected(
                 tok.clone(),
                 "Expected valid token for statement beginning".to_string(),
@@ -634,6 +635,63 @@ impl<T: TokenStream> Parser<T> {
         })
     }
 
+    fn parse_struct_def(&mut self) -> ParseResult<StructDef> {
+        self.eat(&Token::StructType)?;
+
+        let struct_name = match self.eat(&Any)? {
+            Token::Ident(s) => s,
+            tok => {
+                return Err(ParseError::Unexpected(
+                    tok,
+                    "Expected identifier for struct name".to_string(),
+                ));
+            }
+        };
+
+        let mut map = HashMap::new();
+
+        self.eat(&Token::LBrace)?;
+
+        while !matches!(self.curr_token, Token::RBrace) {
+            let type_ = match self.eat(&Any)? {
+                Token::VoidType => Type::Void,
+                Token::IntType => Type::Int,
+                Token::FloatType => Type::Float,
+                Token::DoubleType => Type::Double,
+                Token::BoolType => Type::Bool,
+                Token::StringType => Type::String,
+                Token::Ident(s) => Type::Struct(s),
+                tok => {
+                    return Err(ParseError::Unexpected(
+                        tok,
+                        "Expected type for struct field".to_string(),
+                    ));
+                }
+            };
+
+            let name = match self.eat(&Any)? {
+                Token::Ident(s) => s,
+                tok => {
+                    return Err(ParseError::Unexpected(
+                        tok,
+                        "Expected identifier for struct field name".to_string(),
+                    ));
+                }
+            };
+
+            map.insert(name, type_);
+
+            self.eat(&Token::Semicolon)?;
+        }
+
+        self.eat(&Token::RBrace)?;
+
+        Ok(StructDef {
+            name: struct_name,
+            map,
+        })
+    }
+
     pub fn parse(&mut self) -> ParseResult<Block> {
         let mut statements = Vec::new();
         while !matches!(self.curr_token, Token::EOF) {
@@ -641,7 +699,11 @@ impl<T: TokenStream> Parser<T> {
 
             if !matches!(
                 statement,
-                Statement::FnDef(_) | Statement::If(_) | Statement::For(_) | Statement::While(_)
+                Statement::FnDef(_)
+                    | Statement::If(_)
+                    | Statement::For(_)
+                    | Statement::While(_)
+                    | Statement::StructDef(_)
             ) {
                 self.eat(&Token::Semicolon)?;
             }
@@ -1472,5 +1534,30 @@ mod tests {
             Box::from(Expression::Binary(a_eq_b_and_c, BinOp::Or, d_neq_e));
 
         assert_eq!(expr, a_eq_b_and_c_or_d_neq_e);
+    }
+
+    #[test]
+    fn struct_definition_test() {
+        let statement = "struct A { int a; float b; double c; C d; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::StructDef(StructDef {
+                name: "A".to_string(),
+                map: vec![
+                    ("a".to_string(), Type::Int),
+                    ("b".to_string(), Type::Float),
+                    ("c".to_string(), Type::Double),
+                    ("d".to_string(), Type::Struct("C".to_string())),
+                ]
+                .into_iter()
+                .collect(),
+            }))
+        );
     }
 }
