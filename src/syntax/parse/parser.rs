@@ -954,4 +954,34 @@ mod tests {
             }))
         );
     }
+
+    #[test]
+    fn function_call_tests() {
+        let statement = "add(1, 2, 3);";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::Expression(Box::from(
+                Expression::AtomicExpression(AtomicExpression::FnCall(Box::from(FnCall {
+                    path: vec!["add".to_string()],
+                    args: vec![
+                        Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                            LiteralValue::Int(1)
+                        ))),
+                        Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                            LiteralValue::Int(2)
+                        ))),
+                        Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                            LiteralValue::Int(3)
+                        ))),
+                    ],
+                })))
+            )))
+        );
+    }
 }
