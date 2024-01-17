@@ -44,9 +44,7 @@ impl<T: TokenStream> Parser<T> {
 
     fn eat(&mut self, type_: &Token) -> ParseResult<Token> {
         // return old token, set new token, set one buffer of next token
-        if mem::discriminant(&self.curr_token) == mem::discriminant(type_)
-            || matches!(&self.curr_token, Any)
-        {
+        if mem::discriminant(&self.curr_token) == mem::discriminant(type_) || matches!(type_, Any) {
             let old_curr = self.curr_token.clone();
             self.curr_token = self.next_token.clone();
             self.next_token = self.next();
