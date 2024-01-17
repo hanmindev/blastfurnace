@@ -774,7 +774,7 @@ mod tests {
 
     #[test]
     fn struct_declarations_test() {
-        let statement = "A a = { a: 0, b: 1, c: 2 }; B b = { a: 0, b: \"hello\", c: 2.54 }";
+        let statement = "A a = { a: 0, b: 1, c: 2 }; B b = { a: 0, b: \"hello\", c: 2.54 };";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -785,7 +785,7 @@ mod tests {
             block.statements[0],
             StatementBlock::Statement(Statement::StructDecl(StructDecl {
                 type_: Type::Struct("A".to_string()),
-                name: "A".to_string(),
+                name: "a".to_string(),
                 mods: Vec::new(),
                 expr: Some(
                     vec![
@@ -806,11 +806,115 @@ mod tests {
                             CompoundValue::Expression(Box::from(Expression::AtomicExpression(
                                 AtomicExpression::Literal(LiteralValue::Int(2))
                             )))
-                        )
+                        ),
                     ]
                     .into_iter()
                     .collect()
                 ),
+            }))
+        );
+    }
+
+    #[test]
+    fn variable_assignment_tests() {
+        let statement = "a = 0; b = 2.4; a += 2; a -= 3; a *= 4; a /= 5; a %= 6;;";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 7);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                path: vec!["a".to_string()],
+                expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                    LiteralValue::Int(0)
+                ))),
+            }))
+        );
+        assert_eq!(
+            block.statements[1],
+            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                path: vec!["b".to_string()],
+                expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                    LiteralValue::Decimal(2.4)
+                ))),
+            }))
+        );
+        assert_eq!(
+            block.statements[2],
+            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                path: vec!["a".to_string()],
+                expr: Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    ))),
+                    BinOp::Add,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(2)
+                    ))),
+                )),
+            }))
+        );
+        assert_eq!(
+            block.statements[3],
+            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                path: vec!["a".to_string()],
+                expr: Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    ))),
+                    BinOp::Sub,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(3)
+                    ))),
+                )),
+            }))
+        );
+        assert_eq!(
+            block.statements[4],
+            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                path: vec!["a".to_string()],
+                expr: Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    ))),
+                    BinOp::Mul,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(4)
+                    ))),
+                )),
+            }))
+        );
+        assert_eq!(
+            block.statements[5],
+            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                path: vec!["a".to_string()],
+                expr: Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    ))),
+                    BinOp::Div,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(5)
+                    ))),
+                )),
+            }))
+        );
+        assert_eq!(
+            block.statements[6],
+            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                path: vec!["a".to_string()],
+                expr: Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    ))),
+                    BinOp::Mod,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(6)
+                    ))),
+                )),
             }))
         );
     }
