@@ -13,7 +13,6 @@ pub enum Type {
 
 #[derive(Debug, PartialEq)]
 pub enum UnOp {
-    Plus,
     Neg,
     Not,
     Deref,
