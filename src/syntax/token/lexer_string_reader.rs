@@ -13,7 +13,7 @@ impl StringReader {
 
 impl ByteStream for StringReader {
     fn next(&mut self) -> char {
-        if (self.index >= self.string.len()) {
+        if self.index >= self.string.len() {
             return '\0';
         }
 
