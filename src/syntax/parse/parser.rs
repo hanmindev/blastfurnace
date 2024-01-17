@@ -247,7 +247,7 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_assignment(&mut self) -> ParseResult<Statement> {
         match &self.eat(&Any)? {
-            Token::String(var_name) => {
+            Token::Ident(var_name) => {
                 let path = self.string_to_namepath(var_name);
 
                 let assign_op = match self.eat(&Any)? {
@@ -596,6 +596,94 @@ mod tests {
                     )))],
                 },
                 mods: Vec::new(),
+            }))
+        );
+    }
+
+    #[test]
+    fn variable_declarations_test() {
+        let statement = "const int a = 0; static int b = 1; int c = 2; float d = 3.0; double e = 4.0; bool f = true; string g = \"hello\";";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 7);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                type_: Type::Int,
+                name: "a".to_string(),
+                mods: vec![VarMod::Const],
+                expr: Some(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Int(0))
+                ))),
+            }))
+        );
+        assert_eq!(
+            block.statements[1],
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                type_: Type::Int,
+                name: "b".to_string(),
+                mods: vec![VarMod::Static],
+                expr: Some(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Int(1))
+                ))),
+            }))
+        );
+        assert_eq!(
+            block.statements[2],
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                type_: Type::Int,
+                name: "c".to_string(),
+                mods: Vec::new(),
+                expr: Some(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Int(2))
+                ))),
+            }))
+        );
+        assert_eq!(
+            block.statements[3],
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                type_: Type::Float,
+                name: "d".to_string(),
+                mods: Vec::new(),
+                expr: Some(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Decimal(3.0))
+                ))),
+            }))
+        );
+        assert_eq!(
+            block.statements[4],
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                type_: Type::Double,
+                name: "e".to_string(),
+                mods: Vec::new(),
+                expr: Some(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Decimal(4.0))
+                ))),
+            }))
+        );
+        assert_eq!(
+            block.statements[5],
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                type_: Type::Bool,
+                name: "f".to_string(),
+                mods: Vec::new(),
+                expr: Some(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Bool(true))
+                ))),
+            }))
+        );
+        assert_eq!(
+            block.statements[6],
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                type_: Type::String,
+                name: "g".to_string(),
+                mods: Vec::new(),
+                expr: Some(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::String("hello".to_string()))
+                ))),
             }))
         );
     }
