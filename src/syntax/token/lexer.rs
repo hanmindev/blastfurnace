@@ -11,6 +11,12 @@ pub struct Lexer<T: ByteStream> {
     curr: char,
 }
 
+#[derive(Debug)]
+pub enum TokenError {
+    InvalidToken(String),
+    MultipleDecimals,
+}
+
 impl<T: ByteStream> Lexer<T> {
     pub fn new(reader: T) -> Lexer<T> {
         let mut lexer = Lexer { reader, curr: '\0' };
@@ -27,10 +33,10 @@ impl<T: ByteStream> Lexer<T> {
         prev
     }
 
-    fn get_token(&mut self) -> Token {
+    fn get_token(&mut self) -> Result<Token, TokenError> {
         // check for EOF
         if self.curr == '\0' {
-            return Token::EOF;
+            return Ok(Token::EOF);
         }
 
         while self.curr.is_whitespace() || self.curr == '/' {
@@ -56,9 +62,9 @@ impl<T: ByteStream> Lexer<T> {
                     _ => {
                         if self.curr == '=' {
                             self.eat();
-                            return Token::SlashAssign;
+                            return Ok(Token::SlashAssign);
                         }
-                        return Token::Slash;
+                        return Ok(Token::Slash);
                     }
                 }
             }
@@ -73,36 +79,34 @@ impl<T: ByteStream> Lexer<T> {
                 ident.push(self.eat());
             }
 
-            match ident.as_str() {
-                "fn" => return Token::Fn,
-                "rec" => return Token::Rec,
+            return Ok(match ident.as_str() {
+                "fn" => Token::Fn,
+                "rec" => Token::Rec,
 
-                "if" => return Token::If,
-                "else" => return Token::Else,
-                "while" => return Token::While,
-                "for" => return Token::For,
-                "return" => return Token::Return,
-                "break" => return Token::Break,
-                "continue" => return Token::Continue,
+                "if" => Token::If,
+                "else" => Token::Else,
+                "while" => Token::While,
+                "for" => Token::For,
+                "return" => Token::Return,
+                "break" => Token::Break,
+                "continue" => Token::Continue,
 
-                "true" => return Token::Bool(true),
-                "false" => return Token::Bool(false),
+                "true" => Token::Bool(true),
+                "false" => Token::Bool(false),
 
-                "void" => return Token::VoidType,
-                "int" => return Token::IntType,
-                "float" => return Token::FloatType,
-                "double" => return Token::DoubleType,
-                "bool" => return Token::BoolType,
-                "string" => return Token::StringType,
-                "struct" => return Token::StructType,
+                "void" => Token::VoidType,
+                "int" => Token::IntType,
+                "float" => Token::FloatType,
+                "double" => Token::DoubleType,
+                "bool" => Token::BoolType,
+                "string" => Token::StringType,
+                "struct" => Token::StructType,
 
-                "impl" => return Token::Impl,
-                "const" => return Token::Const,
+                "impl" => Token::Impl,
+                "const" => Token::Const,
 
-                _ => {}
-            }
-
-            return Token::Ident(ident);
+                _ => Token::Ident(ident)
+            });
         }
 
         // numbers
@@ -113,7 +117,7 @@ impl<T: ByteStream> Lexer<T> {
             while self.curr.is_ascii_digit() || (self.curr == '.') {
                 if dec {
                     if self.curr == '.' {
-                        panic!("Error reading number: multiple decimal points")
+                        return Err(TokenError::MultipleDecimals)
                     } else {
                         dec = true;
                     }
@@ -123,16 +127,16 @@ impl<T: ByteStream> Lexer<T> {
                 self.eat();
             }
 
-            return if dec {
+            return Ok(if dec {
                 Token::Decimal(number.parse().unwrap())
             } else {
                 Token::Int(number.parse().unwrap())
-            };
+            });
         }
 
         let prev = self.eat();
         if self.curr == '=' {
-            return match prev {
+            return Ok(match prev {
                 '<' => Token::Leq,
                 '>' => Token::Geq,
 
@@ -143,12 +147,12 @@ impl<T: ByteStream> Lexer<T> {
                 '*' => Token::StarAssign,
                 '/' => Token::SlashAssign,
                 '%' => Token::PercentAssign,
-                _ => Invalid(format!("{prev}=")),
-            };
+                _ => return Err(TokenError::InvalidToken(format!("{}", prev)))
+            });
         }
 
         // match singletons
-        match prev {
+        Ok(match prev {
             '+' => Token::Plus,
             '-' => Token::Minus,
             '*' => Token::Star,
@@ -169,14 +173,14 @@ impl<T: ByteStream> Lexer<T> {
             ']' => Token::RBracket,
             '<' => Token::LAngle,
             '>' => Token::RAngle,
-            _ => Invalid(prev.to_string()),
-        }
+            _ => return Err(TokenError::InvalidToken(format!("{}", prev)))
+        })
     }
 }
 
 impl<T: ByteStream> TokenStream for Lexer<T> {
     fn next(&mut self) -> Token {
-        self.get_token()
+        self.get_token().unwrap()
     }
 }
 
