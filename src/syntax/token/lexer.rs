@@ -221,16 +221,16 @@ mod tests {
         let statement = "fn main() { return 0; }";
         let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
 
-        assert_eq!(lexer.next(), Token::Fn);
-        assert_eq!(lexer.next(), Token::Ident("main".to_string()));
-        assert_eq!(lexer.next(), Token::LParen);
-        assert_eq!(lexer.next(), Token::RParen);
-        assert_eq!(lexer.next(), Token::LBrace);
-        assert_eq!(lexer.next(), Token::Return);
-        assert_eq!(lexer.next(), Token::Int(0));
-        assert_eq!(lexer.next(), Token::Semicolon);
-        assert_eq!(lexer.next(), Token::RBrace);
-        assert_eq!(lexer.next(), Token::EOF);
+        assert_eq!(lexer.next().unwrap(), Token::Fn);
+        assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
+        assert_eq!(lexer.next().unwrap(), Token::LParen);
+        assert_eq!(lexer.next().unwrap(), Token::RParen);
+        assert_eq!(lexer.next().unwrap(), Token::LBrace);
+        assert_eq!(lexer.next().unwrap(), Token::Return);
+        assert_eq!(lexer.next().unwrap(), Token::Int(0));
+        assert_eq!(lexer.next().unwrap(), Token::Semicolon);
+        assert_eq!(lexer.next().unwrap(), Token::RBrace);
+        assert_eq!(lexer.next().unwrap(), Token::EOF);
     }
 
     #[test]
