@@ -71,12 +71,16 @@ impl Parser {
             Token::Ident(s) => {
                 if matches!(self.next_token, Token::LParen) {
                     let mut fn_call = Box::from(FnCall { path: self.string_to_namepath(&s), args: Vec::new() });
-
                     self.eat(&Token::LParen)?;
 
-                    while !matches!(self.curr_token, Token::RParen) {
+                    loop {
                         fn_call.args.push(self.parse_expression()?);
-                        self.eat(&Token::Comma)?;
+                        match self.eat(&Token::Comma) {
+                            Ok(_) => {}
+                            Err(_) => {
+                                break;
+                            }
+                        }
                     }
                     self.eat(&Token::RParen)?; // eat RParen
 
@@ -125,7 +129,7 @@ impl Parser {
                     break;
                 }
             };
-            self.eat(&Token::Any)?; // eat binop
+            self.eat(&Any)?; // eat binop
 
             let mut rhs = self.parse_expression()?;
 
@@ -151,7 +155,7 @@ impl Parser {
             _ => {
                 // check if unary
                 if matches!(self.curr_token, Token::Plus | Token::Minus | Token::Exclamation | Token::Star | Token::Ampersand) {
-                    let op = self.eat(&Token::Any)?;
+                    let op = self.eat(&Any)?;
                     let right = self.parse_expression()?;
 
                     let unop = match op {
@@ -183,9 +187,8 @@ impl Parser {
         self.eat(&Token::RParen)?;
         let body = Box::from(self.parse_block()?);
         let mut else_ = None;
-        if matches!(self.curr_token, Token::Else) {
-            self.eat(&Token::Else)?;
-            if matches!(self.curr_token, Token::If) {
+        if self.eat(&Token::Else).is_ok() {
+            if self.eat(&Token::If).is_ok() {
                 else_ = Some(Box::from(self.parse_if_statement()?));
             } else {
                 else_ = Some(Box::from(If {
@@ -226,6 +229,7 @@ impl Parser {
 
         Ok(While { cond, body })
     }
+
     fn parse_assignment(&mut self) -> ParseResult<Statement> {
         match &self.eat(&Any)? {
             Token::String(var_name) => {
@@ -348,7 +352,6 @@ impl Parser {
                 Ok(CompoundValue::Expression(self.parse_expression()?))
             }
         }
-
     }
 
     fn parse_compound(&mut self) -> ParseResult<Compound> {
@@ -374,6 +377,7 @@ impl Parser {
 
         Ok(compound)
     }
+
     fn parse_struct_decl(&mut self, mods: Vec<VarMod>) -> ParseResult<StructDecl> {
         match self.eat(&Any)? {
             Token::Ident(s_type) => {
@@ -411,6 +415,7 @@ impl Parser {
             }
         }
     }
+
     fn parse_var_decl(&mut self, mods: Vec<VarMod>) -> ParseResult<VarDecl> {
         let type_ = match self.eat(&Any)? {
             Token::VoidType => Type::Void,
