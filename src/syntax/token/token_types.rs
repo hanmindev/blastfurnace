@@ -78,5 +78,4 @@ pub enum Token {
 
     // Misc
     EOF,
-    Invalid(String),
 }
