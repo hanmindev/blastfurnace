@@ -114,24 +114,28 @@ impl<T: TokenStream> Parser<T> {
     }
 
     fn get_bin_op_prec(&self, binop: &BinOp) -> i32 {
-        match binop {
-            BinOp::Eq => 5,
-            BinOp::Neq => 5,
-            BinOp::Lt => 5,
-            BinOp::Gt => 5,
-            BinOp::Leq => 5,
-            BinOp::Geq => 5,
+        // taken from https://en.cppreference.com/w/c/language/operator_precedence
 
-            BinOp::Add => 10,
-            BinOp::Sub => 10,
+        return 160
+            - (match binop {
+                BinOp::Mul => 3,
+                BinOp::Div => 3,
+                BinOp::Mod => 3,
 
-            BinOp::Mul => 20,
-            BinOp::Div => 20,
-            BinOp::Mod => 20,
+                BinOp::Add => 4,
+                BinOp::Sub => 4,
 
-            BinOp::And => 30,
-            BinOp::Or => 35,
-        }
+                BinOp::Lt => 6,
+                BinOp::Gt => 6,
+                BinOp::Leq => 6,
+                BinOp::Geq => 6,
+
+                BinOp::Eq => 7,
+                BinOp::Neq => 7,
+
+                BinOp::And => 11,
+                BinOp::Or => 12,
+            } * 10);
     }
 
     fn token_to_binop(&self, tok: &Token) -> Option<BinOp> {
@@ -155,33 +159,42 @@ impl<T: TokenStream> Parser<T> {
         })
     }
 
-    fn parse_bin_op_rhs(&mut self, mut lhs: Box<Expression>) -> ParseResult<Box<Expression>> {
+    fn parse_bin_op_rhs(
+        &mut self,
+        expr_prec: i32,
+        mut lhs: Box<Expression>,
+    ) -> ParseResult<Box<Expression>> {
         // start on op before rhs
         loop {
-            let prev_binop = match self.token_to_binop(&self.curr_token) {
-                None => return Ok(lhs),
-                Some(s) => s,
+            let binop = match self.token_to_binop(&self.curr_token) {
+                Some(op) => op,
+                None => {
+                    return Ok(lhs);
+                }
             };
 
-            self.eat(&Any)?;
+            let tok_prec = self.get_bin_op_prec(&binop);
+
+            if tok_prec < expr_prec {
+                return Ok(lhs);
+            }
+
+            self.eat(&Any)?; // we know this is a binop
 
             let mut rhs = self.parse_expression_single()?;
 
-            let binop = match self.token_to_binop(&self.curr_token) {
-                None => return Ok(Box::from(Expression::Binary(lhs, prev_binop, rhs))),
-                Some(s) => s,
+            let next_prec = match self.token_to_binop(&self.curr_token) {
+                Some(op) => self.get_bin_op_prec(&op),
+                None => {
+                    return Ok(Box::from(Expression::Binary(lhs, binop, rhs)));
+                }
             };
 
-            let expr_prec = self.get_bin_op_prec(&prev_binop);
-            let next_prec = self.get_bin_op_prec(&binop);
-
-            if expr_prec < next_prec {
-                rhs = self.parse_bin_op_rhs(rhs)?;
-            } else if expr_prec > next_prec {
-                return Ok(Box::from(Expression::Binary(lhs, prev_binop, rhs)));
+            if tok_prec < next_prec {
+                rhs = self.parse_bin_op_rhs(tok_prec + 1, rhs)?;
             }
 
-            lhs = Box::from(Expression::Binary(lhs, prev_binop, rhs));
+            lhs = Box::from(Expression::Binary(lhs, binop, rhs));
         }
     }
 
@@ -225,7 +238,7 @@ impl<T: TokenStream> Parser<T> {
     fn parse_expression(&mut self) -> ParseResult<Box<Expression>> {
         // not prefixed unary
         let lhs = Box::from(self.parse_expression_single()?);
-        return Ok(self.parse_bin_op_rhs(lhs)?);
+        return Ok(self.parse_bin_op_rhs(0, lhs)?);
     }
 
     fn parse_if_statement(&mut self) -> ParseResult<If> {
@@ -1297,8 +1310,6 @@ mod tests {
 
         // (a + (b * c)) - ((d / e) % f)
 
-        // (a + (b * c))
-
         let b_times_c = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
                 vec!["b".to_string()],
@@ -1407,5 +1418,59 @@ mod tests {
         ));
 
         assert_eq!(expr, a_plus_b_times_c_minus_d_div_e_mod_f);
+    }
+
+    #[test]
+    fn complex_expression_order_test() {
+        let statement = "a == b && c || d != e";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let expr = parser.parse_expression().unwrap();
+
+        // should result in tree
+        //                             ||
+        //                       /            \
+        //                      &&            !=
+        //                     /  \          /   \
+        //                    ==   c        d     e
+        //                   /  \
+        //                  a    b
+        //
+
+        // ((a == b) && c) || ((d != e))
+
+        let a_eq_b = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["a".to_string()],
+            ))),
+            BinOp::Eq,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["b".to_string()],
+            ))),
+        ));
+
+        let a_eq_b_and_c = Box::from(Expression::Binary(
+            a_eq_b,
+            BinOp::And,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["c".to_string()],
+            ))),
+        ));
+
+        let d_neq_e = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["d".to_string()],
+            ))),
+            BinOp::Neq,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["e".to_string()],
+            ))),
+        ));
+
+        let a_eq_b_and_c_or_d_neq_e =
+            Box::from(Expression::Binary(a_eq_b_and_c, BinOp::Or, d_neq_e));
+
+        assert_eq!(expr, a_eq_b_and_c_or_d_neq_e);
     }
 }
