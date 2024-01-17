@@ -81,7 +81,7 @@ impl<T: TokenStream> Parser<T> {
             Token::Decimal(f) => Ok(AtomicExpression::Literal(LiteralValue::Decimal(f))),
             Token::String(s) => Ok(AtomicExpression::Literal(LiteralValue::String(s))),
             Token::Ident(s) => {
-                if matches!(self.next_token, Token::LParen) {
+                if matches!(self.curr_token, Token::LParen) {
                     let mut fn_call = Box::from(FnCall {
                         path: self.string_to_namepath(&s),
                         args: Vec::new(),
