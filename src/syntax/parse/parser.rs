@@ -919,4 +919,39 @@ mod tests {
             }))
         );
     }
+
+    #[test]
+    fn function_definition_tests() {
+        let statement = "fn add(int a, B b) { return a + b; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::FnDef(FnDef {
+                name: "add".to_string(),
+                args: vec![
+                    (Vec::new(), Type::Int, "a".to_string(),),
+                    (Vec::new(), Type::Struct("B".to_string()), "b".to_string(),),
+                ],
+                body: Block {
+                    statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                        Expression::Binary(
+                            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                                vec!["a".to_string()]
+                            ))),
+                            BinOp::Add,
+                            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                                vec!["b".to_string()]
+                            ))),
+                        )
+                    )))],
+                },
+                mods: Vec::new(),
+            }))
+        );
+    }
 }
