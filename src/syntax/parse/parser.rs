@@ -514,4 +514,14 @@ impl Parser {
 
         Ok(FnDef { name, args, body, mods })
     }
+
+    pub fn parse(&mut self) -> ParseResult<Block> {
+        let mut statements = Vec::new();
+        while !matches!(self.curr_token, Token::EOF) {
+            statements.push(StatementBlock::Statement(self.parse_statement()?));
+        }
+        self.eat(&Token::EOF)?;
+
+        Ok(Block { statements })
+    }
 }
