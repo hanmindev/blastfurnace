@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub enum Type {
     Void,
@@ -46,12 +48,41 @@ pub struct VarDecl {
     pub name: String,
     pub type_: Type,
     pub mods: Vec<VarMod>,
+    pub expr: Option<Box<Expression>>,
 }
 
 #[derive(Debug)]
-struct Assignment {
+pub struct VarAssign {
     pub path: NamePath,
     pub expr: Box<Expression>,
+}
+
+#[derive(Debug)]
+pub struct StructDef {
+    pub name: String,
+    pub map: HashMap<String, Type>,
+}
+
+#[derive(Debug)]
+pub struct StructDecl {
+    pub name: String,
+    pub type_: Type,
+    pub mods: Vec<VarMod>,
+    pub expr: Option<Compound>,
+}
+
+pub type Compound = HashMap<String, CompoundValue>;
+
+#[derive(Debug)]
+pub enum CompoundValue {
+    Expression(Box<Expression>),
+    Compound(Box<Compound>),
+}
+
+#[derive(Debug)]
+pub struct StructAssign {
+    pub path: NamePath,
+    pub compound: Compound,
 }
 
 #[derive(Debug)]
@@ -61,7 +92,7 @@ pub enum FnMod {
 }
 
 #[derive(Debug)]
-pub struct FnDecl {
+pub struct FnDef {
     pub name: String,
     pub args: Vec<VarDecl>,
     pub body: Block,
@@ -81,6 +112,7 @@ pub enum LiteralValue {
     Int(i32),
     Decimal(f64),
     String(String),
+    Compound(Compound),
 }
 
 #[derive(Debug)]
@@ -121,13 +153,18 @@ pub struct For {
 #[derive(Debug)]
 pub enum Statement {
     VarDecl(VarDecl),
-    Assignment(Assignment),
-    FnDecl(FnDecl),
+    StructDecl(StructDecl),
+    VarAssign(VarAssign),
+    StructAssign(StructAssign),
+    FnDef(FnDef),
     FnCall(FnCall),
     If(If),
     While(While),
     For(For),
     Return(Box<Expression>),
+    Break,
+    Continue,
+    Expression(Box<Expression>),
 }
 
 #[derive(Debug)]

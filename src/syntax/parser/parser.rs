@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+use std::iter::Map;
 use std::mem;
 use crate::syntax::lexer::lexer::Lexer;
 use crate::syntax::lexer::token_types::Token;
-use crate::syntax::parser::ast_types::{AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, UnOp, While};
+use crate::syntax::lexer::token_types::Token::{Any};
+use crate::syntax::parser::ast_types::{VarAssign, AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, Type, UnOp, VarDecl, VarMod, While, Compound, StructDecl, StructAssign};
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -37,7 +40,7 @@ impl Parser {
         }
     }
 
-    fn string_to_namepath(&mut self, s: String) -> NamePath {
+    fn string_to_namepath(&mut self, s: &String) -> NamePath {
         let mut path = Vec::new();
         let mut curr = String::new();
         for c in s.chars() {
@@ -68,7 +71,7 @@ impl Parser {
             }
             Token::Ident(s) => {
                 if matches!(self.next_token, Token::LParen) {
-                    let mut fn_call = Box::from(FnCall { path: self.string_to_namepath(s), args: Vec::new() });
+                    let mut fn_call = Box::from(FnCall { path: self.string_to_namepath(&s), args: Vec::new() });
 
                     self.eat(&Token::LParen)?;
 
@@ -82,7 +85,7 @@ impl Parser {
                     Ok(AtomicExpression::FnCall(fn_call))
                 } else {
                     // variable
-                    Ok(AtomicExpression::Variable(self.string_to_namepath(s)))
+                    Ok(AtomicExpression::Variable(self.string_to_namepath(&s)))
                 }
             }
             _ => Err(ParseError::Unexpected(self.curr_token.clone())),
@@ -224,9 +227,77 @@ impl Parser {
 
         Ok(While { cond, body })
     }
+    fn parse_assignment(&mut self) -> ParseResult<Statement> {
+        match &self.eat(&Any)? {
+            Token::String(var_name) => {
+                let path = self.string_to_namepath(var_name);
+
+                let assign_op = match self.eat(&Any)? {
+                    Token::Assign => {
+                        return if matches!(self.curr_token, Token::LBrace) {
+                            Ok(Statement::StructAssign(StructAssign { path, compound: self.parse_compound()? }))
+                        } else {
+                            Ok(Statement::VarAssign(VarAssign { path, expr: self.parse_expression()? }))
+                        };
+                    }
+                    Token::PlusAssign => BinOp::Add,
+                    Token::MinusAssign => BinOp::Sub,
+                    Token::StarAssign => BinOp::Mul,
+                    Token::SlashAssign => BinOp::Div,
+                    Token::PercentAssign => BinOp::Mod,
+                    _ => { Err(ParseError::Unexpected(self.curr_token.clone()))? }
+                };
+
+                if matches!(self.curr_token, Token::LBrace) {
+                    Err(ParseError::Unexpected(self.curr_token.clone()))?
+                }
+
+                let rhs = self.parse_expression()?;
+
+                let expr = Expression::Binary(Box::from(Expression::AtomicExpression(AtomicExpression::Variable(path.clone()))), assign_op, rhs);
+
+                Ok(Statement::VarAssign(VarAssign { path, expr: Box::from(expr) }))
+            }
+            _ => {
+                Err(ParseError::Unexpected(self.curr_token.clone()))
+            }
+        }
+    }
 
     fn parse_statement(&mut self) -> ParseResult<Statement> {
-        match self.curr_token {
+        match &self.curr_token {
+            Token::VoidType | Token::IntType | Token::FloatType | Token::DoubleType | Token::BoolType | Token::StringType => {
+                // variable declaration
+                Ok(Statement::VarDecl(self.parse_var_decl(vec![])?))
+            }
+
+            Token::Const => {
+                // struct or variable declaration with const modifier
+                self.eat(&Token::Const)?;
+                if matches!(self.curr_token, Token::Ident(_)) {
+                    Ok(Statement::StructDecl(self.parse_struct_decl(vec![VarMod::Const])?))
+                } else {
+                    Ok(Statement::VarDecl(self.parse_var_decl(vec![VarMod::Const])?))
+                }
+            }
+
+            Token::Ident(_) => {
+                match &self.next_token {
+                    Token::String(_) => {
+                        // struct declaration
+                        Ok(Statement::StructDecl(self.parse_struct_decl(vec![])?))
+                    }
+
+                    // variable / struct assignment
+                    Token::Assign | Token::PlusAssign | Token::MinusAssign | Token::StarAssign | Token::SlashAssign | Token::PercentAssign => {
+                        self.parse_assignment()
+                    }
+                    _ => {
+                        Ok(Statement::Expression(self.parse_expression()?))
+                    }
+                }
+            }
+
             Token::If => {
                 Ok(Statement::If(self.parse_if_statement()?))
             }
@@ -240,6 +311,14 @@ impl Parser {
                 self.eat(&Token::Return)?;
                 Ok(Statement::Return(self.parse_expression()?))
             }
+            Token::Break => {
+                self.eat(&Token::Break)?;
+                Ok(Statement::Break)
+            }
+            Token::Continue => {
+                self.eat(&Token::Continue)?;
+                Ok(Statement::Continue)
+            }
 
             _ => {
                 Err(ParseError::Unexpected(self.curr_token.clone()))
@@ -251,14 +330,80 @@ impl Parser {
         self.eat(&Token::LBrace)?;
         let mut statements = Vec::new();
         while !matches!(self.curr_token, Token::RBrace) {
-            if matches!(self.curr_token, Token::LBrace) {
-                statements.push(StatementBlock::Block(self.parse_block()?));
-            } else {
-                statements.push(StatementBlock::Statement(self.parse_statement()?));
+            match self.curr_token {
+                Token::LBrace => statements.push(StatementBlock::Block(self.parse_block()?)),
+                _ => statements.push(StatementBlock::Statement(self.parse_statement()?))
             }
         }
         self.eat(&Token::RBrace)?;
 
         Ok(Block { statements })
+    }
+
+    fn parse_compound(&mut self) -> ParseResult<Compound> {
+        todo!()
+    }
+    fn parse_struct_decl(&mut self, mods: Vec<VarMod>) -> ParseResult<StructDecl> {
+        match self.eat(&Any)? {
+            Token::Ident(s_type) => {
+                let type_ = Type::Struct(s_type.clone());
+
+                match &self.curr_token {
+                    Token::Ident(s) => {
+                        if matches!(self.next_token, Token::Assign) {
+                            // struct assignment
+
+                            match self.parse_assignment()? {
+                                Statement::StructAssign(struct_assign) => {
+                                    if struct_assign.path.len() != 1 {
+                                        Err(ParseError::Unexpected(self.curr_token.clone()))?
+                                    }
+
+                                    Ok(StructDecl { type_, name: struct_assign.path[0].clone(), mods, expr: Some(struct_assign.compound) })
+                                }
+                                _ => {
+                                    Err(ParseError::Unexpected(self.curr_token.clone()))
+                                }
+                            }
+                        } else {
+                            // just struct declaration
+                            Ok(StructDecl { type_, name: String::from(s), mods, expr: None })
+                        }
+                    }
+                    _ => {
+                        Err(ParseError::Unexpected(self.curr_token.clone()))?
+                    }
+                }
+            }
+            _ => {
+                Err(ParseError::Unexpected(self.curr_token.clone()))
+            }
+        }
+    }
+    fn parse_var_decl(&mut self, mods: Vec<VarMod>) -> ParseResult<VarDecl> {
+        let type_ = match self.eat(&Any)? {
+            Token::VoidType => Type::Void,
+            Token::IntType => Type::Int,
+            Token::FloatType => Type::Float,
+            Token::DoubleType => Type::Double,
+            Token::BoolType => Type::Bool,
+            Token::StringType => Type::String,
+            _ => {
+                Err(ParseError::Unexpected(self.curr_token.clone()))?
+            }
+        };
+
+        match self.parse_assignment()? {
+            Statement::VarAssign(var_assign) => {
+                if var_assign.path.len() != 1 {
+                    Err(ParseError::Unexpected(self.curr_token.clone()))?
+                }
+
+                Ok(VarDecl { type_, name: var_assign.path[0].clone(), mods, expr: Some(var_assign.expr) })
+            }
+            _ => {
+                Err(ParseError::Unexpected(self.curr_token.clone()))
+            }
+        }
     }
 }
