@@ -549,15 +549,13 @@ impl<T: TokenStream> Parser<T> {
 
         self.eat(&Token::LParen)?;
         let mut args = Vec::new();
-        loop {
-            if self.eat(&Token::Comma).is_err() {
-                break;
-            }
 
-            let mut mods = Vec::new();
-            if self.eat(&Token::Const).is_ok() {
-                mods.push(VarMod::Const);
-            }
+        if self.eat(&Token::RParen).is_err() {
+            loop {
+                let mut mods = Vec::new();
+                if self.eat(&Token::Const).is_ok() {
+                    mods.push(VarMod::Const);
+                }
 
                 let type_ = match self.eat(&Any)? {
                     Token::VoidType => Type::Void,
@@ -585,10 +583,15 @@ impl<T: TokenStream> Parser<T> {
                     }
                 };
 
-            args.push((mods, type_, name));
-        }
+                args.push((mods, type_, name));
 
-        self.eat(&Token::RParen)?;
+                if self.eat(&Token::Comma).is_err() {
+                    break;
+                }
+            }
+
+            self.eat(&Token::RParen)?;
+        }
 
         let body = self.parse_block()?;
 
