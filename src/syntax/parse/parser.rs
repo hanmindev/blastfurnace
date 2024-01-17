@@ -1081,4 +1081,43 @@ mod tests {
             }))
         );
     }
+
+    #[test]
+    fn while_test() {
+        let statement = "while (a < 10) { a += 1; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::While(While {
+                cond: Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    ))),
+                    BinOp::Lt,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(10)
+                    ))),
+                )),
+                body: Box::from(Block {
+                    statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                        path: vec!["a".to_string()],
+                        expr: Box::from(Expression::Binary(
+                            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                                vec!["a".to_string()]
+                            ))),
+                            BinOp::Add,
+                            Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                                LiteralValue::Int(1)
+                            ))),
+                        )),
+                    }))],
+                }),
+            }))
+        );
+    }
 }
