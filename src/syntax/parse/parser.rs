@@ -228,6 +228,7 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::For)?;
         self.eat(&Token::LParen)?;
         let init = Box::from(self.parse_statement()?);
+        self.eat(&Token::Semicolon)?;
         let cond = self.parse_expression()?;
         self.eat(&Token::Semicolon)?;
         let inc = Box::from(self.parse_statement()?);
@@ -595,8 +596,16 @@ impl<T: TokenStream> Parser<T> {
     pub fn parse(&mut self) -> ParseResult<Block> {
         let mut statements = Vec::new();
         while !matches!(self.curr_token, Token::EOF) {
-            statements.push(StatementBlock::Statement(self.parse_statement()?));
-            self.eat(&Token::Semicolon)?;
+            let statement = self.parse_statement()?;
+
+            if !matches!(
+                statement,
+                Statement::FnDef(_) | Statement::If(_) | Statement::For(_) | Statement::While(_)
+            ) {
+                self.eat(&Token::Semicolon)?;
+            }
+
+            statements.push(StatementBlock::Statement(statement));
         }
         self.eat(&Token::EOF)?;
 
@@ -769,7 +778,7 @@ mod tests {
 
     #[test]
     fn variable_assignment_tests() {
-        let statement = "a = 0; b = 2.4; a += 2; a -= 3; a *= 4; a /= 5; a %= 6;;";
+        let statement = "a = 0; b = 2.4; a += 2; a -= 3; a *= 4; a /= 5; a %= 6;";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -1107,6 +1116,65 @@ mod tests {
                         )),
                     }))],
                 }),
+            }))
+        );
+    }
+
+    #[test]
+    fn for_test() {
+        let statement = "for (int i = 0; i < 10; i += 1) { a += 1; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::For(For {
+                init: Some(Box::from(Statement::VarDecl(VarDecl {
+                    type_: Type::Int,
+                    name: "i".to_string(),
+                    mods: Vec::new(),
+                    expr: Some(Box::from(Expression::AtomicExpression(
+                        AtomicExpression::Literal(LiteralValue::Int(0))
+                    ))),
+                }))),
+                cond: Some(Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["i".to_string()]
+                    ))),
+                    BinOp::Lt,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(10)
+                    ))),
+                ))),
+                step: Some(Box::from(Statement::VarAssign(VarAssign {
+                    path: vec!["i".to_string()],
+                    expr: Box::from(Expression::Binary(
+                        Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                            vec!["i".to_string()]
+                        ))),
+                        BinOp::Add,
+                        Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                            LiteralValue::Int(1)
+                        ))),
+                    )),
+                }))),
+                body: Block {
+                    statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                        path: vec!["a".to_string()],
+                        expr: Box::from(Expression::Binary(
+                            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                                vec!["a".to_string()]
+                            ))),
+                            BinOp::Add,
+                            Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                                LiteralValue::Int(1)
+                            ))),
+                        )),
+                    }))],
+                },
             }))
         );
     }
