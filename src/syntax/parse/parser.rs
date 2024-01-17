@@ -164,38 +164,27 @@ impl<T> Parser<T> {
                 Ok(self.parse_bin_op_rhs(0, expr)?)
             }
             _ => {
-                // check if unary
-                if matches!(
-                    self.curr_token,
-                    Token::Plus
-                        | Token::Minus
-                        | Token::Exclamation
-                        | Token::Star
-                        | Token::Ampersand
-                ) {
-                    let op = self.eat(&Any)?;
-                    let right = self.parse_expression()?;
+                // check if prefixed unary
+                let unop = match self.curr_token {
+                    Token::Plus => {
+                        let right = self.parse_expression()?;
+                        return Ok(right);
+                    }
+                    Token::Minus => UnOp::Neg,
+                    Token::Exclamation => UnOp::Not,
+                    Token::Star => UnOp::Deref,
+                    Token::Ampersand => UnOp::Ref,
+                    _ => {
+                        // not prefixed unary
+                        let expr = Box::from(Expression::AtomicExpression(
+                            self.parse_atomic_expression()?,
+                        ));
+                        Ok(self.parse_bin_op_rhs(0, expr)?)
+                    }
+                };
 
-                    let unop = match op {
-                        Token::Plus => {
-                            return Ok(right);
-                        }
-                        Token::Minus => UnOp::Neg,
-                        Token::Exclamation => UnOp::Not,
-                        Token::Star => UnOp::Deref,
-                        Token::Ampersand => UnOp::Ref,
-                        _ => {
-                            panic!("Invalid unary operator. Match arms in parse_expression() are not exhaustive.");
-                        }
-                    };
-
-                    Ok(Box::from(Expression::Unary(unop, right)))
-                } else {
-                    let expr = Box::from(Expression::AtomicExpression(
-                        self.parse_atomic_expression()?,
-                    ));
-                    Ok(self.parse_bin_op_rhs(0, expr)?)
-                }
+                let right = self.parse_expression()?;
+                Ok(Box::from(Expression::Unary(unop, right)))
             }
         }
     }
