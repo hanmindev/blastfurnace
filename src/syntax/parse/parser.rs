@@ -3,6 +3,7 @@ use crate::syntax::parse::ast_types::{
     If, LiteralValue, NamePath, Statement, StatementBlock, StructAssign, StructDecl, Type, UnOp,
     VarAssign, VarDecl, VarMod, While,
 };
+use crate::syntax::token::lexer::TokenError;
 use crate::syntax::token::token_types::Token;
 use crate::syntax::token::token_types::Token::Any;
 use std::collections::HashMap;
@@ -16,7 +17,7 @@ pub enum ParseError {
 pub type ParseResult<T> = Result<T, ParseError>;
 
 pub trait TokenStream {
-    fn next(&mut self) -> Token;
+    fn next(&mut self) -> Result<Token, TokenError>;
 }
 
 pub struct Parser<T: TokenStream> {
@@ -37,15 +38,20 @@ impl<T: TokenStream> Parser<T> {
         parser
     }
 
+    fn next(&mut self) -> Token {
+        self.lexer.next().unwrap()
+    }
+
     fn eat(&mut self, type_: &Token) -> ParseResult<Token> {
         // return old token, set new token, set one buffer of next token
         if mem::discriminant(&self.curr_token) == mem::discriminant(type_)
-            || matches!(self.curr_token, Token::Any)
+            || matches!(&self.curr_token, Any)
         {
-            Ok(mem::replace(
-                &mut self.curr_token,
-                mem::replace(&mut self.next_token, self.lexer.next()),
-            ))
+            let old_curr = self.curr_token.clone();
+            self.curr_token = self.next_token.clone();
+            self.next_token = self.next();
+
+            Ok(old_curr)
         } else {
             Err(ParseError::Unexpected(self.curr_token.clone()))
         }
