@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use std::iter::Map;
 use std::mem;
 use crate::syntax::lexer::lexer::Lexer;
 use crate::syntax::lexer::token_types::Token;
 use crate::syntax::lexer::token_types::Token::{Any};
-use crate::syntax::parser::ast_types::{VarAssign, AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, Type, UnOp, VarDecl, VarMod, While, Compound, StructDecl, StructAssign, CompoundValue};
+use crate::syntax::parser::ast_types::{VarAssign, AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, Type, UnOp, VarDecl, VarMod, While, Compound, StructDecl, StructAssign, CompoundValue, FnDef, FnMod};
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -437,5 +436,41 @@ impl Parser {
                 Err(ParseError::Unexpected(self.curr_token.clone()))
             }
         }
+    }
+
+    fn parse_fn_def(&mut self) -> ParseResult<FnDef> {
+        let mut mods = Vec::new();
+
+        if self.eat(&Token::Rec).is_ok() {
+            mods.push(FnMod::Rec);
+        }
+
+        if self.eat(&Token::Inline).is_ok() {
+            mods.push(FnMod::Inline);
+        }
+
+        self.eat(&Token::Fn)?;
+        let name = match self.eat(&Any)? {
+            Token::Ident(s) => s,
+            _ => {
+                Err(ParseError::Unexpected(self.curr_token.clone()))?
+            }
+        };
+
+        self.eat(&Token::LParen)?;
+        let mut args = Vec::new();
+        while !matches!(self.curr_token, Token::RParen) {
+            args.push(self.parse_var_decl(vec![])?);
+            if matches!(self.curr_token, Token::Comma) {
+                self.eat(&Token::Comma)?;
+            } else {
+                break;
+            }
+        }
+        self.eat(&Token::RParen)?;
+
+        let body = self.parse_block()?;
+
+        Ok(FnDef { name, args, body, mods })
     }
 }

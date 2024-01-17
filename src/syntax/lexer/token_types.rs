@@ -61,6 +61,7 @@ pub enum Token {
 
     Fn,
     Rec,
+    Inline,
 
     If,
     Else,
