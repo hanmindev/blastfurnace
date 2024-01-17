@@ -54,7 +54,7 @@ impl<T: TokenStream> Parser<T> {
         } else {
             Err(ParseError::Unexpected(
                 self.curr_token.clone(),
-                format!("Tried to eat {:?}, ate {:?}", self.curr_token, type_),
+                format!("Tried to eat {:?}, ate {:?}", type_, self.curr_token),
             ))
         }
     }
