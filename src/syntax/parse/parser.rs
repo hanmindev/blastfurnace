@@ -211,6 +211,7 @@ impl<T: TokenStream> Parser<T> {
                 // check if prefixed unary
                 let unop = match self.curr_token {
                     Token::Plus => {
+                        self.eat(&Token::Plus)?;
                         let right = self.parse_expression()?;
                         return Ok(right);
                     }
@@ -403,10 +404,7 @@ impl<T: TokenStream> Parser<T> {
             }
             Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
             Token::StructType => Ok(Statement::StructDef(self.parse_struct_def()?)),
-            tok => Err(ParseError::Unexpected(
-                tok.clone(),
-                "Expected valid token for statement beginning".to_string(),
-            )),
+            _ => Ok(Statement::Expression(self.parse_expression()?)),
         }
     }
 
