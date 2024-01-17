@@ -1,6 +1,5 @@
 use crate::syntax::parse::parser::TokenStream;
 use crate::syntax::token::token_types::Token;
-use crate::syntax::token::token_types::Token::Invalid;
 
 pub trait ByteStream {
     fn next(&mut self) -> char;
@@ -11,7 +10,7 @@ pub struct Lexer<T: ByteStream> {
     curr: char,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenError {
     InvalidToken(String),
     MultipleDecimals,
@@ -105,19 +104,19 @@ impl<T: ByteStream> Lexer<T> {
                 "impl" => Token::Impl,
                 "const" => Token::Const,
 
-                _ => Token::Ident(ident)
+                _ => Token::Ident(ident),
             });
         }
 
         // numbers
         if self.curr.is_ascii_digit() || self.curr == '.' {
             let mut number = String::new();
-            let mut dec = self.curr == '.';
+            let mut dec = false;
 
             while self.curr.is_ascii_digit() || (self.curr == '.') {
-                if dec {
-                    if self.curr == '.' {
-                        return Err(TokenError::MultipleDecimals)
+                if self.curr == '.' {
+                    if dec {
+                        return Err(TokenError::MultipleDecimals);
                     } else {
                         dec = true;
                     }
@@ -128,9 +127,15 @@ impl<T: ByteStream> Lexer<T> {
             }
 
             return Ok(if dec {
-                Token::Decimal(number.parse().unwrap())
+                match number.parse() {
+                    Ok(n) => Token::Decimal(n),
+                    Err(_) => return Err(TokenError::InvalidToken(number)),
+                }
             } else {
-                Token::Int(number.parse().unwrap())
+                match number.parse() {
+                    Ok(n) => Token::Int(n),
+                    Err(_) => return Err(TokenError::InvalidToken(number)),
+                }
             });
         }
 
@@ -147,7 +152,7 @@ impl<T: ByteStream> Lexer<T> {
                 '*' => Token::StarAssign,
                 '/' => Token::SlashAssign,
                 '%' => Token::PercentAssign,
-                _ => return Err(TokenError::InvalidToken(format!("{}", prev)))
+                _ => return Err(TokenError::InvalidToken(format!("{}", prev))),
             });
         }
 
@@ -173,14 +178,14 @@ impl<T: ByteStream> Lexer<T> {
             ']' => Token::RBracket,
             '<' => Token::LAngle,
             '>' => Token::RAngle,
-            _ => return Err(TokenError::InvalidToken(format!("{}", prev)))
+            _ => return Err(TokenError::InvalidToken(format!("{}", prev))),
         })
     }
 }
 
 impl<T: ByteStream> TokenStream for Lexer<T> {
-    fn next(&mut self) -> Token {
-        self.get_token().unwrap()
+    fn next(&mut self) -> Result<Token, TokenError> {
+        self.get_token()
     }
 }
 
@@ -233,9 +238,9 @@ mod tests {
         let statement = "643214 3243.24321 .432432 2342.342315.321534";
         let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
 
-        assert_eq!(lexer.next(), Token::Int(643214));
-        assert_eq!(lexer.next(), Token::Decimal(3243.24321));
-        assert_eq!(lexer.next(), Token::Decimal(0.432432));
-        assert_eq!(lexer.next(), Token::Decimal(2342.342315));
+        assert_eq!(lexer.next().unwrap(), Token::Int(643214));
+        assert_eq!(lexer.next().unwrap(), Token::Decimal(3243.24321));
+        assert_eq!(lexer.next().unwrap(), Token::Decimal(0.432432));
+        assert_eq!(lexer.next().err().unwrap(), TokenError::MultipleDecimals);
     }
 }
