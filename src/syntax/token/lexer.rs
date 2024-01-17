@@ -177,3 +177,50 @@ impl<T> TokenStream for Lexer<T> {
         self.get_token()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct StringReader {
+        string: String,
+        index: usize,
+    }
+
+    impl StringReader {
+        fn new(string: String) -> StringReader {
+            StringReader {
+                string,
+                index: 0,
+            }
+        }
+    }
+
+    impl ByteStream for StringReader {
+        fn next(&mut self) -> char {
+            let c = self.string.chars().nth(self.index).unwrap();
+            self.index += 1;
+            c
+        }
+    }
+
+    #[test]
+    fn test_lexer() {
+        let statement = "fn main() { return 0; }";
+        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+
+        assert_eq!(lexer.next(), Token::Fn);
+        assert_eq!(lexer.next(), Token::Ident("main".to_string()));
+        assert_eq!(lexer.next(), Token::LParen);
+        assert_eq!(lexer.next(), Token::RParen);
+        assert_eq!(lexer.next(), Token::LBrace);
+        assert_eq!(lexer.next(), Token::Return);
+        assert_eq!(lexer.next(), Token::Int(0));
+        assert_eq!(lexer.next(), Token::Semicolon);
+        assert_eq!(lexer.next(), Token::RBrace);
+        assert_eq!(lexer.next(), Token::EOF);
+    }
+
+
+
+}
