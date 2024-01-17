@@ -1538,6 +1538,51 @@ mod tests {
     }
 
     #[test]
+    fn expression_deref_test() {
+        let statement = "*a + b * *d";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let expr = parser.parse_expression().unwrap();
+
+        // should result in tree
+        //          +
+        //      /       \
+        //    *a         *
+        //              / \
+        //             b   *d
+
+        // (*a + (b * (*d)))
+
+        let deref_a = Box::from(Expression::Unary(
+            UnOp::Deref,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["a".to_string()],
+            ))),
+        ));
+
+        let deref_d = Box::from(Expression::Unary(
+            UnOp::Deref,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["d".to_string()],
+            ))),
+        ));
+
+        let b_times_deref_d = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["b".to_string()],
+            ))),
+            BinOp::Mul,
+            deref_d,
+        ));
+
+        let deref_a_plus_b_times_deref_d =
+            Box::from(Expression::Binary(deref_a, BinOp::Add, b_times_deref_d));
+
+        assert_eq!(expr, deref_a_plus_b_times_deref_d);
+    }
+
+    #[test]
     fn struct_definition_test() {
         let statement = "struct A { int a; float b; double c; C d; }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
