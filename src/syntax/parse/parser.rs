@@ -179,7 +179,7 @@ impl<T: TokenStream> Parser<T> {
                         let expr = Box::from(Expression::AtomicExpression(
                             self.parse_atomic_expression()?,
                         ));
-                        Ok(self.parse_bin_op_rhs(0, expr)?)
+                        return Ok(self.parse_bin_op_rhs(0, expr)?);
                     }
                 };
 
