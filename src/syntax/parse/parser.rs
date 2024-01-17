@@ -313,7 +313,7 @@ impl<T: TokenStream> Parser<T> {
 
             Token::Ident(_) => {
                 match &self.next_token {
-                    Token::String(_) => {
+                    Token::Ident(_) => {
                         // struct declaration
                         let decl = self.parse_struct_or_var_decl()?;
                         self.eat(&Token::Semicolon)?;
@@ -387,7 +387,7 @@ impl<T: TokenStream> Parser<T> {
 
         self.eat(&Token::LBrace)?;
 
-        while let Token::String(key) = &mut self.curr_token {
+        while let Token::Ident(key) = &mut self.curr_token {
             let key = key.clone();
 
             self.eat(&Any)?;
@@ -684,6 +684,49 @@ mod tests {
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::String("hello".to_string()))
                 ))),
+            }))
+        );
+    }
+
+    #[test]
+    fn struct_declarations_test() {
+        let statement = "A a = { a: 0, b: 1, c: 2 }; B b = { a: 0, b: \"hello\", c: 2.54 }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 2);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::StructDecl(StructDecl {
+                type_: Type::Struct("A".to_string()),
+                name: "A".to_string(),
+                mods: Vec::new(),
+                expr: Some(
+                    vec![
+                        (
+                            "a".to_string(),
+                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                                AtomicExpression::Literal(LiteralValue::Int(0))
+                            )))
+                        ),
+                        (
+                            "b".to_string(),
+                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                                AtomicExpression::Literal(LiteralValue::Int(1))
+                            )))
+                        ),
+                        (
+                            "c".to_string(),
+                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                                AtomicExpression::Literal(LiteralValue::Int(2))
+                            )))
+                        )
+                    ]
+                    .into_iter()
+                    .collect()
+                ),
             }))
         );
     }
