@@ -3,7 +3,6 @@ use crate::syntax::parse::ast_types::{
     If, LiteralValue, NamePath, Statement, StatementBlock, StructAssign, StructDecl, Type, UnOp,
     VarAssign, VarDecl, VarMod, While,
 };
-use crate::syntax::token::lexer::Lexer;
 use crate::syntax::token::token_types::Token;
 use crate::syntax::token::token_types::Token::Any;
 use std::collections::HashMap;
@@ -16,14 +15,18 @@ pub enum ParseError {
 
 pub type ParseResult<T> = Result<T, ParseError>;
 
-pub struct Parser {
-    lexer: Lexer,
+pub trait TokenStream {
+    fn next(&mut self) -> Token;
+}
+
+pub struct Parser<T: TokenStream> {
+    lexer: T,
     curr_token: Token,
     next_token: Token,
 }
 
-impl Parser {
-    pub fn new(lexer: Lexer) -> Parser {
+impl<T> Parser<T> {
+    pub fn new(lexer: T) -> Parser<T> {
         let mut parser = Parser {
             lexer,
             curr_token: Token::EOF,
@@ -41,7 +44,7 @@ impl Parser {
         {
             Ok(mem::replace(
                 &mut self.curr_token,
-                mem::replace(&mut self.next_token, self.lexer.get_token()),
+                mem::replace(&mut self.next_token, self.lexer.next()),
             ))
         } else {
             Err(ParseError::Unexpected(self.curr_token.clone()))

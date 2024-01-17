@@ -1,5 +1,6 @@
 use crate::syntax::token::token_types::Token;
 use crate::syntax::token::token_types::Token::Invalid;
+use crate::syntax::parse::parser::TokenStream;
 use std::io;
 use std::io::Read;
 
@@ -31,7 +32,7 @@ impl Lexer {
         prev
     }
 
-    pub fn get_token(&mut self) -> Token {
+    fn get_token(&mut self) -> Token {
         // check for EOF
         if self.curr == '\0' {
             return Token::EOF;
@@ -175,5 +176,11 @@ impl Lexer {
             '>' => Token::RAngle,
             _ => Invalid(prev.to_string()),
         }
+    }
+}
+
+impl TokenStream for Lexer {
+    fn next(&mut self) -> Token {
+        self.get_token()
     }
 }

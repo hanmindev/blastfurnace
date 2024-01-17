@@ -1,2 +1,2 @@
 mod ast_types;
-mod parser;
+pub mod parser;
