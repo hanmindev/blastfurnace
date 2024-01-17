@@ -172,7 +172,7 @@ impl<T: ByteStream> Lexer<T> {
     }
 }
 
-impl<T> TokenStream for Lexer<T> {
+impl<T: ByteStream> TokenStream for Lexer<T> {
     fn next(&mut self) -> Token {
         self.get_token()
     }
