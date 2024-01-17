@@ -121,11 +121,11 @@ impl<T: TokenStream> Parser<T> {
                     match self.curr_token {
                         Token::PlusPlus => {
                             self.eat(&Token::PlusPlus)?;
-                            Ok(Expression::Unary(UnOp::PostPlusPlus, Box::from(var)))
+                            Ok(Expression::Unary(UnOp::PostInc, Box::from(var)))
                         }
                         Token::MinusMinus => {
                             self.eat(&Token::MinusMinus)?;
-                            Ok(Expression::Unary(UnOp::PostMinusMinus, Box::from(var)))
+                            Ok(Expression::Unary(UnOp::PostDec, Box::from(var)))
                         }
                         _ => Ok(var),
                     }
@@ -243,8 +243,8 @@ impl<T: TokenStream> Parser<T> {
                     Token::Exclamation => UnOp::Not,
                     Token::Star => UnOp::Deref,
                     Token::Ampersand => UnOp::Ref,
-                    Token::PlusPlus => UnOp::PrePlusPlus,
-                    Token::MinusMinus => UnOp::PreMinusMinus,
+                    Token::PlusPlus => UnOp::PreInc,
+                    Token::MinusMinus => UnOp::PreDec,
 
                     _ => {
                         // not prefixed unary
@@ -1603,6 +1603,34 @@ mod tests {
             Box::from(Expression::Binary(deref_a, BinOp::Add, b_times_deref_d));
 
         assert_eq!(expr, deref_a_plus_b_times_deref_d);
+    }
+
+    #[test]
+    fn plusplus_check_test() {
+        let statement = "a++ + ++b";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let expr = parser.parse_expression().unwrap();
+
+        assert_eq!(
+            expr,
+            Box::from(Expression::Binary(
+                Box::from(Expression::Unary(
+                    UnOp::PostInc,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    )))
+                )),
+                BinOp::Add,
+                Box::from(Expression::Unary(
+                    UnOp::PreInc,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["b".to_string()]
+                    )))
+                )),
+            ))
+        );
     }
 
     #[test]
