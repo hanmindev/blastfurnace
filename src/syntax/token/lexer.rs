@@ -197,7 +197,11 @@ mod tests {
 
     impl ByteStream for StringReader {
         fn next(&mut self) -> char {
-            let c = self.string.chars().nth(self.index).unwrap();
+            if (self.index >= self.string.len()) {
+                return '\0';
+            }
+
+            let c = self.string.as_bytes()[self.index] as char;
             self.index += 1;
             c
         }
