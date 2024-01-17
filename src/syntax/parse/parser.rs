@@ -513,6 +513,10 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::LParen)?;
         let mut args = Vec::new();
         loop {
+            if self.eat(&Token::Comma).is_err() {
+                break;
+            }
+
             let mut mods = Vec::new();
             if self.eat(&Token::Const).is_ok() {
                 mods.push(VarMod::Const);
