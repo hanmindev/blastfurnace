@@ -109,6 +109,8 @@ impl<T: ByteStream> Lexer<T> {
                 "break" => Token::Break,
                 "continue" => Token::Continue,
 
+                "null" => Token::Null,
+
                 "true" => Token::Bool(true),
                 "false" => Token::Bool(false),
 

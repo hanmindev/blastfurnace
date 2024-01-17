@@ -76,6 +76,7 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_atomic_expression(&mut self) -> ParseResult<AtomicExpression> {
         match self.eat(&Any)? {
+            Token::Null => Ok(AtomicExpression::Literal(LiteralValue::Null)),
             Token::Bool(b) => Ok(AtomicExpression::Literal(LiteralValue::Bool(b))),
             Token::Int(i) => Ok(AtomicExpression::Literal(LiteralValue::Int(i))),
             Token::Decimal(f) => Ok(AtomicExpression::Literal(LiteralValue::Decimal(f))),
