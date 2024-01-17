@@ -223,4 +223,15 @@ mod tests {
         assert_eq!(lexer.next(), Token::RBrace);
         assert_eq!(lexer.next(), Token::EOF);
     }
+
+    #[test]
+    fn number_comprehension() {
+        let statement = "643214 3243.24321 .432432 2342.342315.321534";
+        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+
+        assert_eq!(lexer.next(), Token::Int(643214));
+        assert_eq!(lexer.next(), Token::Decimal(3243.24321));
+        assert_eq!(lexer.next(), Token::Decimal(0.432432));
+        assert_eq!(lexer.next(), Token::Decimal(2342.342315));
+    }
 }
