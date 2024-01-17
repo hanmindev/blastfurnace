@@ -1,11 +1,11 @@
-use crate::syntax::parse::ast_types::{
+use crate::front::lexical::lexer::TokenError;
+use crate::front::lexical::token_types::Token;
+use crate::front::lexical::token_types::Token::Any;
+use crate::front::syntax::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
     If, LiteralValue, NamePath, Statement, StatementBlock, StructAssign, StructDecl, StructDef,
     Type, UnOp, VarAssign, VarDecl, VarMod, While,
 };
-use crate::syntax::token::lexer::TokenError;
-use crate::syntax::token::token_types::Token;
-use crate::syntax::token::token_types::Token::Any;
 use std::collections::HashMap;
 use std::mem;
 
@@ -44,7 +44,7 @@ impl<T: TokenStream> Parser<T> {
     }
 
     fn eat(&mut self, type_: &Token) -> ParseResult<Token> {
-        // return old token, set new token, set one buffer of next token
+        // return old lexical, set new lexical, set one buffer of next lexical
         if mem::discriminant(&self.curr_token) == mem::discriminant(type_) || matches!(type_, Any) {
             let old_curr = self.curr_token.clone();
             self.curr_token = self.next_token.clone();
@@ -743,8 +743,8 @@ impl<T: TokenStream> Parser<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::syntax::token::lexer::Lexer;
-    use crate::syntax::token::lexer_string_reader::StringReader;
+    use crate::front::lexical::lexer::Lexer;
+    use crate::front::lexical::lexer_string_reader::StringReader;
 
     #[test]
     fn simple_test() {

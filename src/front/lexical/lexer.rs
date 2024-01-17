@@ -1,5 +1,5 @@
-use crate::syntax::parse::parser::TokenStream;
-use crate::syntax::token::token_types::Token;
+use crate::front::lexical::token_types::Token;
+use crate::front::syntax::parser::TokenStream;
 
 pub trait ByteStream {
     fn next(&mut self) -> char;
@@ -238,7 +238,7 @@ impl<T: ByteStream> TokenStream for Lexer<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::syntax::token::lexer_string_reader::StringReader;
+    use crate::front::lexical::lexer_string_reader::StringReader;
 
     #[test]
     fn simple_test() {

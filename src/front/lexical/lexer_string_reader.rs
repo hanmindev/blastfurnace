@@ -1,4 +1,4 @@
-use crate::syntax::token::lexer::ByteStream;
+use crate::front::lexical::lexer::ByteStream;
 
 pub struct StringReader {
     string: String,
