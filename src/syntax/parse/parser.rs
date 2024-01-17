@@ -74,13 +74,23 @@ impl<T: TokenStream> Parser<T> {
         path
     }
 
-    fn parse_atomic_expression(&mut self) -> ParseResult<AtomicExpression> {
+    fn parse_atomic_expression(&mut self) -> ParseResult<Expression> {
         match self.eat(&Any)? {
-            Token::Null => Ok(AtomicExpression::Literal(LiteralValue::Null)),
-            Token::Bool(b) => Ok(AtomicExpression::Literal(LiteralValue::Bool(b))),
-            Token::Int(i) => Ok(AtomicExpression::Literal(LiteralValue::Int(i))),
-            Token::Decimal(f) => Ok(AtomicExpression::Literal(LiteralValue::Decimal(f))),
-            Token::String(s) => Ok(AtomicExpression::Literal(LiteralValue::String(s))),
+            Token::Null => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+                LiteralValue::Null,
+            ))),
+            Token::Bool(b) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+                LiteralValue::Bool(b),
+            ))),
+            Token::Int(i) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+                LiteralValue::Int(i),
+            ))),
+            Token::Decimal(f) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+                LiteralValue::Decimal(f),
+            ))),
+            Token::String(s) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+                LiteralValue::String(s),
+            ))),
             Token::Ident(s) => {
                 if matches!(self.curr_token, Token::LParen) {
                     let mut fn_call = Box::from(FnCall {
@@ -101,10 +111,24 @@ impl<T: TokenStream> Parser<T> {
                     self.eat(&Token::RParen)?; // eat RParen
 
                     // function call
-                    Ok(AtomicExpression::FnCall(fn_call))
+                    Ok(Expression::AtomicExpression(AtomicExpression::FnCall(
+                        fn_call,
+                    )))
                 } else {
-                    // variable
-                    Ok(AtomicExpression::Variable(self.string_to_namepath(&s)))
+                    let var = Expression::AtomicExpression(AtomicExpression::Variable(
+                        self.string_to_namepath(&s),
+                    ));
+                    match self.curr_token {
+                        Token::PlusPlus => {
+                            self.eat(&Token::PlusPlus)?;
+                            Ok(Expression::Unary(UnOp::PostPlusPlus, Box::from(var)))
+                        }
+                        Token::MinusMinus => {
+                            self.eat(&Token::MinusMinus)?;
+                            Ok(Expression::Unary(UnOp::PostMinusMinus, Box::from(var)))
+                        }
+                        _ => Ok(var),
+                    }
                 }
             }
             tok => Err(ParseError::Unexpected(
@@ -219,11 +243,12 @@ impl<T: TokenStream> Parser<T> {
                     Token::Exclamation => UnOp::Not,
                     Token::Star => UnOp::Deref,
                     Token::Ampersand => UnOp::Ref,
+                    Token::PlusPlus => UnOp::PrePlusPlus,
+                    Token::MinusMinus => UnOp::PreMinusMinus,
+
                     _ => {
                         // not prefixed unary
-                        let expr = Box::from(Expression::AtomicExpression(
-                            self.parse_atomic_expression()?,
-                        ));
+                        let expr = Box::from(self.parse_atomic_expression()?);
                         return Ok(expr);
                     }
                 };
