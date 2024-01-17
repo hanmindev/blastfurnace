@@ -269,26 +269,16 @@ impl Parser {
 
     fn parse_statement(&mut self) -> ParseResult<Statement> {
         match &self.curr_token {
-            Token::VoidType | Token::IntType | Token::FloatType | Token::DoubleType | Token::BoolType | Token::StringType => {
+            Token::VoidType | Token::IntType | Token::FloatType | Token::DoubleType | Token::BoolType | Token::StringType | Token::Const | Token::Static => {
                 // variable declaration
-                Ok(Statement::VarDecl(self.parse_var_decl(vec![])?))
-            }
-
-            Token::Const => {
-                // struct or variable declaration with const modifier
-                self.eat(&Token::Const)?;
-                if matches!(self.curr_token, Token::Ident(_)) {
-                    Ok(Statement::StructDecl(self.parse_struct_decl(vec![VarMod::Const])?))
-                } else {
-                    Ok(Statement::VarDecl(self.parse_var_decl(vec![VarMod::Const])?))
-                }
+                Ok(self.parse_struct_or_var_decl()?)
             }
 
             Token::Ident(_) => {
                 match &self.next_token {
                     Token::String(_) => {
                         // struct declaration
-                        Ok(Statement::StructDecl(self.parse_struct_decl(vec![])?))
+                        Ok(self.parse_struct_or_var_decl()?)
                     }
 
                     // variable / struct assignment
@@ -443,6 +433,27 @@ impl Parser {
         }
     }
 
+    fn parse_struct_or_var_decl(&mut self) -> ParseResult<Statement> {
+        let mut mods: Vec<VarMod> = Vec::new();
+
+        if self.eat(&Token::Const).is_ok() {
+            mods.push(VarMod::Const);
+        }
+
+        if self.eat(&Token::Static).is_ok() {
+            mods.push(VarMod::Static);
+        }
+
+        match self.curr_token {
+            Token::Ident(_) => {
+                Ok(Statement::StructDecl(self.parse_struct_decl(mods)?))
+            }
+            _ => {
+                Ok(Statement::VarDecl(self.parse_var_decl(mods)?))
+            }
+        }
+    }
+
     fn parse_fn_def(&mut self) -> ParseResult<FnDef> {
         let mut mods = Vec::new();
 
@@ -496,6 +507,7 @@ impl Parser {
                 break;
             }
         }
+
         self.eat(&Token::RParen)?;
 
         let body = self.parse_block()?;
