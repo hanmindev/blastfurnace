@@ -1,29 +1,22 @@
 use crate::syntax::token::token_types::Token;
 use crate::syntax::token::token_types::Token::Invalid;
 use crate::syntax::parse::parser::TokenStream;
-use std::io;
-use std::io::Read;
 
-pub struct Lexer {
+trait ByteStream {
+    fn next(&mut self) -> char;
+}
+
+pub struct Lexer<T: ByteStream> {
+    reader: T,
     curr: char,
 }
 
-impl Lexer {
+impl<T> Lexer<T> {
+    pub fn new(reader: T) -> Lexer<T> {
+        Lexer { reader, curr: '\0' }
+    }
     fn read_char(&self) -> char {
-        let mut buf = [0; 1];
-
-        match io::stdin().read(&mut buf) {
-            Ok(n) => {
-                if n == 1 {
-                    buf[0] as char
-                } else {
-                    '\0'
-                }
-            }
-            Err(_e) => {
-                panic!("Error reading from stdin: {_e}");
-            }
-        }
+        self.reader.next()
     }
 
     fn eat(&mut self) -> char {
@@ -179,7 +172,7 @@ impl Lexer {
     }
 }
 
-impl TokenStream for Lexer {
+impl<T> TokenStream for Lexer<T> {
     fn next(&mut self) -> Token {
         self.get_token()
     }
