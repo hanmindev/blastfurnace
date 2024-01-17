@@ -13,7 +13,9 @@ pub struct Lexer<T: ByteStream> {
 
 impl<T: ByteStream> Lexer<T> {
     pub fn new(reader: T) -> Lexer<T> {
-        Lexer { reader, curr: '\0' }
+        let mut lexer = Lexer { reader, curr: '\0' };
+        lexer.eat();
+        lexer
     }
     fn read_char(&mut self) -> char {
         self.reader.next()
