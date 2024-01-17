@@ -208,7 +208,7 @@ impl<T: TokenStream> Parser<T> {
         let body = Box::from(self.parse_block()?);
         let mut else_ = None;
         if self.eat(&Token::Else).is_ok() {
-            if self.eat(&Token::If).is_ok() {
+            if matches!(self.curr_token, Token::If) {
                 else_ = Some(Box::from(self.parse_if_statement()?));
             } else {
                 else_ = Some(Box::from(If {
@@ -982,6 +982,103 @@ mod tests {
                     ],
                 })))
             )))
+        );
+    }
+
+    #[test]
+    fn if_simple_test() {
+        let statement = "if (a == 0) { return 0; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::If(If {
+                cond: Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    ))),
+                    BinOp::Eq,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(0)
+                    ))),
+                )),
+                body: Box::from(Block {
+                    statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                        Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
+                            0
+                        )))
+                    )))],
+                }),
+                else_: None,
+            }))
+        );
+    }
+
+    #[test]
+    fn if_statement_complex_test() {
+        let statement =
+            "if (a == 0) { return 0; } else if (a == 1) { return 1; } else { return 2; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::If(If {
+                cond: Box::from(Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["a".to_string()]
+                    ))),
+                    BinOp::Eq,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(0)
+                    ))),
+                )),
+                body: Box::from(Block {
+                    statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                        Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
+                            0
+                        )))
+                    )))],
+                }),
+                else_: Some(Box::from(If {
+                    cond: Box::from(Expression::Binary(
+                        Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                            vec!["a".to_string()]
+                        ))),
+                        BinOp::Eq,
+                        Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                            LiteralValue::Int(1)
+                        ))),
+                    )),
+                    body: Box::from(Block {
+                        statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                            Expression::AtomicExpression(AtomicExpression::Literal(
+                                LiteralValue::Int(1)
+                            ))
+                        )))],
+                    }),
+                    else_: Some(Box::from(If {
+                        cond: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                            LiteralValue::Bool(true)
+                        ))),
+                        body: Box::from(Block {
+                            statements: vec![StatementBlock::Statement(Statement::Return(
+                                Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                                    LiteralValue::Int(2)
+                                )))
+                            ))],
+                        }),
+                        else_: None,
+                    })),
+                })),
+            }))
         );
     }
 }
