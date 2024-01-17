@@ -1178,4 +1178,29 @@ mod tests {
             }))
         );
     }
+
+    #[test]
+    fn loop_break_continue_test() {
+        let statement = "while (true) { break; continue; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::While(While {
+                cond: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                    LiteralValue::Bool(true)
+                ))),
+                body: Box::from(Block {
+                    statements: vec![
+                        StatementBlock::Statement(Statement::Break),
+                        StatementBlock::Statement(Statement::Continue),
+                    ],
+                }),
+            }))
+        );
+    }
 }
