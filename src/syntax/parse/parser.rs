@@ -11,7 +11,7 @@ use std::mem;
 
 #[derive(Debug)]
 pub enum ParseError {
-    Unexpected(Token),
+    Unexpected(Token, String),
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -51,7 +51,10 @@ impl<T: TokenStream> Parser<T> {
 
             Ok(old_curr)
         } else {
-            Err(ParseError::Unexpected(self.curr_token.clone()))
+            Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                format!("Tried to eat {:?}, ate {:?}", self.curr_token, type_),
+            ))
         }
     }
 
@@ -102,7 +105,13 @@ impl<T: TokenStream> Parser<T> {
                     Ok(AtomicExpression::Variable(self.string_to_namepath(&s)))
                 }
             }
-            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
+            _ => Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                format!(
+                    "Expected type for atomic expression parsing, got {:?}",
+                    self.curr_token
+                ),
+            )),
         }
     }
 
@@ -269,11 +278,17 @@ impl<T: TokenStream> Parser<T> {
                     Token::StarAssign => BinOp::Mul,
                     Token::SlashAssign => BinOp::Div,
                     Token::PercentAssign => BinOp::Mod,
-                    _ => Err(ParseError::Unexpected(self.curr_token.clone()))?,
+                    _ => Err(ParseError::Unexpected(
+                        self.curr_token.clone(),
+                        format!("Expected binary operator, got {:?}", self.curr_token),
+                    ))?,
                 };
 
                 if matches!(self.curr_token, Token::LBrace) {
-                    Err(ParseError::Unexpected(self.curr_token.clone()))?
+                    Err(ParseError::Unexpected(
+                        self.curr_token.clone(),
+                        format!("Cannot use {:?} for struct assignment", self.curr_token),
+                    ))?
                 }
 
                 let rhs = self.parse_expression()?;
@@ -291,7 +306,13 @@ impl<T: TokenStream> Parser<T> {
                     expr: Box::from(expr),
                 }))
             }
-            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
+            _ => Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                format!(
+                    "Expected identifier for variable name, got {:?}",
+                    self.curr_token
+                ),
+            )),
         }
     }
 
@@ -357,7 +378,13 @@ impl<T: TokenStream> Parser<T> {
                 Ok(Statement::Continue)
             }
             Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
-            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
+            _ => Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                format!(
+                    "Expected valid token for statement beginning, got {:?}",
+                    self.curr_token
+                ),
+            )),
         }
     }
 
@@ -419,7 +446,13 @@ impl<T: TokenStream> Parser<T> {
                             match self.parse_assignment()? {
                                 Statement::StructAssign(struct_assign) => {
                                     if struct_assign.path.len() != 1 {
-                                        Err(ParseError::Unexpected(self.curr_token.clone()))?
+                                        Err(ParseError::Unexpected(
+                                            self.curr_token.clone(),
+                                            format!(
+                                                "Struct assignment path must be length 1, got {:?}",
+                                                struct_assign.path
+                                            ),
+                                        ))?
                                     }
 
                                     Ok(StructDecl {
@@ -429,7 +462,13 @@ impl<T: TokenStream> Parser<T> {
                                         expr: Some(struct_assign.compound),
                                     })
                                 }
-                                _ => Err(ParseError::Unexpected(self.curr_token.clone())),
+                                _ => Err(ParseError::Unexpected(
+                                    self.curr_token.clone(),
+                                    format!(
+                                        "Expected struct assignment, got {:?}",
+                                        self.curr_token
+                                    ),
+                                )),
                             }
                         } else {
                             // just struct declaration
@@ -441,10 +480,22 @@ impl<T: TokenStream> Parser<T> {
                             })
                         }
                     }
-                    _ => Err(ParseError::Unexpected(self.curr_token.clone()))?,
+                    _ => Err(ParseError::Unexpected(
+                        self.curr_token.clone(),
+                        format!(
+                            "Expected struct name for struct declaration, got {:?}",
+                            self.curr_token
+                        ),
+                    ))?,
                 }
             }
-            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
+            _ => Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                format!(
+                    "Expected struct type for struct declaration, got {:?}",
+                    self.curr_token
+                ),
+            )),
         }
     }
 
@@ -456,13 +507,25 @@ impl<T: TokenStream> Parser<T> {
             Token::DoubleType => Type::Double,
             Token::BoolType => Type::Bool,
             Token::StringType => Type::String,
-            _ => Err(ParseError::Unexpected(self.curr_token.clone()))?,
+            tok => Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                format!(
+                    "Expected variable type annotation for variable declaration, got {:?}",
+                    tok
+                ),
+            ))?,
         };
 
         match self.parse_assignment()? {
             Statement::VarAssign(var_assign) => {
                 if var_assign.path.len() != 1 {
-                    Err(ParseError::Unexpected(self.curr_token.clone()))?
+                    Err(ParseError::Unexpected(
+                        self.curr_token.clone(),
+                        format!(
+                            "Variable assignment path must be length 1, got {:?}",
+                            var_assign.path
+                        ),
+                    ))?
                 }
 
                 Ok(VarDecl {
@@ -472,7 +535,10 @@ impl<T: TokenStream> Parser<T> {
                     expr: Some(var_assign.expr),
                 })
             }
-            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
+            err => Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                format!("Expected VarAssign, got {:?}", err),
+            )),
         }
     }
 
@@ -507,7 +573,13 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::Fn)?;
         let name = match self.eat(&Any)? {
             Token::Ident(s) => s,
-            _ => Err(ParseError::Unexpected(self.curr_token.clone()))?,
+            _ => Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                format!(
+                    "Expected identifier for function name, got {:?}",
+                    self.curr_token
+                ),
+            ))?,
         };
 
         self.eat(&Token::LParen)?;
@@ -531,14 +603,26 @@ impl<T: TokenStream> Parser<T> {
                 Token::StringType => Type::String,
                 Token::Ident(s) => Type::Struct(s),
                 _ => {
-                    return Err(ParseError::Unexpected(self.curr_token.clone()));
+                    return Err(ParseError::Unexpected(
+                        self.curr_token.clone(),
+                        format!(
+                            "Expected type for function argument, got {:?}",
+                            self.curr_token
+                        ),
+                    ));
                 }
             };
 
             let name = match self.eat(&Any)? {
                 Token::Ident(s) => s,
                 _ => {
-                    return Err(ParseError::Unexpected(self.curr_token.clone()));
+                    return Err(ParseError::Unexpected(
+                        self.curr_token.clone(),
+                        format!(
+                            "Expected identifier for function argument name, got {:?}",
+                            self.curr_token
+                        ),
+                    ));
                 }
             };
 
