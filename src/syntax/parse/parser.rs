@@ -543,10 +543,6 @@ impl<T: TokenStream> Parser<T> {
             };
 
             args.push((mods, type_, name));
-
-            if self.eat(&Token::Comma).is_err() {
-                break;
-            }
         }
 
         self.eat(&Token::RParen)?;
@@ -569,5 +565,38 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::EOF)?;
 
         Ok(Block { statements })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::syntax::token::lexer::Lexer;
+    use crate::syntax::token::lexer_string_reader::StringReader;
+
+    #[test]
+    fn simple_test() {
+        let statement = "fn main() { return 0; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 1);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::FnDef(FnDef {
+                name: "main".to_string(),
+                args: Vec::new(),
+                body: Block {
+                    statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                        Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
+                            0
+                        )))
+                    )))],
+                },
+                mods: Vec::new(),
+            }))
+        );
     }
 }
