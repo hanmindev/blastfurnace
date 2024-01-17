@@ -17,10 +17,10 @@ pub enum UnOp {
     Not,
     Deref,
     Ref,
-    PrePlusPlus,
-    PreMinusMinus,
-    PostPlusPlus,
-    PostMinusMinus,
+    PreInc,
+    PreDec,
+    PostInc,
+    PostDec,
 }
 
 #[derive(Debug, PartialEq, Clone)]
