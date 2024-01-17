@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Type {
     Void,
     Bool,
@@ -11,7 +11,7 @@ pub enum Type {
     Struct(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UnOp {
     Plus,
     Neg,
@@ -20,7 +20,7 @@ pub enum UnOp {
     Ref,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BinOp {
     Add,
     Sub,
@@ -36,13 +36,13 @@ pub enum BinOp {
 }
 pub type NamePath = Vec<String>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum VarMod {
     Const,
     Static,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct VarDecl {
     pub name: String,
     pub type_: Type,
@@ -50,19 +50,19 @@ pub struct VarDecl {
     pub expr: Option<Box<Expression>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct VarAssign {
     pub path: NamePath,
     pub expr: Box<Expression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct StructDef {
     pub name: String,
     pub map: HashMap<String, Type>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct StructDecl {
     pub name: String,
     pub type_: Type,
@@ -72,25 +72,25 @@ pub struct StructDecl {
 
 pub type Compound = HashMap<String, CompoundValue>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CompoundValue {
     Expression(Box<Expression>),
     Compound(Box<Compound>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct StructAssign {
     pub path: NamePath,
     pub compound: Compound,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FnMod {
     Rec,
     Inline,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FnDef {
     pub name: String,
     pub args: Vec<(Vec<VarMod>, Type, String)>,
@@ -98,13 +98,13 @@ pub struct FnDef {
     pub mods: Vec<FnMod>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FnCall {
     pub path: NamePath,
     pub args: Vec<Box<Expression>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LiteralValue {
     Null,
     Bool(bool),
@@ -114,34 +114,34 @@ pub enum LiteralValue {
     Compound(Compound),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AtomicExpression {
     Literal(LiteralValue),
     Variable(NamePath),
     FnCall(Box<FnCall>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expression {
     AtomicExpression(AtomicExpression),
     Unary(UnOp, Box<Expression>),
     Binary(Box<Expression>, BinOp, Box<Expression>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct If {
     pub cond: Box<Expression>,
     pub body: Box<Block>,
     pub else_: Option<Box<If>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct While {
     pub cond: Box<Expression>,
     pub body: Box<Block>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct For {
     pub init: Option<Box<Statement>>,
     pub cond: Option<Box<Expression>>,
@@ -149,7 +149,7 @@ pub struct For {
     pub body: Block,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Statement {
     VarDecl(VarDecl),
     StructDecl(StructDecl),
@@ -166,13 +166,13 @@ pub enum Statement {
     Expression(Box<Expression>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum StatementBlock {
     Statement(Statement),
     Block(Block),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Block {
     pub statements: Vec<StatementBlock>,
 }
