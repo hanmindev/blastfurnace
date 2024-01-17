@@ -358,6 +358,7 @@ impl<T: TokenStream> Parser<T> {
                 self.eat(&Token::Continue)?;
                 Ok(Statement::Continue)
             }
+            Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
             _ => Err(ParseError::Unexpected(self.curr_token.clone())),
         }
     }
