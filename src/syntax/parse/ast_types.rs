@@ -158,7 +158,6 @@ pub enum Statement {
     StructAssign(StructAssign),
     StructDef(StructDef),
     FnDef(FnDef),
-    FnCall(FnCall),
     If(If),
     While(While),
     For(For),
