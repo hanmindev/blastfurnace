@@ -208,19 +208,19 @@ mod tests {
     }
 
     #[test]
-    fn test_lexer() {
+    fn simple_test() {
         let statement = "fn main() { return 0; }";
         let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
 
-        assert!(matches!(lexer.next(), Token::Fn));
-        assert!(matches!(lexer.next(), Token::Ident(_)));
-        assert!(matches!(lexer.next(), Token::LParen));
-        assert!(matches!(lexer.next(), Token::RParen));
-        assert!(matches!(lexer.next(), Token::LBrace));
-        assert!(matches!(lexer.next(), Token::Return));
-        assert!(matches!(lexer.next(), Token::Int(0)));
-        assert!(matches!(lexer.next(), Token::Semicolon));
-        assert!(matches!(lexer.next(), Token::RBrace));
-        assert!(matches!(lexer.next(), Token::EOF));
+        assert_eq!(lexer.next(), Token::Fn);
+        assert_eq!(lexer.next(), Token::Ident("main".to_string()));
+        assert_eq!(lexer.next(), Token::LParen);
+        assert_eq!(lexer.next(), Token::RParen);
+        assert_eq!(lexer.next(), Token::LBrace);
+        assert_eq!(lexer.next(), Token::Return);
+        assert_eq!(lexer.next(), Token::Int(0));
+        assert_eq!(lexer.next(), Token::Semicolon);
+        assert_eq!(lexer.next(), Token::RBrace);
+        assert_eq!(lexer.next(), Token::EOF);
     }
 }
