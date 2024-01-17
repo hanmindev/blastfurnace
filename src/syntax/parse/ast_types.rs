@@ -20,7 +20,7 @@ pub enum UnOp {
     Ref,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum BinOp {
     Add,
     Sub,

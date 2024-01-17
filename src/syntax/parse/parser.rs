@@ -120,21 +120,24 @@ impl<T: TokenStream> Parser<T> {
             BinOp::Mul => 20,
             BinOp::Div => 20,
             BinOp::Mod => 20,
-            BinOp::Eq => 5,
-            BinOp::Neq => 5,
-            BinOp::Lt => 5,
-            BinOp::Gt => 5,
-            BinOp::Leq => 5,
-            BinOp::Geq => 5,
+            BinOp::Eq => 30,
+            BinOp::Neq => 30,
+            BinOp::Lt => 30,
+            BinOp::Gt => 30,
+            BinOp::Leq => 30,
+            BinOp::Geq => 30,
         }
     }
 
     fn parse_bin_op_rhs(
         &mut self,
-        expr_prec: i32,
+        mut prev_binop: BinOp,
         mut lhs: Box<Expression>,
     ) -> ParseResult<Box<Expression>> {
+        // start on rhs
         loop {
+            let mut rhs = self.parse_expression_single()?;
+
             let binop = match self.curr_token {
                 Token::Plus => BinOp::Add,
                 Token::Minus => BinOp::Sub,
@@ -148,31 +151,50 @@ impl<T: TokenStream> Parser<T> {
                 Token::Leq => BinOp::Leq,
                 Token::Geq => BinOp::Geq,
                 _ => {
-                    break;
+                    return Ok(Box::from(Expression::Binary(lhs, prev_binop, rhs)));
                 }
             };
-            self.eat(&Any)?; // eat binop
 
-            let mut rhs = self.parse_expression()?;
-
+            let expr_prec = self.get_bin_op_prec(&prev_binop);
             let next_prec = self.get_bin_op_prec(&binop);
 
-            if expr_prec < next_prec && expr_prec != 0 {
-                rhs = self.parse_bin_op_rhs(next_prec, rhs)?;
+            if expr_prec < next_prec {
+                self.eat(&Any)?;
+                rhs = self.parse_bin_op_rhs(binop.clone(), rhs)?;
+            } else if expr_prec > next_prec {
+                return Ok(Box::from(Expression::Binary(lhs, prev_binop, rhs)));
             }
 
-            lhs = Box::from(Expression::Binary(lhs, binop, rhs));
+            lhs = Box::from(Expression::Binary(lhs, prev_binop, rhs));
+
+            prev_binop = match self.curr_token {
+                Token::Plus => BinOp::Add,
+                Token::Minus => BinOp::Sub,
+                Token::Star => BinOp::Mul,
+                Token::Slash => BinOp::Div,
+                Token::Percent => BinOp::Mod,
+                Token::Equal => BinOp::Eq,
+                Token::NotEqual => BinOp::Neq,
+                Token::LAngle => BinOp::Lt,
+                Token::RAngle => BinOp::Gt,
+                Token::Leq => BinOp::Leq,
+                Token::Geq => BinOp::Geq,
+                _ => {
+                    return Ok(lhs);
+                }
+            };
+
+            self.eat(&Any)?;
         }
-        Ok(lhs)
     }
 
-    fn parse_expression(&mut self) -> ParseResult<Box<Expression>> {
+    fn parse_expression_single(&mut self) -> ParseResult<Box<Expression>> {
         match self.curr_token {
             Token::LParen => {
                 self.eat(&Token::LParen)?;
                 let expr = self.parse_expression()?;
                 self.eat(&Token::RParen)?;
-                Ok(self.parse_bin_op_rhs(0, expr)?)
+                Ok(expr)
             }
             _ => {
                 // check if prefixed unary
@@ -190,14 +212,40 @@ impl<T: TokenStream> Parser<T> {
                         let expr = Box::from(Expression::AtomicExpression(
                             self.parse_atomic_expression()?,
                         ));
-                        return Ok(self.parse_bin_op_rhs(0, expr)?);
+                        return Ok(expr);
                     }
                 };
 
-                let right = self.parse_expression()?;
+                // eat unop
+                self.eat(&Any)?;
+
+                let right = self.parse_expression_single()?;
                 Ok(Box::from(Expression::Unary(unop, right)))
             }
         }
+    }
+
+    fn parse_expression(&mut self) -> ParseResult<Box<Expression>> {
+        // not prefixed unary
+        let lhs = Box::from(self.parse_expression_single()?);
+        let binop = match self.curr_token {
+            Token::Plus => BinOp::Add,
+            Token::Minus => BinOp::Sub,
+            Token::Star => BinOp::Mul,
+            Token::Slash => BinOp::Div,
+            Token::Percent => BinOp::Mod,
+            Token::Equal => BinOp::Eq,
+            Token::NotEqual => BinOp::Neq,
+            Token::LAngle => BinOp::Lt,
+            Token::RAngle => BinOp::Gt,
+            Token::Leq => BinOp::Leq,
+            Token::Geq => BinOp::Geq,
+            _ => {
+                return Ok(lhs);
+            }
+        };
+        self.eat(&Any)?;
+        return Ok(self.parse_bin_op_rhs(binop, lhs)?);
     }
 
     fn parse_if_statement(&mut self) -> ParseResult<If> {
@@ -1201,6 +1249,115 @@ mod tests {
                     ],
                 }),
             }))
+        );
+    }
+
+    #[test]
+    fn simple_expression_order_test() {
+        let statement = "a + b + c + d - e - f";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let expr = parser.parse_expression().unwrap();
+
+        assert_eq!(
+            expr,
+            Box::from(Expression::Binary(
+                Box::from(Expression::Binary(
+                    Box::from(Expression::Binary(
+                        Box::from(Expression::Binary(
+                            Box::from(Expression::Binary(
+                                Box::from(Expression::AtomicExpression(
+                                    AtomicExpression::Variable(vec!["a".to_string()],)
+                                )),
+                                BinOp::Add,
+                                Box::from(Expression::AtomicExpression(
+                                    AtomicExpression::Variable(vec!["b".to_string()],)
+                                ))
+                            )),
+                            BinOp::Add,
+                            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                                vec!["c".to_string()],
+                            )))
+                        )),
+                        BinOp::Add,
+                        Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                            vec!["d".to_string()],
+                        )))
+                    )),
+                    BinOp::Sub,
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        vec!["e".to_string()],
+                    )))
+                )),
+                BinOp::Sub,
+                Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                    vec!["f".to_string()],
+                ))),
+            ))
+        );
+    }
+
+    #[test]
+    fn expression_order_test() {
+        let statement = "a + b * c - d / e % f";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let expr = parser.parse_expression().unwrap();
+
+        // should result in tree
+        //          -
+        //      /       \
+        //     +         %
+        //    / \       / \
+        //   a   *     /   f
+        //      / \   / \
+        //     b  c  d   e
+
+        // (a + (b * c)) - ((d / e) % f)
+
+        // (a + (b * c))
+
+        let b_times_c = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["b".to_string()],
+            ))),
+            BinOp::Mul,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["c".to_string()],
+            ))),
+        ));
+
+        let a_plus = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["a".to_string()],
+            ))),
+            BinOp::Add,
+            b_times_c,
+        ));
+
+        let d_div_e = Box::from(Expression::Binary(
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["d".to_string()],
+            ))),
+            BinOp::Div,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["e".to_string()],
+            ))),
+        ));
+
+        let mod_f = Box::from(Expression::Binary(
+            d_div_e,
+            BinOp::Mod,
+            Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                vec!["f".to_string()],
+            ))),
+        ));
+
+        assert_eq!(
+            expr,
+            Box::from(Expression::Binary(a_plus, BinOp::Sub, mod_f))
         );
     }
 }
