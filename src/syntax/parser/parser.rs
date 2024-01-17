@@ -39,7 +39,7 @@ impl Parser {
         }
     }
 
-    fn string_to_namepath(&mut self, s: &String) -> NamePath {
+    fn string_to_namepath(&mut self, s: &str) -> NamePath {
         let mut path = Vec::new();
         let mut curr = String::new();
         for c in s.chars() {
@@ -55,7 +55,7 @@ impl Parser {
     }
 
     fn parse_atomic_expression(&mut self) -> ParseResult<AtomicExpression> {
-        match self.eat(&Token::Any)? {
+        match self.eat(&Any)? {
             Token::Bool(b) => {
                 Ok(AtomicExpression::Literal(LiteralValue::Bool(b)))
             }
@@ -503,7 +503,7 @@ impl Parser {
 
             args.push((mods, type_, name));
 
-            if !self.eat(&Token::Comma).is_ok() {
+            if self.eat(&Token::Comma).is_err() {
                 break;
             }
         }
