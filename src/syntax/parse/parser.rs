@@ -11,6 +11,7 @@ use std::mem;
 
 #[derive(Debug)]
 pub enum ParseError {
+    Unknown,
     Unexpected(Token, String),
 }
 
@@ -105,12 +106,9 @@ impl<T: TokenStream> Parser<T> {
                     Ok(AtomicExpression::Variable(self.string_to_namepath(&s)))
                 }
             }
-            _ => Err(ParseError::Unexpected(
-                self.curr_token.clone(),
-                format!(
-                    "Expected type for atomic expression parsing, got {:?}",
-                    self.curr_token
-                ),
+            tok => Err(ParseError::Unexpected(
+                tok,
+                "Expected type for atomic expression parsing".to_string(),
             )),
         }
     }
@@ -278,16 +276,16 @@ impl<T: TokenStream> Parser<T> {
                     Token::StarAssign => BinOp::Mul,
                     Token::SlashAssign => BinOp::Div,
                     Token::PercentAssign => BinOp::Mod,
-                    _ => Err(ParseError::Unexpected(
-                        self.curr_token.clone(),
-                        format!("Expected binary operator, got {:?}", self.curr_token),
+                    tok => Err(ParseError::Unexpected(
+                        tok.clone(),
+                        "Expected binary operator".to_string(),
                     ))?,
                 };
 
                 if matches!(self.curr_token, Token::LBrace) {
                     Err(ParseError::Unexpected(
                         self.curr_token.clone(),
-                        format!("Cannot use {:?} for struct assignment", self.curr_token),
+                        "Cannot use for struct assignment".to_string(),
                     ))?
                 }
 
@@ -306,12 +304,9 @@ impl<T: TokenStream> Parser<T> {
                     expr: Box::from(expr),
                 }))
             }
-            _ => Err(ParseError::Unexpected(
-                self.curr_token.clone(),
-                format!(
-                    "Expected identifier for variable name, got {:?}",
-                    self.curr_token
-                ),
+            tok => Err(ParseError::Unexpected(
+                tok.clone(),
+                "Expected identifier for variable name".to_string(),
             )),
         }
     }
@@ -378,12 +373,9 @@ impl<T: TokenStream> Parser<T> {
                 Ok(Statement::Continue)
             }
             Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
-            _ => Err(ParseError::Unexpected(
-                self.curr_token.clone(),
-                format!(
-                    "Expected valid token for statement beginning, got {:?}",
-                    self.curr_token
-                ),
+            tok => Err(ParseError::Unexpected(
+                tok.clone(),
+                "Expected valid token for statement beginning".to_string(),
             )),
         }
     }
@@ -448,10 +440,7 @@ impl<T: TokenStream> Parser<T> {
                                     if struct_assign.path.len() != 1 {
                                         Err(ParseError::Unexpected(
                                             self.curr_token.clone(),
-                                            format!(
-                                                "Struct assignment path must be length 1, got {:?}",
-                                                struct_assign.path
-                                            ),
+                                            "Struct assignment path must be length 1".to_string(),
                                         ))?
                                     }
 
@@ -462,13 +451,7 @@ impl<T: TokenStream> Parser<T> {
                                         expr: Some(struct_assign.compound),
                                     })
                                 }
-                                _ => Err(ParseError::Unexpected(
-                                    self.curr_token.clone(),
-                                    format!(
-                                        "Expected struct assignment, got {:?}",
-                                        self.curr_token
-                                    ),
-                                )),
+                                _ => Err(ParseError::Unknown),
                             }
                         } else {
                             // just struct declaration
@@ -480,21 +463,15 @@ impl<T: TokenStream> Parser<T> {
                             })
                         }
                     }
-                    _ => Err(ParseError::Unexpected(
-                        self.curr_token.clone(),
-                        format!(
-                            "Expected struct name for struct declaration, got {:?}",
-                            self.curr_token
-                        ),
+                    tok => Err(ParseError::Unexpected(
+                        tok.clone(),
+                        "Expected struct name for struct declaration".to_string(),
                     ))?,
                 }
             }
-            _ => Err(ParseError::Unexpected(
-                self.curr_token.clone(),
-                format!(
-                    "Expected struct type for struct declaration, got {:?}",
-                    self.curr_token
-                ),
+            tok => Err(ParseError::Unexpected(
+                tok.clone(),
+                "Expected struct type for struct declaration".to_string(),
             )),
         }
     }
@@ -508,11 +485,8 @@ impl<T: TokenStream> Parser<T> {
             Token::BoolType => Type::Bool,
             Token::StringType => Type::String,
             tok => Err(ParseError::Unexpected(
-                self.curr_token.clone(),
-                format!(
-                    "Expected variable type annotation for variable declaration, got {:?}",
-                    tok
-                ),
+                tok,
+                "Expected variable type annotation for variable declaration".to_string(),
             ))?,
         };
 
@@ -521,10 +495,7 @@ impl<T: TokenStream> Parser<T> {
                 if var_assign.path.len() != 1 {
                     Err(ParseError::Unexpected(
                         self.curr_token.clone(),
-                        format!(
-                            "Variable assignment path must be length 1, got {:?}",
-                            var_assign.path
-                        ),
+                        "Variable assignment path must be length 1".to_string(),
                     ))?
                 }
 
@@ -535,10 +506,7 @@ impl<T: TokenStream> Parser<T> {
                     expr: Some(var_assign.expr),
                 })
             }
-            err => Err(ParseError::Unexpected(
-                self.curr_token.clone(),
-                format!("Expected VarAssign, got {:?}", err),
-            )),
+            _ => Err(ParseError::Unknown),
         }
     }
 
@@ -573,12 +541,9 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::Fn)?;
         let name = match self.eat(&Any)? {
             Token::Ident(s) => s,
-            _ => Err(ParseError::Unexpected(
-                self.curr_token.clone(),
-                format!(
-                    "Expected identifier for function name, got {:?}",
-                    self.curr_token
-                ),
+            tok => Err(ParseError::Unexpected(
+                tok,
+                "Expected identifier for function name".to_string(),
             ))?,
         };
 
@@ -594,37 +559,31 @@ impl<T: TokenStream> Parser<T> {
                 mods.push(VarMod::Const);
             }
 
-            let type_ = match self.eat(&Any)? {
-                Token::VoidType => Type::Void,
-                Token::IntType => Type::Int,
-                Token::FloatType => Type::Float,
-                Token::DoubleType => Type::Double,
-                Token::BoolType => Type::Bool,
-                Token::StringType => Type::String,
-                Token::Ident(s) => Type::Struct(s),
-                _ => {
-                    return Err(ParseError::Unexpected(
-                        self.curr_token.clone(),
-                        format!(
-                            "Expected type for function argument, got {:?}",
-                            self.curr_token
-                        ),
-                    ));
-                }
-            };
+                let type_ = match self.eat(&Any)? {
+                    Token::VoidType => Type::Void,
+                    Token::IntType => Type::Int,
+                    Token::FloatType => Type::Float,
+                    Token::DoubleType => Type::Double,
+                    Token::BoolType => Type::Bool,
+                    Token::StringType => Type::String,
+                    Token::Ident(s) => Type::Struct(s),
+                    tok => {
+                        return Err(ParseError::Unexpected(
+                            tok,
+                            "Expected type for function argument".to_string(),
+                        ));
+                    }
+                };
 
-            let name = match self.eat(&Any)? {
-                Token::Ident(s) => s,
-                _ => {
-                    return Err(ParseError::Unexpected(
-                        self.curr_token.clone(),
-                        format!(
-                            "Expected identifier for function argument name, got {:?}",
-                            self.curr_token
-                        ),
-                    ));
-                }
-            };
+                let name = match self.eat(&Any)? {
+                    Token::Ident(s) => s,
+                    tok => {
+                        return Err(ParseError::Unexpected(
+                            tok,
+                            "Expected identifier for function argument name".to_string(),
+                        ));
+                    }
+                };
 
             args.push((mods, type_, name));
         }
