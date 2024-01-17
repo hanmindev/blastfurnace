@@ -33,6 +33,8 @@ pub enum BinOp {
     Gt,
     Leq,
     Geq,
+    And,
+    Or,
 }
 pub type NamePath = Vec<String>;
 

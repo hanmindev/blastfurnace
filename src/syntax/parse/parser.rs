@@ -115,58 +115,61 @@ impl<T: TokenStream> Parser<T> {
 
     fn get_bin_op_prec(&self, binop: &BinOp) -> i32 {
         match binop {
+            BinOp::Eq => 5,
+            BinOp::Neq => 5,
+            BinOp::Lt => 5,
+            BinOp::Gt => 5,
+            BinOp::Leq => 5,
+            BinOp::Geq => 5,
+
             BinOp::Add => 10,
             BinOp::Sub => 10,
+
             BinOp::Mul => 20,
             BinOp::Div => 20,
             BinOp::Mod => 20,
-            BinOp::Eq => 30,
-            BinOp::Neq => 30,
-            BinOp::Lt => 30,
-            BinOp::Gt => 30,
-            BinOp::Leq => 30,
-            BinOp::Geq => 30,
+
+            BinOp::And => 30,
+            BinOp::Or => 35,
         }
+    }
+
+    fn token_to_binop(&self, tok: &Token) -> Option<BinOp> {
+        Some(match tok {
+            Token::Plus => BinOp::Add,
+            Token::Minus => BinOp::Sub,
+            Token::Star => BinOp::Mul,
+            Token::Slash => BinOp::Div,
+            Token::Percent => BinOp::Mod,
+            Token::Equal => BinOp::Eq,
+            Token::NotEqual => BinOp::Neq,
+            Token::LAngle => BinOp::Lt,
+            Token::RAngle => BinOp::Gt,
+            Token::Leq => BinOp::Leq,
+            Token::Geq => BinOp::Geq,
+            Token::And => BinOp::And,
+            Token::Or => BinOp::Or,
+            _ => {
+                return None;
+            }
+        })
     }
 
     fn parse_bin_op_rhs(&mut self, mut lhs: Box<Expression>) -> ParseResult<Box<Expression>> {
         // start on op before rhs
         loop {
-            let prev_binop = match self.curr_token {
-                Token::Plus => BinOp::Add,
-                Token::Minus => BinOp::Sub,
-                Token::Star => BinOp::Mul,
-                Token::Slash => BinOp::Div,
-                Token::Percent => BinOp::Mod,
-                Token::Equal => BinOp::Eq,
-                Token::NotEqual => BinOp::Neq,
-                Token::LAngle => BinOp::Lt,
-                Token::RAngle => BinOp::Gt,
-                Token::Leq => BinOp::Leq,
-                Token::Geq => BinOp::Geq,
-                _ => {
-                    return Ok(lhs);
-                }
+            let prev_binop = match self.token_to_binop(&self.curr_token) {
+                None => return Ok(lhs),
+                Some(s) => s,
             };
+
             self.eat(&Any)?;
 
             let mut rhs = self.parse_expression_single()?;
 
-            let binop = match self.curr_token {
-                Token::Plus => BinOp::Add,
-                Token::Minus => BinOp::Sub,
-                Token::Star => BinOp::Mul,
-                Token::Slash => BinOp::Div,
-                Token::Percent => BinOp::Mod,
-                Token::Equal => BinOp::Eq,
-                Token::NotEqual => BinOp::Neq,
-                Token::LAngle => BinOp::Lt,
-                Token::RAngle => BinOp::Gt,
-                Token::Leq => BinOp::Leq,
-                Token::Geq => BinOp::Geq,
-                _ => {
-                    return Ok(Box::from(Expression::Binary(lhs, prev_binop, rhs)));
-                }
+            let binop = match self.token_to_binop(&self.curr_token) {
+                None => return Ok(Box::from(Expression::Binary(lhs, prev_binop, rhs))),
+                Some(s) => s,
             };
 
             let expr_prec = self.get_bin_op_prec(&prev_binop);

@@ -16,6 +16,8 @@ pub enum Token {
     Percent,
     Exclamation,
     Ampersand,
+    And,
+    Or,
 
     // Comparison
     Equal,

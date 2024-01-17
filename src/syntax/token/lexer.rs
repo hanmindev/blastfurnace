@@ -180,6 +180,18 @@ impl<T: ByteStream> Lexer<T> {
             return Ok(assign);
         }
 
+        match (prev, self.curr) {
+            ('&', '&') => {
+                self.eat();
+                return Ok(Token::And);
+            }
+            ('|', '|') => {
+                self.eat();
+                return Ok(Token::Or);
+            }
+            _ => {}
+        }
+
         // match singletons
         Ok(match prev {
             '+' => Token::Plus,
