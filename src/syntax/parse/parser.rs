@@ -129,13 +129,27 @@ impl<T: TokenStream> Parser<T> {
         }
     }
 
-    fn parse_bin_op_rhs(
-        &mut self,
-        mut prev_binop: BinOp,
-        mut lhs: Box<Expression>,
-    ) -> ParseResult<Box<Expression>> {
-        // start on rhs
+    fn parse_bin_op_rhs(&mut self, mut lhs: Box<Expression>) -> ParseResult<Box<Expression>> {
+        // start on op before rhs
         loop {
+            let prev_binop = match self.curr_token {
+                Token::Plus => BinOp::Add,
+                Token::Minus => BinOp::Sub,
+                Token::Star => BinOp::Mul,
+                Token::Slash => BinOp::Div,
+                Token::Percent => BinOp::Mod,
+                Token::Equal => BinOp::Eq,
+                Token::NotEqual => BinOp::Neq,
+                Token::LAngle => BinOp::Lt,
+                Token::RAngle => BinOp::Gt,
+                Token::Leq => BinOp::Leq,
+                Token::Geq => BinOp::Geq,
+                _ => {
+                    return Ok(lhs);
+                }
+            };
+            self.eat(&Any)?;
+
             let mut rhs = self.parse_expression_single()?;
 
             let binop = match self.curr_token {
@@ -159,32 +173,12 @@ impl<T: TokenStream> Parser<T> {
             let next_prec = self.get_bin_op_prec(&binop);
 
             if expr_prec < next_prec {
-                self.eat(&Any)?;
-                rhs = self.parse_bin_op_rhs(binop.clone(), rhs)?;
+                rhs = self.parse_bin_op_rhs(rhs)?;
             } else if expr_prec > next_prec {
                 return Ok(Box::from(Expression::Binary(lhs, prev_binop, rhs)));
             }
 
             lhs = Box::from(Expression::Binary(lhs, prev_binop, rhs));
-
-            prev_binop = match self.curr_token {
-                Token::Plus => BinOp::Add,
-                Token::Minus => BinOp::Sub,
-                Token::Star => BinOp::Mul,
-                Token::Slash => BinOp::Div,
-                Token::Percent => BinOp::Mod,
-                Token::Equal => BinOp::Eq,
-                Token::NotEqual => BinOp::Neq,
-                Token::LAngle => BinOp::Lt,
-                Token::RAngle => BinOp::Gt,
-                Token::Leq => BinOp::Leq,
-                Token::Geq => BinOp::Geq,
-                _ => {
-                    return Ok(lhs);
-                }
-            };
-
-            self.eat(&Any)?;
         }
     }
 
@@ -228,24 +222,7 @@ impl<T: TokenStream> Parser<T> {
     fn parse_expression(&mut self) -> ParseResult<Box<Expression>> {
         // not prefixed unary
         let lhs = Box::from(self.parse_expression_single()?);
-        let binop = match self.curr_token {
-            Token::Plus => BinOp::Add,
-            Token::Minus => BinOp::Sub,
-            Token::Star => BinOp::Mul,
-            Token::Slash => BinOp::Div,
-            Token::Percent => BinOp::Mod,
-            Token::Equal => BinOp::Eq,
-            Token::NotEqual => BinOp::Neq,
-            Token::LAngle => BinOp::Lt,
-            Token::RAngle => BinOp::Gt,
-            Token::Leq => BinOp::Leq,
-            Token::Geq => BinOp::Geq,
-            _ => {
-                return Ok(lhs);
-            }
-        };
-        self.eat(&Any)?;
-        return Ok(self.parse_bin_op_rhs(binop, lhs)?);
+        return Ok(self.parse_bin_op_rhs(lhs)?);
     }
 
     fn parse_if_statement(&mut self) -> ParseResult<If> {
