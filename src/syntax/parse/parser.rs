@@ -25,7 +25,7 @@ pub struct Parser<T: TokenStream> {
     next_token: Token,
 }
 
-impl<T> Parser<T> {
+impl<T: TokenStream> Parser<T> {
     pub fn new(lexer: T) -> Parser<T> {
         let mut parser = Parser {
             lexer,

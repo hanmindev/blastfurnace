@@ -11,11 +11,11 @@ pub struct Lexer<T: ByteStream> {
     curr: char,
 }
 
-impl<T> Lexer<T> {
+impl<T: ByteStream> Lexer<T> {
     pub fn new(reader: T) -> Lexer<T> {
         Lexer { reader, curr: '\0' }
     }
-    fn read_char(&self) -> char {
+    fn read_char(&mut self) -> char {
         self.reader.next()
     }
 
