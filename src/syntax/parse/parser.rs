@@ -271,22 +271,30 @@ impl Parser {
         match &self.curr_token {
             Token::VoidType | Token::IntType | Token::FloatType | Token::DoubleType | Token::BoolType | Token::StringType | Token::Const | Token::Static => {
                 // variable declaration
-                Ok(self.parse_struct_or_var_decl()?)
+                let decl = self.parse_struct_or_var_decl()?;
+                self.eat(&Token::Semicolon)?;
+                Ok(decl)
             }
 
             Token::Ident(_) => {
                 match &self.next_token {
                     Token::String(_) => {
                         // struct declaration
-                        Ok(self.parse_struct_or_var_decl()?)
+                        let decl = self.parse_struct_or_var_decl()?;
+                        self.eat(&Token::Semicolon)?;
+                        Ok(decl)
                     }
 
                     // variable / struct assignment
                     Token::Assign | Token::PlusAssign | Token::MinusAssign | Token::StarAssign | Token::SlashAssign | Token::PercentAssign => {
-                        self.parse_assignment()
+                        let statement = self.parse_assignment();
+                        self.eat(&Token::Semicolon)?;
+                        statement
                     }
                     _ => {
-                        Ok(Statement::Expression(self.parse_expression()?))
+                        let expr = self.parse_expression()?;
+                        self.eat(&Token::Semicolon)?;
+                        Ok(Statement::Expression(expr))
                     }
                 }
             }
@@ -302,7 +310,9 @@ impl Parser {
             }
             Token::Return => {
                 self.eat(&Token::Return)?;
-                Ok(Statement::Return(self.parse_expression()?))
+                let expr = self.parse_expression()?;
+                self.eat(&Token::Semicolon)?;
+                Ok(Statement::Return(expr))
             }
             Token::Break => {
                 self.eat(&Token::Break)?;
@@ -312,7 +322,6 @@ impl Parser {
                 self.eat(&Token::Continue)?;
                 Ok(Statement::Continue)
             }
-
             _ => {
                 Err(ParseError::Unexpected(self.curr_token.clone()))
             }
