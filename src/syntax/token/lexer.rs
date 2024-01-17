@@ -1,6 +1,6 @@
+use crate::syntax::parse::parser::TokenStream;
 use crate::syntax::token::token_types::Token;
 use crate::syntax::token::token_types::Token::Invalid;
-use crate::syntax::parse::parser::TokenStream;
 
 trait ByteStream {
     fn next(&mut self) -> char;
@@ -189,10 +189,7 @@ mod tests {
 
     impl StringReader {
         fn new(string: String) -> StringReader {
-            StringReader {
-                string,
-                index: 0,
-            }
+            StringReader { string, index: 0 }
         }
     }
 
@@ -220,7 +217,4 @@ mod tests {
         assert_eq!(lexer.next(), Token::RBrace);
         assert_eq!(lexer.next(), Token::EOF);
     }
-
-
-
 }
