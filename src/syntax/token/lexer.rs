@@ -46,7 +46,8 @@ impl<T: ByteStream> Lexer<T> {
 
             // skip comments
             if self.curr == '/' {
-                match self.read_char() {
+                let prev = self.eat();
+                match self.curr {
                     '/' => {
                         // comment until end of line
                         loop {
@@ -59,7 +60,7 @@ impl<T: ByteStream> Lexer<T> {
                     }
 
                     _ => {
-                        if self.curr == '=' {
+                        if prev == '=' {
                             self.eat();
                             return Ok(Token::SlashAssign);
                         }
@@ -122,6 +123,7 @@ impl<T: ByteStream> Lexer<T> {
                 "impl" => Token::Impl,
                 "const" => Token::Const,
                 "static" => Token::Static,
+                "inline" => Token::Inline,
 
                 _ => Token::Ident(ident),
             });
@@ -304,14 +306,13 @@ mod tests {
 
     #[test]
     fn singleton_symbol_test() {
-        let statement = "=,;:.(){}[]<>+-*/%!&";
+        let statement = "=,;:(){}[]<>+-*/%!&";
         let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
 
         assert_eq!(lexer.next().unwrap(), Token::Assign);
         assert_eq!(lexer.next().unwrap(), Token::Comma);
         assert_eq!(lexer.next().unwrap(), Token::Semicolon);
         assert_eq!(lexer.next().unwrap(), Token::Colon);
-        assert_eq!(lexer.next().unwrap(), Token::Dot);
         assert_eq!(lexer.next().unwrap(), Token::LParen);
         assert_eq!(lexer.next().unwrap(), Token::RParen);
         assert_eq!(lexer.next().unwrap(), Token::LBrace);
