@@ -464,11 +464,35 @@ impl Parser {
 
         self.eat(&Token::LParen)?;
         let mut args = Vec::new();
-        while !matches!(self.curr_token, Token::RParen) {
-            args.push(self.parse_var_decl(vec![])?);
-            if matches!(self.curr_token, Token::Comma) {
-                self.eat(&Token::Comma)?;
-            } else {
+        loop {
+            let mut mods = Vec::new();
+            if self.eat(&Token::Const).is_ok() {
+                mods.push(VarMod::Const);
+            }
+
+            let type_ = match self.eat(&Any)? {
+                Token::VoidType => Type::Void,
+                Token::IntType => Type::Int,
+                Token::FloatType => Type::Float,
+                Token::DoubleType => Type::Double,
+                Token::BoolType => Type::Bool,
+                Token::StringType => Type::String,
+                Token::Ident(s) => Type::Struct(s),
+                _ => {
+                    return Err(ParseError::Unexpected(self.curr_token.clone()));
+                }
+            };
+
+            let name = match self.eat(&Any)? {
+                Token::Ident(s) => s,
+                _ => {
+                    return Err(ParseError::Unexpected(self.curr_token.clone()));
+                }
+            };
+
+            args.push((mods, type_, name));
+
+            if !self.eat(&Token::Comma).is_ok() {
                 break;
             }
         }

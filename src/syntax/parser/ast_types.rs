@@ -94,7 +94,7 @@ pub enum FnMod {
 #[derive(Debug)]
 pub struct FnDef {
     pub name: String,
-    pub args: Vec<VarDecl>,
+    pub args: Vec<(Vec<VarMod>, Type, String)>,
     pub body: Block,
     pub mods: Vec<FnMod>,
 }
