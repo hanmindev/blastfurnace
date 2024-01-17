@@ -19,6 +19,8 @@ pub enum Token {
     Ampersand,
     And,
     Or,
+    PlusPlus,
+    MinusMinus,
 
     // Comparison
     Equal,

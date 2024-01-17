@@ -191,6 +191,14 @@ impl<T: ByteStream> Lexer<T> {
                 self.eat();
                 return Ok(Token::Or);
             }
+            ('+', '+') => {
+                self.eat();
+                return Ok(Token::PlusPlus);
+            }
+            ('-', '-') => {
+                self.eat();
+                return Ok(Token::MinusMinus);
+            }
             _ => {}
         }
 
