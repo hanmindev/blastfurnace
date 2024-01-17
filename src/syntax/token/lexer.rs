@@ -46,7 +46,7 @@ impl<T: ByteStream> Lexer<T> {
 
             // skip comments
             if self.curr == '/' {
-                let prev = self.eat();
+                self.eat();
                 match self.curr {
                     '/' => {
                         // comment until end of line
@@ -59,11 +59,11 @@ impl<T: ByteStream> Lexer<T> {
                         }
                     }
 
+                    '=' => {
+                        self.eat();
+                        return Ok(Token::SlashAssign);
+                    }
                     _ => {
-                        if prev == '=' {
-                            self.eat();
-                            return Ok(Token::SlashAssign);
-                        }
                         return Ok(Token::Slash);
                     }
                 }
@@ -162,7 +162,7 @@ impl<T: ByteStream> Lexer<T> {
 
         let prev = self.eat();
         if self.curr == '=' {
-            return Ok(match prev {
+            let assign = match prev {
                 '<' => Token::Leq,
                 '>' => Token::Geq,
 
@@ -174,7 +174,10 @@ impl<T: ByteStream> Lexer<T> {
                 '/' => Token::SlashAssign,
                 '%' => Token::PercentAssign,
                 _ => return Err(TokenError::InvalidToken(format!("{}", prev))),
-            });
+            };
+
+            self.eat();
+            return Ok(assign);
         }
 
         // match singletons
