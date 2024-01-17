@@ -121,6 +121,7 @@ impl<T: ByteStream> Lexer<T> {
 
                 "impl" => Token::Impl,
                 "const" => Token::Const,
+                "static" => Token::Static,
 
                 _ => Token::Ident(ident),
             });
