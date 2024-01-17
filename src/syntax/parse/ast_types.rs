@@ -42,7 +42,6 @@ pub enum VarMod {
     Static,
 }
 
-
 #[derive(Debug)]
 pub struct VarDecl {
     pub name: String,

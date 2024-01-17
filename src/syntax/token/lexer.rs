@@ -1,7 +1,7 @@
-use std::io;
-use std::io::Read;
 use crate::syntax::token::token_types::Token;
 use crate::syntax::token::token_types::Token::Invalid;
+use std::io;
+use std::io::Read;
 
 pub struct Lexer {
     curr: char,
@@ -113,7 +113,6 @@ impl Lexer {
         if self.curr.is_ascii_digit() || self.curr == '.' {
             let mut number = String::new();
             let mut dec = self.curr == '.';
-
 
             while self.curr.is_ascii_digit() || (self.curr == '.') {
                 if dec {

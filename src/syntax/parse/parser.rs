@@ -1,9 +1,13 @@
-use std::collections::HashMap;
-use std::mem;
+use crate::syntax::parse::ast_types::{
+    AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
+    If, LiteralValue, NamePath, Statement, StatementBlock, StructAssign, StructDecl, Type, UnOp,
+    VarAssign, VarDecl, VarMod, While,
+};
 use crate::syntax::token::lexer::Lexer;
 use crate::syntax::token::token_types::Token;
-use crate::syntax::token::token_types::Token::{Any};
-use crate::syntax::parse::ast_types::{VarAssign, AtomicExpression, BinOp, Block, Expression, FnCall, For, If, LiteralValue, NamePath, Statement, StatementBlock, Type, UnOp, VarDecl, VarMod, While, Compound, StructDecl, StructAssign, CompoundValue, FnDef, FnMod};
+use crate::syntax::token::token_types::Token::Any;
+use std::collections::HashMap;
+use std::mem;
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -32,8 +36,13 @@ impl Parser {
 
     fn eat(&mut self, type_: &Token) -> ParseResult<Token> {
         // return old token, set new token, set one buffer of next token
-        if mem::discriminant(&self.curr_token) == mem::discriminant(type_) || matches!(self.curr_token, Token::Any) {
-            Ok(mem::replace(&mut self.curr_token, mem::replace(&mut self.next_token, self.lexer.get_token())))
+        if mem::discriminant(&self.curr_token) == mem::discriminant(type_)
+            || matches!(self.curr_token, Token::Any)
+        {
+            Ok(mem::replace(
+                &mut self.curr_token,
+                mem::replace(&mut self.next_token, self.lexer.get_token()),
+            ))
         } else {
             Err(ParseError::Unexpected(self.curr_token.clone()))
         }
@@ -56,21 +65,16 @@ impl Parser {
 
     fn parse_atomic_expression(&mut self) -> ParseResult<AtomicExpression> {
         match self.eat(&Any)? {
-            Token::Bool(b) => {
-                Ok(AtomicExpression::Literal(LiteralValue::Bool(b)))
-            }
-            Token::Int(i) => {
-                Ok(AtomicExpression::Literal(LiteralValue::Int(i)))
-            }
-            Token::Decimal(f) => {
-                Ok(AtomicExpression::Literal(LiteralValue::Decimal(f)))
-            }
-            Token::String(s) => {
-                Ok(AtomicExpression::Literal(LiteralValue::String(s)))
-            }
+            Token::Bool(b) => Ok(AtomicExpression::Literal(LiteralValue::Bool(b))),
+            Token::Int(i) => Ok(AtomicExpression::Literal(LiteralValue::Int(i))),
+            Token::Decimal(f) => Ok(AtomicExpression::Literal(LiteralValue::Decimal(f))),
+            Token::String(s) => Ok(AtomicExpression::Literal(LiteralValue::String(s))),
             Token::Ident(s) => {
                 if matches!(self.next_token, Token::LParen) {
-                    let mut fn_call = Box::from(FnCall { path: self.string_to_namepath(&s), args: Vec::new() });
+                    let mut fn_call = Box::from(FnCall {
+                        path: self.string_to_namepath(&s),
+                        args: Vec::new(),
+                    });
                     self.eat(&Token::LParen)?;
 
                     loop {
@@ -111,7 +115,11 @@ impl Parser {
         }
     }
 
-    fn parse_bin_op_rhs(&mut self, expr_prec: i32, mut lhs: Box<Expression>) -> ParseResult<Box<Expression>> {
+    fn parse_bin_op_rhs(
+        &mut self,
+        expr_prec: i32,
+        mut lhs: Box<Expression>,
+    ) -> ParseResult<Box<Expression>> {
         loop {
             let binop = match self.curr_token {
                 Token::Plus => BinOp::Add,
@@ -154,7 +162,14 @@ impl Parser {
             }
             _ => {
                 // check if unary
-                if matches!(self.curr_token, Token::Plus | Token::Minus | Token::Exclamation | Token::Star | Token::Ampersand) {
+                if matches!(
+                    self.curr_token,
+                    Token::Plus
+                        | Token::Minus
+                        | Token::Exclamation
+                        | Token::Star
+                        | Token::Ampersand
+                ) {
                     let op = self.eat(&Any)?;
                     let right = self.parse_expression()?;
 
@@ -173,7 +188,9 @@ impl Parser {
 
                     Ok(Box::from(Expression::Unary(unop, right)))
                 } else {
-                    let expr = Box::from(Expression::AtomicExpression(self.parse_atomic_expression()?));
+                    let expr = Box::from(Expression::AtomicExpression(
+                        self.parse_atomic_expression()?,
+                    ));
                     Ok(self.parse_bin_op_rhs(0, expr)?)
                 }
             }
@@ -192,7 +209,9 @@ impl Parser {
                 else_ = Some(Box::from(self.parse_if_statement()?));
             } else {
                 else_ = Some(Box::from(If {
-                    cond: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Bool(true)))),
+                    cond: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Bool(true),
+                    ))),
                     body: Box::from(self.parse_block()?),
                     else_: None,
                 }));
@@ -238,9 +257,15 @@ impl Parser {
                 let assign_op = match self.eat(&Any)? {
                     Token::Assign => {
                         return if matches!(self.curr_token, Token::LBrace) {
-                            Ok(Statement::StructAssign(StructAssign { path, compound: self.parse_compound()? }))
+                            Ok(Statement::StructAssign(StructAssign {
+                                path,
+                                compound: self.parse_compound()?,
+                            }))
                         } else {
-                            Ok(Statement::VarAssign(VarAssign { path, expr: self.parse_expression()? }))
+                            Ok(Statement::VarAssign(VarAssign {
+                                path,
+                                expr: self.parse_expression()?,
+                            }))
                         };
                     }
                     Token::PlusAssign => BinOp::Add,
@@ -248,7 +273,7 @@ impl Parser {
                     Token::StarAssign => BinOp::Mul,
                     Token::SlashAssign => BinOp::Div,
                     Token::PercentAssign => BinOp::Mod,
-                    _ => { Err(ParseError::Unexpected(self.curr_token.clone()))? }
+                    _ => Err(ParseError::Unexpected(self.curr_token.clone()))?,
                 };
 
                 if matches!(self.curr_token, Token::LBrace) {
@@ -257,19 +282,33 @@ impl Parser {
 
                 let rhs = self.parse_expression()?;
 
-                let expr = Expression::Binary(Box::from(Expression::AtomicExpression(AtomicExpression::Variable(path.clone()))), assign_op, rhs);
+                let expr = Expression::Binary(
+                    Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
+                        path.clone(),
+                    ))),
+                    assign_op,
+                    rhs,
+                );
 
-                Ok(Statement::VarAssign(VarAssign { path, expr: Box::from(expr) }))
+                Ok(Statement::VarAssign(VarAssign {
+                    path,
+                    expr: Box::from(expr),
+                }))
             }
-            _ => {
-                Err(ParseError::Unexpected(self.curr_token.clone()))
-            }
+            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
         }
     }
 
     fn parse_statement(&mut self) -> ParseResult<Statement> {
         match &self.curr_token {
-            Token::VoidType | Token::IntType | Token::FloatType | Token::DoubleType | Token::BoolType | Token::StringType | Token::Const | Token::Static => {
+            Token::VoidType
+            | Token::IntType
+            | Token::FloatType
+            | Token::DoubleType
+            | Token::BoolType
+            | Token::StringType
+            | Token::Const
+            | Token::Static => {
                 // variable declaration
                 let decl = self.parse_struct_or_var_decl()?;
                 self.eat(&Token::Semicolon)?;
@@ -286,7 +325,12 @@ impl Parser {
                     }
 
                     // variable / struct assignment
-                    Token::Assign | Token::PlusAssign | Token::MinusAssign | Token::StarAssign | Token::SlashAssign | Token::PercentAssign => {
+                    Token::Assign
+                    | Token::PlusAssign
+                    | Token::MinusAssign
+                    | Token::StarAssign
+                    | Token::SlashAssign
+                    | Token::PercentAssign => {
                         let statement = self.parse_assignment();
                         self.eat(&Token::Semicolon)?;
                         statement
@@ -299,15 +343,9 @@ impl Parser {
                 }
             }
 
-            Token::If => {
-                Ok(Statement::If(self.parse_if_statement()?))
-            }
-            Token::While => {
-                Ok(Statement::While(self.parse_while_statement()?))
-            }
-            Token::For => {
-                Ok(Statement::For(self.parse_for_statement()?))
-            }
+            Token::If => Ok(Statement::If(self.parse_if_statement()?)),
+            Token::While => Ok(Statement::While(self.parse_while_statement()?)),
+            Token::For => Ok(Statement::For(self.parse_for_statement()?)),
             Token::Return => {
                 self.eat(&Token::Return)?;
                 let expr = self.parse_expression()?;
@@ -322,9 +360,7 @@ impl Parser {
                 self.eat(&Token::Continue)?;
                 Ok(Statement::Continue)
             }
-            _ => {
-                Err(ParseError::Unexpected(self.curr_token.clone()))
-            }
+            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
         }
     }
 
@@ -334,7 +370,7 @@ impl Parser {
         while !matches!(self.curr_token, Token::RBrace) {
             match self.curr_token {
                 Token::LBrace => statements.push(StatementBlock::Block(self.parse_block()?)),
-                _ => statements.push(StatementBlock::Statement(self.parse_statement()?))
+                _ => statements.push(StatementBlock::Statement(self.parse_statement()?)),
             }
         }
         self.eat(&Token::RBrace)?;
@@ -344,12 +380,8 @@ impl Parser {
 
     fn parse_compound_value(&mut self) -> ParseResult<CompoundValue> {
         match self.curr_token {
-            Token::LBrace => {
-                Ok(CompoundValue::Compound(Box::from(self.parse_compound()?)))
-            }
-            _ => {
-                Ok(CompoundValue::Expression(self.parse_expression()?))
-            }
+            Token::LBrace => Ok(CompoundValue::Compound(Box::from(self.parse_compound()?))),
+            _ => Ok(CompoundValue::Expression(self.parse_expression()?)),
         }
     }
 
@@ -393,25 +425,29 @@ impl Parser {
                                         Err(ParseError::Unexpected(self.curr_token.clone()))?
                                     }
 
-                                    Ok(StructDecl { type_, name: struct_assign.path[0].clone(), mods, expr: Some(struct_assign.compound) })
+                                    Ok(StructDecl {
+                                        type_,
+                                        name: struct_assign.path[0].clone(),
+                                        mods,
+                                        expr: Some(struct_assign.compound),
+                                    })
                                 }
-                                _ => {
-                                    Err(ParseError::Unexpected(self.curr_token.clone()))
-                                }
+                                _ => Err(ParseError::Unexpected(self.curr_token.clone())),
                             }
                         } else {
                             // just struct declaration
-                            Ok(StructDecl { type_, name: String::from(s), mods, expr: None })
+                            Ok(StructDecl {
+                                type_,
+                                name: String::from(s),
+                                mods,
+                                expr: None,
+                            })
                         }
                     }
-                    _ => {
-                        Err(ParseError::Unexpected(self.curr_token.clone()))?
-                    }
+                    _ => Err(ParseError::Unexpected(self.curr_token.clone()))?,
                 }
             }
-            _ => {
-                Err(ParseError::Unexpected(self.curr_token.clone()))
-            }
+            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
         }
     }
 
@@ -423,9 +459,7 @@ impl Parser {
             Token::DoubleType => Type::Double,
             Token::BoolType => Type::Bool,
             Token::StringType => Type::String,
-            _ => {
-                Err(ParseError::Unexpected(self.curr_token.clone()))?
-            }
+            _ => Err(ParseError::Unexpected(self.curr_token.clone()))?,
         };
 
         match self.parse_assignment()? {
@@ -434,11 +468,14 @@ impl Parser {
                     Err(ParseError::Unexpected(self.curr_token.clone()))?
                 }
 
-                Ok(VarDecl { type_, name: var_assign.path[0].clone(), mods, expr: Some(var_assign.expr) })
+                Ok(VarDecl {
+                    type_,
+                    name: var_assign.path[0].clone(),
+                    mods,
+                    expr: Some(var_assign.expr),
+                })
             }
-            _ => {
-                Err(ParseError::Unexpected(self.curr_token.clone()))
-            }
+            _ => Err(ParseError::Unexpected(self.curr_token.clone())),
         }
     }
 
@@ -454,12 +491,8 @@ impl Parser {
         }
 
         match self.curr_token {
-            Token::Ident(_) => {
-                Ok(Statement::StructDecl(self.parse_struct_decl(mods)?))
-            }
-            _ => {
-                Ok(Statement::VarDecl(self.parse_var_decl(mods)?))
-            }
+            Token::Ident(_) => Ok(Statement::StructDecl(self.parse_struct_decl(mods)?)),
+            _ => Ok(Statement::VarDecl(self.parse_var_decl(mods)?)),
         }
     }
 
@@ -477,9 +510,7 @@ impl Parser {
         self.eat(&Token::Fn)?;
         let name = match self.eat(&Any)? {
             Token::Ident(s) => s,
-            _ => {
-                Err(ParseError::Unexpected(self.curr_token.clone()))?
-            }
+            _ => Err(ParseError::Unexpected(self.curr_token.clone()))?,
         };
 
         self.eat(&Token::LParen)?;
@@ -521,7 +552,12 @@ impl Parser {
 
         let body = self.parse_block()?;
 
-        Ok(FnDef { name, args, body, mods })
+        Ok(FnDef {
+            name,
+            args,
+            body,
+            mods,
+        })
     }
 
     pub fn parse(&mut self) -> ParseResult<Block> {
