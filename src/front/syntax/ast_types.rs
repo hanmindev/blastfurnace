@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Reference<T, R> {
@@ -71,7 +72,7 @@ pub enum VarMod {
 pub struct VarDecl {
     pub name: Reference<String, String>,
     pub type_: Type,
-    pub mods: Vec<VarMod>,
+    pub mods: Rc<Vec<VarMod>>,
     pub expr: Option<Box<Expression>>,
 }
 
@@ -91,7 +92,7 @@ pub struct StructDef {
 pub struct StructDecl {
     pub name: Reference<String, String>,
     pub type_: Type,
-    pub mods: Vec<VarMod>,
+    pub mods: Rc<Vec<VarMod>>,
     pub expr: Option<Compound>,
 }
 
@@ -120,7 +121,7 @@ pub struct FnDef {
     pub name: Reference<String, String>,
     pub args: Vec<(Vec<VarMod>, Type, String)>,
     pub body: Block,
-    pub mods: Vec<FnMod>,
+    pub mods: Rc<Vec<FnMod>>,
 }
 
 #[derive(Debug, PartialEq)]

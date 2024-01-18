@@ -8,6 +8,7 @@ use crate::front::syntax::ast_types::{
 };
 use std::collections::HashMap;
 use std::mem;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -497,7 +498,7 @@ impl<T: TokenStream> Parser<T> {
                                 Statement::StructAssign(struct_assign) => Ok(StructDecl {
                                     type_,
                                     name: struct_assign.name_path.name,
-                                    mods,
+                                    mods: Rc::new(mods),
                                     expr: Some(struct_assign.compound),
                                 }),
                                 _ => Err(ParseError::Unknown),
@@ -507,7 +508,7 @@ impl<T: TokenStream> Parser<T> {
                             Ok(StructDecl {
                                 type_,
                                 name: Reference::new(s.to_string()),
-                                mods,
+                                mods: Rc::new(mods),
                                 expr: None,
                             })
                         }
@@ -543,7 +544,7 @@ impl<T: TokenStream> Parser<T> {
             Statement::VarAssign(var_assign) => Ok(VarDecl {
                 type_,
                 name: var_assign.name_path.name,
-                mods,
+                mods: Rc::new(mods),
                 expr: Some(var_assign.expr),
             }),
             _ => Err(ParseError::Unknown),
@@ -639,7 +640,7 @@ impl<T: TokenStream> Parser<T> {
             name: Reference::new(name),
             args,
             body,
-            mods,
+            mods: Rc::new(mods),
         })
     }
 
@@ -751,7 +752,7 @@ mod tests {
                         )))
                     )))],
                 },
-                mods: Vec::new(),
+                mods: Rc::new(Vec::new()),
             }))
         );
     }
@@ -770,7 +771,7 @@ mod tests {
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Int,
                 name: Reference::new("a".to_string()),
-                mods: vec![VarMod::Const],
+                mods: Rc::new(vec![VarMod::Const]),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(0))
                 ))),
@@ -781,7 +782,7 @@ mod tests {
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Int,
                 name: Reference::new("b".to_string()),
-                mods: vec![VarMod::Static],
+                mods: Rc::new(vec![VarMod::Static]),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(1))
                 ))),
@@ -792,7 +793,7 @@ mod tests {
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Int,
                 name: Reference::new("c".to_string()),
-                mods: Vec::new(),
+                mods: Rc::new(Vec::new()),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(2))
                 ))),
@@ -803,7 +804,7 @@ mod tests {
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Float,
                 name: Reference::new("d".to_string()),
-                mods: Vec::new(),
+                mods: Rc::new(Vec::new()),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Decimal(3.0))
                 ))),
@@ -814,7 +815,7 @@ mod tests {
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Double,
                 name: Reference::new("e".to_string()),
-                mods: Vec::new(),
+                mods: Rc::new(Vec::new()),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Decimal(4.0))
                 ))),
@@ -825,7 +826,7 @@ mod tests {
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Bool,
                 name: Reference::new("f".to_string()),
-                mods: Vec::new(),
+                mods: Rc::new(Vec::new()),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Bool(true))
                 ))),
@@ -836,7 +837,7 @@ mod tests {
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::String,
                 name: Reference::new("g".to_string()),
-                mods: Vec::new(),
+                mods: Rc::new(Vec::new()),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::String("hello".to_string()))
                 ))),
@@ -881,7 +882,7 @@ mod tests {
             StatementBlock::Statement(Statement::StructDecl(StructDecl {
                 type_: Type::Struct(Reference::new("A".to_string())),
                 name: Reference::new("a".to_string()),
-                mods: Vec::new(),
+                mods: Rc::new(Vec::new()),
                 expr: Some(compound),
             }))
         );
@@ -1065,7 +1066,7 @@ mod tests {
                         )
                     )))],
                 },
-                mods: Vec::new(),
+                mods: Rc::new(Vec::new()),
             }))
         );
     }
@@ -1251,7 +1252,7 @@ mod tests {
                 init: Some(Box::from(Statement::VarDecl(VarDecl {
                     type_: Type::Int,
                     name: Reference::new("i".to_string()),
-                    mods: Vec::new(),
+                    mods: Rc::new(Vec::new()),
                     expr: Some(Box::from(Expression::AtomicExpression(
                         AtomicExpression::Literal(LiteralValue::Int(0))
                     ))),
