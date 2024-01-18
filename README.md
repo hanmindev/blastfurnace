@@ -7,6 +7,7 @@ This is currently in early development and is not ready for use.
 ## Progress
 
 Front-End:
+- [ ] Import Resolution
 - [x] Lexer
 - [x] Parser
 - [x] AST
