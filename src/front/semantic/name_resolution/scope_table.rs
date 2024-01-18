@@ -86,7 +86,7 @@ impl ScopeTable {
             }
             None => {
                 self.count.insert(name.clone(), 0);
-                name.to_string()
+                format!("0_{name}")
             }
         };
 

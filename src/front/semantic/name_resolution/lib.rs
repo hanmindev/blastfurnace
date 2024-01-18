@@ -27,7 +27,7 @@ mod tests {
                     var_decl.var_def.name.clone(),
                     Reference {
                         raw: Some("a".to_string()),
-                        resolved: Some("a".to_string()),
+                        resolved: Some("0_a".to_string()),
                     }
                 );
             }
@@ -42,7 +42,7 @@ mod tests {
                     fn_def.name.clone(),
                     Reference {
                         raw: Some("main".to_string()),
-                        resolved: Some("main".to_string()),
+                        resolved: Some("0_main".to_string()),
                     }
                 );
 
@@ -58,7 +58,7 @@ mod tests {
                     fn_def.args[1].name.clone(),
                     Reference {
                         raw: Some("b".to_string()),
-                        resolved: Some("b".to_string()),
+                        resolved: Some("0_b".to_string()),
                     }
                 );
 
