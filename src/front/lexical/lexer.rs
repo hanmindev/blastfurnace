@@ -35,7 +35,7 @@ impl<T: ByteStream> Lexer<T> {
     fn get_token(&mut self) -> Result<Token, TokenError> {
         // check for EOF
         if self.curr == '\0' {
-            return Ok(Token::EOF);
+            return Ok(Token::Eof);
         }
 
         while self.curr.is_whitespace() || self.curr == '/' {
@@ -254,7 +254,7 @@ mod tests {
         assert_eq!(lexer.next().unwrap(), Token::Int(0));
         assert_eq!(lexer.next().unwrap(), Token::Semicolon);
         assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::EOF);
+        assert_eq!(lexer.next().unwrap(), Token::Eof);
     }
 
     #[test]
@@ -282,7 +282,7 @@ mod tests {
         assert_eq!(lexer.next().unwrap(), Token::Int(1));
         assert_eq!(lexer.next().unwrap(), Token::Semicolon);
         assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::EOF);
+        assert_eq!(lexer.next().unwrap(), Token::Eof);
     }
 
     #[test]
@@ -299,7 +299,7 @@ mod tests {
         assert_eq!(lexer.next().unwrap(), Token::Int(0));
         assert_eq!(lexer.next().unwrap(), Token::Semicolon);
         assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::EOF);
+        assert_eq!(lexer.next().unwrap(), Token::Eof);
     }
 
     #[test]
@@ -326,7 +326,7 @@ mod tests {
         assert_eq!(lexer.next().unwrap(), Token::Int(5));
         assert_eq!(lexer.next().unwrap(), Token::Semicolon);
         assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::EOF);
+        assert_eq!(lexer.next().unwrap(), Token::Eof);
     }
 
     #[test]

@@ -102,7 +102,7 @@ impl ScopeTable {
             }
         }
 
-        return Ok(resolved);
+        Ok(resolved)
     }
 
     pub fn scope_lookup_current(&self, name: &String) -> Option<&Symbol> {

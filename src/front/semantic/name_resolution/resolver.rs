@@ -49,7 +49,7 @@ impl Resolvable for StatementBlock {
 
 impl Resolvable for Statement {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        return Ok(match self {
+        match self {
             Statement::VarDecl(statement) => statement.resolve(scope_table)?,
             Statement::VarAssign(statement) => statement.resolve(scope_table)?,
             Statement::StructDef(statement) => statement.resolve(scope_table)?,
@@ -60,7 +60,8 @@ impl Resolvable for Statement {
             Statement::Return(statement) => statement.resolve(scope_table)?,
             Statement::Expression(statement) => statement.resolve(scope_table)?,
             _ => {}
-        });
+        };
+        Ok(())
     }
 }
 
@@ -73,10 +74,7 @@ impl Resolvable for VarDef {
 
 impl Resolvable for VarDecl {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        match self.expr {
-            Some(ref mut expr) => expr.resolve(scope_table)?,
-            None => (),
-        }
+        if let Some(ref mut expr) = self.expr { expr.resolve(scope_table)? }
         self.var_def.resolve(scope_table)?;
 
         Ok(())
@@ -135,11 +133,8 @@ impl Resolvable for Expression {
 impl Resolvable for AtomicExpression {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
-            AtomicExpression::Literal(lit) => match lit {
-                LiteralValue::Compound(compound) => {
-                    compound.resolve(scope_table)?;
-                }
-                _ => (),
+            AtomicExpression::Literal(lit) => if let LiteralValue::Compound(compound) = lit {
+                compound.resolve(scope_table)?;
             },
             AtomicExpression::Variable(var) => {
                 var.resolve(scope_table)?;
@@ -162,7 +157,10 @@ impl Resolvable for NamePath {
 impl Resolvable for Reference<String, String> {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match scope_table.scope_lookup(&self.raw) {
-            Some(symbol) => Ok(self.resolved = Some(symbol.resolved().clone())),
+            Some(symbol) => {
+                self.resolved = Some(symbol.resolved().clone());
+                Ok(())
+            },
             None => Err(ResolverError::UndefinedVariable(self.raw.clone())),
         }
     }

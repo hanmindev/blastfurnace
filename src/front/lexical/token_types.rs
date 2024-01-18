@@ -79,5 +79,5 @@ pub enum Token {
     Continue,
 
     // Misc
-    EOF,
+    Eof,
 }

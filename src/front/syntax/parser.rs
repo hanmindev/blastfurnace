@@ -32,11 +32,11 @@ impl<T: TokenStream> Parser<T> {
     pub fn new(lexer: T) -> Parser<T> {
         let mut parser = Parser {
             lexer,
-            curr_token: Token::EOF,
-            next_token: Token::EOF,
+            curr_token: Token::Eof,
+            next_token: Token::Eof,
         };
-        parser.eat(&Token::EOF).unwrap();
-        parser.eat(&Token::EOF).unwrap();
+        parser.eat(&Token::Eof).unwrap();
+        parser.eat(&Token::Eof).unwrap();
         parser
     }
 
@@ -74,7 +74,7 @@ impl<T: TokenStream> Parser<T> {
         path.push(curr);
         let name: Reference<String, String> = Reference::new(path.remove(0));
 
-        return NamePath { name, path };
+        NamePath { name, path }
     }
 
     fn parse_atomic_expression(&mut self) -> ParseResult<Expression> {
@@ -151,26 +151,25 @@ impl<T: TokenStream> Parser<T> {
     fn get_bin_op_prec(&self, binop: &BinOp) -> i32 {
         // taken from https://en.cppreference.com/w/c/language/operator_precedence
 
-        return 160
-            - (match binop {
-                BinOp::Mul => 3,
-                BinOp::Div => 3,
-                BinOp::Mod => 3,
+        160 - (match binop {
+            BinOp::Mul => 3,
+            BinOp::Div => 3,
+            BinOp::Mod => 3,
 
-                BinOp::Add => 4,
-                BinOp::Sub => 4,
+            BinOp::Add => 4,
+            BinOp::Sub => 4,
 
-                BinOp::Lt => 6,
-                BinOp::Gt => 6,
-                BinOp::Leq => 6,
-                BinOp::Geq => 6,
+            BinOp::Lt => 6,
+            BinOp::Gt => 6,
+            BinOp::Leq => 6,
+            BinOp::Geq => 6,
 
-                BinOp::Eq => 7,
-                BinOp::Neq => 7,
+            BinOp::Eq => 7,
+            BinOp::Neq => 7,
 
-                BinOp::And => 11,
-                BinOp::Or => 12,
-            } * 10);
+            BinOp::And => 11,
+            BinOp::Or => 12,
+        } * 10)
     }
 
     fn token_to_binop(&self, tok: &Token) -> Option<BinOp> {
@@ -274,8 +273,8 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_expression(&mut self) -> ParseResult<Box<Expression>> {
         // not prefixed unary
-        let lhs = Box::from(self.parse_expression_single()?);
-        return Ok(self.parse_bin_op_rhs(0, lhs)?);
+        let lhs = self.parse_expression_single()?;
+        self.parse_bin_op_rhs(0, lhs)
     }
 
     fn parse_if_statement(&mut self) -> ParseResult<If> {
@@ -673,7 +672,7 @@ impl<T: TokenStream> Parser<T> {
 
     pub fn parse(&mut self) -> ParseResult<Block> {
         let mut statements = Vec::new();
-        while !matches!(self.curr_token, Token::EOF) {
+        while !matches!(self.curr_token, Token::Eof) {
             let statement = self.parse_statement()?;
 
             if !matches!(
@@ -689,7 +688,7 @@ impl<T: TokenStream> Parser<T> {
 
             statements.push(StatementBlock::Statement(statement));
         }
-        self.eat(&Token::EOF)?;
+        self.eat(&Token::Eof)?;
 
         Ok(Block { statements })
     }
@@ -837,7 +836,7 @@ mod tests {
 
         let block = parser.parse().unwrap();
 
-        let compound = (|| {
+        let compound = {
             let mut map = HashMap::new();
             map.insert(
                 "a".to_string(),
@@ -858,7 +857,7 @@ mod tests {
                 ))),
             );
             map
-        })();
+        };
 
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
@@ -994,7 +993,7 @@ mod tests {
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                 expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
-                    LiteralValue::Compound((|| {
+                    LiteralValue::Compound({
                         let mut map = HashMap::new();
                         map.insert(
                             "a".to_string(),
@@ -1016,7 +1015,7 @@ mod tests {
                         );
 
                         map
-                    })())
+                    })
                 ))),
             }))
         );
@@ -1636,7 +1635,7 @@ mod tests {
             block.statements[0],
             StatementBlock::Statement(Statement::StructDef(StructDef {
                 name: Reference::new("A".to_string()),
-                map: (|| {
+                map: {
                     let mut map = HashMap::new();
                     map.insert("a".to_string(), Type::Int);
                     map.insert("b".to_string(), Type::Float);
@@ -1646,7 +1645,7 @@ mod tests {
                         Type::Struct(Reference::new("C".to_string())),
                     );
                     map
-                })()
+                }
             }))
         );
     }
