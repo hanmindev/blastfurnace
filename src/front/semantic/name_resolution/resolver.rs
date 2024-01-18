@@ -62,13 +62,12 @@ impl Resolvable for Statement {
 
 impl Resolvable for VarDecl {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name
-            .register(scope_table, SymbolInfo::Var(Rc::clone(&self.mods)))?;
-
         match self.expr {
             Some(ref mut expr) => expr.resolve(scope_table)?,
             None => (),
         }
+        self.name
+            .register(scope_table, SymbolInfo::Var(Rc::clone(&self.mods)))?;
 
         Ok(())
     }
@@ -76,13 +75,13 @@ impl Resolvable for VarDecl {
 
 impl Resolvable for StructDecl {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name
-            .register(scope_table, SymbolInfo::Var(Rc::clone(&self.mods)))?;
-
         match self.expr {
             Some(ref mut compound) => compound.resolve(scope_table)?,
             None => (),
         }
+        self.name
+            .register(scope_table, SymbolInfo::Var(Rc::clone(&self.mods)))?;
+
         Ok(())
     }
 }
