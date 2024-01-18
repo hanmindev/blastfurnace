@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
+pub type RawName = String;
+pub type ResolvedName = String;
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Reference<T, R> {
     pub raw: Option<T>,
@@ -24,7 +27,7 @@ pub enum Type {
     Float,
     Double,
     String,
-    Struct(Reference<String, String>),
+    Struct(Reference<RawName, ResolvedName>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -58,7 +61,7 @@ pub enum BinOp {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct NamePath {
-    pub name: Reference<String, String>,
+    pub name: Reference<RawName, ResolvedName>,
     pub path: Vec<String>,
 }
 
@@ -82,7 +85,7 @@ pub struct VarAssign {
 
 #[derive(Debug, PartialEq)]
 pub struct StructDef {
-    pub name: Reference<String, String>,
+    pub name: Reference<RawName, ResolvedName>,
     pub map: HashMap<String, Type>,
 }
 
@@ -114,14 +117,14 @@ pub enum FnMod {
 
 #[derive(Debug, PartialEq)]
 pub struct VarDef {
+    pub name: Reference<RawName, ResolvedName>,
     pub mods: Rc<Vec<VarMod>>,
     pub type_: Type,
-    pub name: Reference<String, String>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FnDef {
-    pub name: Reference<String, String>,
+    pub name: Reference<RawName, ResolvedName>,
     pub args: Vec<VarDef>,
     pub body: Block,
     pub mods: Rc<Vec<FnMod>>,

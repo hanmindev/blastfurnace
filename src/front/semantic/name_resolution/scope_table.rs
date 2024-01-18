@@ -1,11 +1,8 @@
 use crate::front::semantic::name_resolution::resolver::ResolveResult;
 use crate::front::semantic::name_resolution::resolver::ResolverError::Redefinition;
-use crate::front::syntax::ast_types::{FnMod, VarMod};
+use crate::front::syntax::ast_types::{FnMod, RawName, ResolvedName, VarMod};
 use std::collections::HashMap;
 use std::rc::Rc;
-
-type Raw = String;
-type Resolved = String;
 
 #[derive(Debug)]
 pub enum SymbolInfo {
@@ -16,12 +13,12 @@ pub enum SymbolInfo {
 
 #[derive(Debug)]
 pub struct Symbol {
-    resolved: Resolved,
+    resolved: ResolvedName,
     symbol_info: SymbolInfo,
 }
 
 impl Symbol {
-    pub fn resolved(&self) -> &Resolved {
+    pub fn resolved(&self) -> &ResolvedName {
         &self.resolved as &String
     }
 
@@ -32,7 +29,7 @@ impl Symbol {
 
 #[derive(Debug)]
 pub struct ScopeTableNode {
-    symbols: HashMap<Raw, Rc<Symbol>>,
+    symbols: HashMap<RawName, Rc<Symbol>>,
 }
 
 #[derive(Debug)]
@@ -40,8 +37,8 @@ pub struct ScopeTable {
     stack: Vec<ScopeTableNode>,
     scope_level: u32,
 
-    global: HashMap<Resolved, Rc<Symbol>>,
-    count: HashMap<Raw, i32>,
+    global: HashMap<ResolvedName, Rc<Symbol>>,
+    count: HashMap<RawName, i32>,
 }
 
 impl ScopeTable {
@@ -56,7 +53,7 @@ impl ScopeTable {
         }
     }
 
-    pub fn get_global(&self) -> &HashMap<Resolved, Rc<Symbol>> {
+    pub fn get_global(&self) -> &HashMap<ResolvedName, Rc<Symbol>> {
         &self.global
     }
 
