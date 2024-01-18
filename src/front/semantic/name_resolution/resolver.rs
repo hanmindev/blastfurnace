@@ -74,7 +74,9 @@ impl Resolvable for VarDef {
 
 impl Resolvable for VarDecl {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        if let Some(ref mut expr) = self.expr { expr.resolve(scope_table)? }
+        if let Some(ref mut expr) = self.expr {
+            expr.resolve(scope_table)?
+        }
         self.var_def.resolve(scope_table)?;
 
         Ok(())
@@ -133,9 +135,11 @@ impl Resolvable for Expression {
 impl Resolvable for AtomicExpression {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
-            AtomicExpression::Literal(lit) => if let LiteralValue::Compound(compound) = lit {
-                compound.resolve(scope_table)?;
-            },
+            AtomicExpression::Literal(lit) => {
+                if let LiteralValue::Compound(compound) = lit {
+                    compound.resolve(scope_table)?;
+                }
+            }
             AtomicExpression::Variable(var) => {
                 var.resolve(scope_table)?;
             }
@@ -160,7 +164,7 @@ impl Resolvable for Reference<String, String> {
             Some(symbol) => {
                 self.resolved = Some(symbol.resolved().clone());
                 Ok(())
-            },
+            }
             None => Err(ResolverError::UndefinedVariable(self.raw.clone())),
         }
     }
