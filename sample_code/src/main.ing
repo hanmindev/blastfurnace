@@ -1,0 +1,7 @@
+use root::test::helpful::{helpful_function};
+
+mod test;
+
+fn main() {
+    helpful_function(2, 3);
+}
