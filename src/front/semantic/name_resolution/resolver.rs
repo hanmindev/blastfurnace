@@ -2,7 +2,7 @@ use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolInf
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, For, If,
     LiteralValue, NamePath, Reference, Statement, StatementBlock, StructAssign, StructDecl,
-    StructDef, VarAssign, VarDecl, While,
+    StructDef, VarAssign, VarDecl, VarDef, While,
 };
 use std::rc::Rc;
 
@@ -60,14 +60,21 @@ impl Resolvable for Statement {
     }
 }
 
+impl Resolvable for VarDef {
+    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        self.name
+            .register(scope_table, SymbolInfo::Var(Rc::clone(&self.mods)))?;
+        Ok(())
+    }
+}
+
 impl Resolvable for VarDecl {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self.expr {
             Some(ref mut expr) => expr.resolve(scope_table)?,
             None => (),
         }
-        self.name
-            .register(scope_table, SymbolInfo::Var(Rc::clone(&self.mods)))?;
+        self.var_def.resolve(scope_table)?;
 
         Ok(())
     }
@@ -79,8 +86,7 @@ impl Resolvable for StructDecl {
             Some(ref mut compound) => compound.resolve(scope_table)?,
             None => (),
         }
-        self.name
-            .register(scope_table, SymbolInfo::Var(Rc::clone(&self.mods)))?;
+        self.var_def.resolve(scope_table)?;
 
         Ok(())
     }

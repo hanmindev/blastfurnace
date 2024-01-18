@@ -70,9 +70,7 @@ pub enum VarMod {
 
 #[derive(Debug, PartialEq)]
 pub struct VarDecl {
-    pub name: Reference<String, String>,
-    pub type_: Type,
-    pub mods: Rc<Vec<VarMod>>,
+    pub var_def: VarDef,
     pub expr: Option<Box<Expression>>,
 }
 
@@ -90,9 +88,7 @@ pub struct StructDef {
 
 #[derive(Debug, PartialEq)]
 pub struct StructDecl {
-    pub name: Reference<String, String>,
-    pub type_: Type,
-    pub mods: Rc<Vec<VarMod>>,
+    pub var_def: VarDef,
     pub expr: Option<Compound>,
 }
 
@@ -117,9 +113,16 @@ pub enum FnMod {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct VarDef {
+    pub mods: Rc<Vec<VarMod>>,
+    pub type_: Type,
+    pub name: Reference<String, String>,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct FnDef {
     pub name: Reference<String, String>,
-    pub args: Vec<(Vec<VarMod>, Type, String)>,
+    pub args: Vec<(VarDef)>,
     pub body: Block,
     pub mods: Rc<Vec<FnMod>>,
 }

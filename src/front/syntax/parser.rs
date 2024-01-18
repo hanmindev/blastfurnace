@@ -4,7 +4,7 @@ use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
     If, LiteralValue, NamePath, Reference, Statement, StatementBlock, StructAssign, StructDecl,
-    StructDef, Type, UnOp, VarAssign, VarDecl, VarMod, While,
+    StructDef, Type, UnOp, VarAssign, VarDecl, VarDef, VarMod, While,
 };
 use std::collections::HashMap;
 use std::mem;
@@ -496,9 +496,11 @@ impl<T: TokenStream> Parser<T> {
 
                             match self.parse_assignment()? {
                                 Statement::StructAssign(struct_assign) => Ok(StructDecl {
-                                    type_,
-                                    name: struct_assign.name_path.name,
-                                    mods: Rc::new(mods),
+                                    var_def: VarDef {
+                                        type_,
+                                        name: struct_assign.name_path.name,
+                                        mods: Rc::new(mods),
+                                    },
                                     expr: Some(struct_assign.compound),
                                 }),
                                 _ => Err(ParseError::Unknown),
@@ -506,9 +508,11 @@ impl<T: TokenStream> Parser<T> {
                         } else {
                             // just struct declaration
                             Ok(StructDecl {
-                                type_,
-                                name: Reference::new(s.to_string()),
-                                mods: Rc::new(mods),
+                                var_def: VarDef {
+                                    type_,
+                                    name: Reference::new(s.to_string()),
+                                    mods: Rc::new(mods),
+                                },
                                 expr: None,
                             })
                         }
@@ -543,9 +547,11 @@ impl<T: TokenStream> Parser<T> {
         if matches!(self.next_token, Token::Assign) {
             match self.parse_assignment()? {
                 Statement::VarAssign(var_assign) => Ok(VarDecl {
-                    type_,
-                    name: var_assign.name_path.name,
-                    mods: Rc::new(mods),
+                    var_def: VarDef {
+                        type_,
+                        name: var_assign.name_path.name,
+                        mods: Rc::new(mods),
+                    },
                     expr: Some(var_assign.expr),
                 }),
                 _ => Err(ParseError::Unknown),
@@ -553,9 +559,11 @@ impl<T: TokenStream> Parser<T> {
         } else {
             match self.eat(&Any)? {
                 Token::Ident(s) => Ok(VarDecl {
-                    type_,
-                    name: Reference::new(s),
-                    mods: Rc::new(mods),
+                    var_def: VarDef {
+                        type_,
+                        name: Reference::new(s),
+                        mods: Rc::new(mods),
+                    },
                     expr: None,
                 }),
                 tok => Err(ParseError::Unexpected(
@@ -604,7 +612,7 @@ impl<T: TokenStream> Parser<T> {
         };
 
         self.eat(&Token::LParen)?;
-        let mut args = Vec::new();
+        let mut args: Vec<VarDef> = Vec::new();
 
         if self.eat(&Token::RParen).is_err() {
             loop {
@@ -629,7 +637,7 @@ impl<T: TokenStream> Parser<T> {
                     }
                 };
 
-                let name = match self.eat(&Any)? {
+                let name = Reference::new(match self.eat(&Any)? {
                     Token::Ident(s) => s,
                     tok => {
                         return Err(ParseError::Unexpected(
@@ -637,9 +645,13 @@ impl<T: TokenStream> Parser<T> {
                             "Expected identifier for function argument name".to_string(),
                         ));
                     }
-                };
+                });
 
-                args.push((mods, type_, name));
+                args.push(VarDef {
+                    mods: Rc::new(mods),
+                    type_,
+                    name,
+                });
 
                 if self.eat(&Token::Comma).is_err() {
                     break;
@@ -784,9 +796,11 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                type_: Type::Int,
-                name: Reference::new("a".to_string()),
-                mods: Rc::new(vec![VarMod::Const]),
+                var_def: VarDef {
+                    type_: Type::Int,
+                    name: Reference::new("a".to_string()),
+                    mods: Rc::new(vec![VarMod::Const]),
+                },
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(0))
                 ))),
@@ -795,9 +809,11 @@ mod tests {
         assert_eq!(
             block.statements[1],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                type_: Type::Int,
-                name: Reference::new("b".to_string()),
-                mods: Rc::new(vec![VarMod::Static]),
+                var_def: VarDef {
+                    type_: Type::Int,
+                    name: Reference::new("b".to_string()),
+                    mods: Rc::new(vec![VarMod::Static]),
+                },
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(1))
                 ))),
@@ -806,9 +822,11 @@ mod tests {
         assert_eq!(
             block.statements[2],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                type_: Type::Int,
-                name: Reference::new("c".to_string()),
-                mods: Rc::new(Vec::new()),
+                var_def: VarDef {
+                    type_: Type::Int,
+                    name: Reference::new("c".to_string()),
+                    mods: Rc::new(Vec::new()),
+                },
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(2))
                 ))),
@@ -817,9 +835,11 @@ mod tests {
         assert_eq!(
             block.statements[3],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                type_: Type::Float,
-                name: Reference::new("d".to_string()),
-                mods: Rc::new(Vec::new()),
+                var_def: VarDef {
+                    type_: Type::Float,
+                    name: Reference::new("d".to_string()),
+                    mods: Rc::new(Vec::new()),
+                },
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Decimal(3.0))
                 ))),
@@ -828,9 +848,11 @@ mod tests {
         assert_eq!(
             block.statements[4],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                type_: Type::Double,
-                name: Reference::new("e".to_string()),
-                mods: Rc::new(Vec::new()),
+                var_def: VarDef {
+                    type_: Type::Double,
+                    name: Reference::new("e".to_string()),
+                    mods: Rc::new(Vec::new()),
+                },
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Decimal(4.0))
                 ))),
@@ -839,9 +861,11 @@ mod tests {
         assert_eq!(
             block.statements[5],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                type_: Type::Bool,
-                name: Reference::new("f".to_string()),
-                mods: Rc::new(Vec::new()),
+                var_def: VarDef {
+                    type_: Type::Bool,
+                    name: Reference::new("f".to_string()),
+                    mods: Rc::new(Vec::new()),
+                },
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Bool(true))
                 ))),
@@ -850,9 +874,11 @@ mod tests {
         assert_eq!(
             block.statements[6],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                type_: Type::String,
-                name: Reference::new("g".to_string()),
-                mods: Rc::new(Vec::new()),
+                var_def: VarDef {
+                    type_: Type::String,
+                    name: Reference::new("g".to_string()),
+                    mods: Rc::new(Vec::new()),
+                },
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::String("hello".to_string()))
                 ))),
@@ -895,9 +921,11 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::StructDecl(StructDecl {
-                type_: Type::Struct(Reference::new("A".to_string())),
-                name: Reference::new("a".to_string()),
-                mods: Rc::new(Vec::new()),
+                var_def: VarDef {
+                    type_: Type::Struct(Reference::new("A".to_string())),
+                    name: Reference::new("a".to_string()),
+                    mods: Rc::new(Vec::new()),
+                },
                 expr: Some(compound),
             }))
         );
@@ -1061,12 +1089,16 @@ mod tests {
             StatementBlock::Statement(Statement::FnDef(FnDef {
                 name: Reference::new("add".to_string()),
                 args: vec![
-                    (Vec::new(), Type::Int, "a".to_string()),
-                    (
-                        Vec::new(),
-                        Type::Struct(Reference::new("B".to_string())),
-                        "b".to_string()
-                    ),
+                    VarDef {
+                        mods: Rc::new(Vec::new()),
+                        type_: Type::Int,
+                        name: Reference::new("a".to_string()),
+                    },
+                    VarDef {
+                        mods: Rc::new(Vec::new()),
+                        type_: Type::Struct(Reference::new("B".to_string())),
+                        name: Reference::new("b".to_string()),
+                    },
                 ],
                 body: Block {
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
@@ -1265,9 +1297,11 @@ mod tests {
             block.statements[0],
             StatementBlock::Statement(Statement::For(For {
                 init: Some(Box::from(Statement::VarDecl(VarDecl {
-                    type_: Type::Int,
-                    name: Reference::new("i".to_string()),
-                    mods: Rc::new(Vec::new()),
+                    var_def: VarDef {
+                        type_: Type::Int,
+                        name: Reference::new("i".to_string()),
+                        mods: Rc::new(Vec::new()),
+                    },
                     expr: Some(Box::from(Expression::AtomicExpression(
                         AtomicExpression::Literal(LiteralValue::Int(0))
                     ))),
@@ -1682,9 +1716,11 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                type_: Type::Int,
-                name: Reference::new("a".to_string()),
-                mods: Rc::new(Vec::new()),
+                var_def: VarDef {
+                    type_: Type::Int,
+                    name: Reference::new("a".to_string()),
+                    mods: Rc::new(Vec::new()),
+                },
                 expr: None,
             }))
         );
@@ -1692,13 +1728,19 @@ mod tests {
             block.statements[1],
             StatementBlock::Statement(Statement::FnDef(FnDef {
                 name: Reference::new("main".to_string()),
-                args: vec![(Vec::new(), Type::Int, "a".to_string())],
+                args: vec![VarDef {
+                    mods: Rc::new(Vec::new()),
+                    type_: Type::Int,
+                    name: Reference::new("a".to_string()),
+                }],
                 body: Block {
                     statements: vec![
                         StatementBlock::Statement(Statement::VarDecl(VarDecl {
-                            type_: Type::Int,
-                            name: Reference::new("a".to_string()),
-                            mods: Rc::new(Vec::new()),
+                            var_def: VarDef {
+                                type_: Type::Int,
+                                name: Reference::new("a".to_string()),
+                                mods: Rc::new(Vec::new()),
+                            },
                             expr: None,
                         })),
                         StatementBlock::Statement(Statement::Expression(Box::from(
