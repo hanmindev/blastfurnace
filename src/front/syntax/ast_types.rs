@@ -1,5 +1,20 @@
 use std::collections::HashMap;
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Reference<T, R> {
+    pub raw: Option<T>,
+    pub resolved: Option<R>,
+}
+
+impl<T, R> Reference<T, R> {
+    pub fn new(raw: T) -> Reference<T, R> {
+        Reference {
+            raw: Some(raw),
+            resolved: None,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Type {
     Void,
@@ -8,7 +23,7 @@ pub enum Type {
     Float,
     Double,
     String,
-    Struct(String),
+    Struct(Reference<String, String>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -39,7 +54,12 @@ pub enum BinOp {
     And,
     Or,
 }
-pub type NamePath = Vec<String>;
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct NamePath {
+    pub name: Reference<String, String>,
+    pub path: Vec<String>,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum VarMod {
@@ -49,7 +69,7 @@ pub enum VarMod {
 
 #[derive(Debug, PartialEq)]
 pub struct VarDecl {
-    pub name: String,
+    pub name: Reference<String, String>,
     pub type_: Type,
     pub mods: Vec<VarMod>,
     pub expr: Option<Box<Expression>>,
@@ -57,19 +77,19 @@ pub struct VarDecl {
 
 #[derive(Debug, PartialEq)]
 pub struct VarAssign {
-    pub path: NamePath,
+    pub name_path: NamePath,
     pub expr: Box<Expression>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct StructDef {
-    pub name: String,
+    pub name: Reference<String, String>,
     pub map: HashMap<String, Type>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct StructDecl {
-    pub name: String,
+    pub name: Reference<String, String>,
     pub type_: Type,
     pub mods: Vec<VarMod>,
     pub expr: Option<Compound>,
@@ -85,7 +105,7 @@ pub enum CompoundValue {
 
 #[derive(Debug, PartialEq)]
 pub struct StructAssign {
-    pub path: NamePath,
+    pub name_path: NamePath,
     pub compound: Compound,
 }
 
@@ -97,7 +117,7 @@ pub enum FnMod {
 
 #[derive(Debug, PartialEq)]
 pub struct FnDef {
-    pub name: String,
+    pub name: Reference<String, String>,
     pub args: Vec<(Vec<VarMod>, Type, String)>,
     pub body: Block,
     pub mods: Vec<FnMod>,
@@ -105,7 +125,7 @@ pub struct FnDef {
 
 #[derive(Debug, PartialEq)]
 pub struct FnCall {
-    pub path: NamePath,
+    pub name_path: NamePath,
     pub args: Vec<Box<Expression>>,
 }
 

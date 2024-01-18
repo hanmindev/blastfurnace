@@ -3,8 +3,8 @@ use crate::front::lexical::token_types::Token;
 use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
-    If, LiteralValue, NamePath, Statement, StatementBlock, StructAssign, StructDecl, StructDef,
-    Type, UnOp, VarAssign, VarDecl, VarMod, While,
+    If, LiteralValue, NamePath, Reference, Statement, StatementBlock, StructAssign, StructDecl,
+    StructDef, Type, UnOp, VarAssign, VarDecl, VarMod, While,
 };
 use std::collections::HashMap;
 use std::mem;
@@ -59,7 +59,7 @@ impl<T: TokenStream> Parser<T> {
         }
     }
 
-    fn string_to_namepath(&mut self, s: &str) -> NamePath {
+    pub fn string_to_namepath(s: &str) -> NamePath {
         let mut path = Vec::new();
         let mut curr = String::new();
         for c in s.chars() {
@@ -71,7 +71,9 @@ impl<T: TokenStream> Parser<T> {
             }
         }
         path.push(curr);
-        path
+        let name: Reference<String, String> = Reference::new(path.remove(0));
+
+        return NamePath { name, path };
     }
 
     fn parse_atomic_expression(&mut self) -> ParseResult<Expression> {
@@ -94,7 +96,7 @@ impl<T: TokenStream> Parser<T> {
             Token::Ident(s) => {
                 if matches!(self.curr_token, Token::LParen) {
                     let mut fn_call = Box::from(FnCall {
-                        path: self.string_to_namepath(&s),
+                        name_path: Parser::<T>::string_to_namepath(&s),
                         args: Vec::new(),
                     });
                     self.eat(&Token::LParen)?;
@@ -116,7 +118,7 @@ impl<T: TokenStream> Parser<T> {
                     )))
                 } else {
                     let var = Expression::AtomicExpression(AtomicExpression::Variable(
-                        self.string_to_namepath(&s),
+                        Parser::<T>::string_to_namepath(&s),
                     ));
                     match self.curr_token {
                         Token::PlusPlus => {
@@ -324,18 +326,18 @@ impl<T: TokenStream> Parser<T> {
     fn parse_assignment(&mut self) -> ParseResult<Statement> {
         match &self.eat(&Any)? {
             Token::Ident(var_name) => {
-                let path = self.string_to_namepath(var_name);
+                let name_path = Parser::<T>::string_to_namepath(var_name);
 
                 let assign_op = match self.eat(&Any)? {
                     Token::Assign => {
                         return if matches!(self.curr_token, Token::LBrace) {
                             Ok(Statement::StructAssign(StructAssign {
-                                path,
+                                name_path,
                                 compound: self.parse_compound()?,
                             }))
                         } else {
                             Ok(Statement::VarAssign(VarAssign {
-                                path,
+                                name_path,
                                 expr: self.parse_expression()?,
                             }))
                         };
@@ -362,14 +364,14 @@ impl<T: TokenStream> Parser<T> {
 
                 let expr = Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        path.clone(),
+                        name_path.clone(),
                     ))),
                     assign_op,
                     rhs,
                 );
 
                 Ok(Statement::VarAssign(VarAssign {
-                    path,
+                    name_path,
                     expr: Box::from(expr),
                 }))
             }
@@ -484,7 +486,7 @@ impl<T: TokenStream> Parser<T> {
     fn parse_struct_decl(&mut self, mods: Vec<VarMod>) -> ParseResult<StructDecl> {
         match self.eat(&Any)? {
             Token::Ident(s_type) => {
-                let type_ = Type::Struct(s_type.clone());
+                let type_ = Type::Struct(Reference::new(s_type));
 
                 match &self.curr_token {
                     Token::Ident(s) => {
@@ -492,28 +494,19 @@ impl<T: TokenStream> Parser<T> {
                             // struct assignment
 
                             match self.parse_assignment()? {
-                                Statement::StructAssign(struct_assign) => {
-                                    if struct_assign.path.len() != 1 {
-                                        Err(ParseError::Unexpected(
-                                            self.curr_token.clone(),
-                                            "Struct assignment path must be length 1".to_string(),
-                                        ))?
-                                    }
-
-                                    Ok(StructDecl {
-                                        type_,
-                                        name: struct_assign.path[0].clone(),
-                                        mods,
-                                        expr: Some(struct_assign.compound),
-                                    })
-                                }
+                                Statement::StructAssign(struct_assign) => Ok(StructDecl {
+                                    type_,
+                                    name: struct_assign.name_path.name,
+                                    mods,
+                                    expr: Some(struct_assign.compound),
+                                }),
                                 _ => Err(ParseError::Unknown),
                             }
                         } else {
                             // just struct declaration
                             Ok(StructDecl {
                                 type_,
-                                name: String::from(s),
+                                name: Reference::new(s.to_string()),
                                 mods,
                                 expr: None,
                             })
@@ -547,21 +540,12 @@ impl<T: TokenStream> Parser<T> {
         };
 
         match self.parse_assignment()? {
-            Statement::VarAssign(var_assign) => {
-                if var_assign.path.len() != 1 {
-                    Err(ParseError::Unexpected(
-                        self.curr_token.clone(),
-                        "Variable assignment path must be length 1".to_string(),
-                    ))?
-                }
-
-                Ok(VarDecl {
-                    type_,
-                    name: var_assign.path[0].clone(),
-                    mods,
-                    expr: Some(var_assign.expr),
-                })
-            }
+            Statement::VarAssign(var_assign) => Ok(VarDecl {
+                type_,
+                name: var_assign.name_path.name,
+                mods,
+                expr: Some(var_assign.expr),
+            }),
             _ => Err(ParseError::Unknown),
         }
     }
@@ -620,7 +604,7 @@ impl<T: TokenStream> Parser<T> {
                     Token::DoubleType => Type::Double,
                     Token::BoolType => Type::Bool,
                     Token::StringType => Type::String,
-                    Token::Ident(s) => Type::Struct(s),
+                    Token::Ident(s) => Type::Struct(Reference::new(s)),
                     tok => {
                         return Err(ParseError::Unexpected(
                             tok,
@@ -652,7 +636,7 @@ impl<T: TokenStream> Parser<T> {
         let body = self.parse_block()?;
 
         Ok(FnDef {
-            name,
+            name: Reference::new(name),
             args,
             body,
             mods,
@@ -684,7 +668,7 @@ impl<T: TokenStream> Parser<T> {
                 Token::DoubleType => Type::Double,
                 Token::BoolType => Type::Bool,
                 Token::StringType => Type::String,
-                Token::Ident(s) => Type::Struct(s),
+                Token::Ident(s) => Type::Struct(Reference::new(s)),
                 tok => {
                     return Err(ParseError::Unexpected(
                         tok,
@@ -711,7 +695,7 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::RBrace)?;
 
         Ok(StructDef {
-            name: struct_name,
+            name: Reference::new(struct_name),
             map,
         })
     }
@@ -758,7 +742,7 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::FnDef(FnDef {
-                name: "main".to_string(),
+                name: Reference::new("main".to_string()),
                 args: Vec::new(),
                 body: Block {
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
@@ -785,7 +769,7 @@ mod tests {
             block.statements[0],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Int,
-                name: "a".to_string(),
+                name: Reference::new("a".to_string()),
                 mods: vec![VarMod::Const],
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(0))
@@ -796,7 +780,7 @@ mod tests {
             block.statements[1],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Int,
-                name: "b".to_string(),
+                name: Reference::new("b".to_string()),
                 mods: vec![VarMod::Static],
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(1))
@@ -807,7 +791,7 @@ mod tests {
             block.statements[2],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Int,
-                name: "c".to_string(),
+                name: Reference::new("c".to_string()),
                 mods: Vec::new(),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(2))
@@ -818,7 +802,7 @@ mod tests {
             block.statements[3],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Float,
-                name: "d".to_string(),
+                name: Reference::new("d".to_string()),
                 mods: Vec::new(),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Decimal(3.0))
@@ -829,7 +813,7 @@ mod tests {
             block.statements[4],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Double,
-                name: "e".to_string(),
+                name: Reference::new("e".to_string()),
                 mods: Vec::new(),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Decimal(4.0))
@@ -840,7 +824,7 @@ mod tests {
             block.statements[5],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::Bool,
-                name: "f".to_string(),
+                name: Reference::new("f".to_string()),
                 mods: Vec::new(),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Bool(true))
@@ -851,7 +835,7 @@ mod tests {
             block.statements[6],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 type_: Type::String,
-                name: "g".to_string(),
+                name: Reference::new("g".to_string()),
                 mods: Vec::new(),
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::String("hello".to_string()))
@@ -868,37 +852,37 @@ mod tests {
 
         let block = parser.parse().unwrap();
 
+        let compound = (|| {
+            let mut map = HashMap::new();
+            map.insert(
+                "a".to_string(),
+                CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Int(0)),
+                ))),
+            );
+            map.insert(
+                "b".to_string(),
+                CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Int(1)),
+                ))),
+            );
+            map.insert(
+                "c".to_string(),
+                CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Int(2)),
+                ))),
+            );
+            map
+        })();
+
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::StructDecl(StructDecl {
-                type_: Type::Struct("A".to_string()),
-                name: "a".to_string(),
+                type_: Type::Struct(Reference::new("A".to_string())),
+                name: Reference::new("a".to_string()),
                 mods: Vec::new(),
-                expr: Some(
-                    vec![
-                        (
-                            "a".to_string(),
-                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                                AtomicExpression::Literal(LiteralValue::Int(0))
-                            )))
-                        ),
-                        (
-                            "b".to_string(),
-                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                                AtomicExpression::Literal(LiteralValue::Int(1))
-                            )))
-                        ),
-                        (
-                            "c".to_string(),
-                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                                AtomicExpression::Literal(LiteralValue::Int(2))
-                            )))
-                        ),
-                    ]
-                    .into_iter()
-                    .collect()
-                ),
+                expr: Some(compound),
             }))
         );
     }
@@ -915,7 +899,7 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                path: vec!["a".to_string()],
+                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                 expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
                     LiteralValue::Int(0)
                 ))),
@@ -924,7 +908,7 @@ mod tests {
         assert_eq!(
             block.statements[1],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                path: vec!["b".to_string()],
+                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("b"),
                 expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
                     LiteralValue::Decimal(2.4)
                 ))),
@@ -933,10 +917,10 @@ mod tests {
         assert_eq!(
             block.statements[2],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                path: vec!["a".to_string()],
+                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     ))),
                     BinOp::Add,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -948,10 +932,10 @@ mod tests {
         assert_eq!(
             block.statements[3],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                path: vec!["a".to_string()],
+                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     ))),
                     BinOp::Sub,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -963,10 +947,10 @@ mod tests {
         assert_eq!(
             block.statements[4],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                path: vec!["a".to_string()],
+                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     ))),
                     BinOp::Mul,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -978,10 +962,10 @@ mod tests {
         assert_eq!(
             block.statements[5],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                path: vec!["a".to_string()],
+                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     ))),
                     BinOp::Div,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -993,10 +977,10 @@ mod tests {
         assert_eq!(
             block.statements[6],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                path: vec!["a".to_string()],
+                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     ))),
                     BinOp::Mod,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1019,29 +1003,30 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::StructAssign(StructAssign {
-                path: vec!["a".to_string()],
-                compound: vec![
-                    (
+                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                compound: (|| {
+                    let mut map = HashMap::new();
+                    map.insert(
                         "a".to_string(),
                         CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                            AtomicExpression::Literal(LiteralValue::Int(0))
-                        )))
-                    ),
-                    (
+                            AtomicExpression::Literal(LiteralValue::Int(0)),
+                        ))),
+                    );
+                    map.insert(
                         "b".to_string(),
                         CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                            AtomicExpression::Literal(LiteralValue::Int(1))
-                        )))
-                    ),
-                    (
+                            AtomicExpression::Literal(LiteralValue::Int(1)),
+                        ))),
+                    );
+                    map.insert(
                         "c".to_string(),
                         CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                            AtomicExpression::Literal(LiteralValue::Int(2))
-                        )))
-                    ),
-                ]
-                .into_iter()
-                .collect(),
+                            AtomicExpression::Literal(LiteralValue::Int(2)),
+                        ))),
+                    );
+
+                    map
+                })()
             }))
         );
     }
@@ -1058,20 +1043,24 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::FnDef(FnDef {
-                name: "add".to_string(),
+                name: Reference::new("add".to_string()),
                 args: vec![
-                    (Vec::new(), Type::Int, "a".to_string(),),
-                    (Vec::new(), Type::Struct("B".to_string()), "b".to_string(),),
+                    (Vec::new(), Type::Int, "a".to_string()),
+                    (
+                        Vec::new(),
+                        Type::Struct(Reference::new("B".to_string())),
+                        "b".to_string()
+                    ),
                 ],
                 body: Block {
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression::Binary(
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                vec!["a".to_string()]
+                                Parser::<Lexer<StringReader>>::string_to_namepath("a")
                             ))),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                vec!["b".to_string()]
+                                Parser::<Lexer<StringReader>>::string_to_namepath("b")
                             ))),
                         )
                     )))],
@@ -1094,7 +1083,7 @@ mod tests {
             block.statements[0],
             StatementBlock::Statement(Statement::Expression(Box::from(
                 Expression::AtomicExpression(AtomicExpression::FnCall(Box::from(FnCall {
-                    path: vec!["add".to_string()],
+                    name_path: Parser::<Lexer<StringReader>>::string_to_namepath("add"),
                     args: vec![
                         Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
                             LiteralValue::Int(1)
@@ -1125,7 +1114,7 @@ mod tests {
             StatementBlock::Statement(Statement::If(If {
                 cond: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     ))),
                     BinOp::Eq,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1159,7 +1148,7 @@ mod tests {
             StatementBlock::Statement(Statement::If(If {
                 cond: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     ))),
                     BinOp::Eq,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1176,7 +1165,7 @@ mod tests {
                 else_: Some(Box::from(If {
                     cond: Box::from(Expression::Binary(
                         Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                            vec!["a".to_string()]
+                            Parser::<Lexer<StringReader>>::string_to_namepath("a")
                         ))),
                         BinOp::Eq,
                         Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1222,7 +1211,7 @@ mod tests {
             StatementBlock::Statement(Statement::While(While {
                 cond: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     ))),
                     BinOp::Lt,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1231,10 +1220,10 @@ mod tests {
                 )),
                 body: Box::from(Block {
                     statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                        path: vec!["a".to_string()],
+                        name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                         expr: Box::from(Expression::Binary(
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                vec!["a".to_string()]
+                                Parser::<Lexer<StringReader>>::string_to_namepath("a")
                             ))),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1261,7 +1250,7 @@ mod tests {
             StatementBlock::Statement(Statement::For(For {
                 init: Some(Box::from(Statement::VarDecl(VarDecl {
                     type_: Type::Int,
-                    name: "i".to_string(),
+                    name: Reference::new("i".to_string()),
                     mods: Vec::new(),
                     expr: Some(Box::from(Expression::AtomicExpression(
                         AtomicExpression::Literal(LiteralValue::Int(0))
@@ -1269,7 +1258,7 @@ mod tests {
                 }))),
                 cond: Some(Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["i".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("i")
                     ))),
                     BinOp::Lt,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1277,10 +1266,10 @@ mod tests {
                     ))),
                 ))),
                 step: Some(Box::from(Statement::VarAssign(VarAssign {
-                    path: vec!["i".to_string()],
+                    name_path: Parser::<Lexer<StringReader>>::string_to_namepath("i"),
                     expr: Box::from(Expression::Binary(
                         Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                            vec!["i".to_string()]
+                            Parser::<Lexer<StringReader>>::string_to_namepath("i")
                         ))),
                         BinOp::Add,
                         Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1290,10 +1279,10 @@ mod tests {
                 }))),
                 body: Block {
                     statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                        path: vec!["a".to_string()],
+                        name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                         expr: Box::from(Expression::Binary(
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                vec!["a".to_string()]
+                                Parser::<Lexer<StringReader>>::string_to_namepath("a")
                             ))),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1347,31 +1336,35 @@ mod tests {
                         Box::from(Expression::Binary(
                             Box::from(Expression::Binary(
                                 Box::from(Expression::AtomicExpression(
-                                    AtomicExpression::Variable(vec!["a".to_string()],)
+                                    AtomicExpression::Variable(
+                                        Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                                    )
                                 )),
                                 BinOp::Add,
                                 Box::from(Expression::AtomicExpression(
-                                    AtomicExpression::Variable(vec!["b".to_string()],)
+                                    AtomicExpression::Variable(
+                                        Parser::<Lexer<StringReader>>::string_to_namepath("b"),
+                                    )
                                 ))
                             )),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                vec!["c".to_string()],
+                                Parser::<Lexer<StringReader>>::string_to_namepath("c"),
                             )))
                         )),
                         BinOp::Add,
                         Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                            vec!["d".to_string()],
+                            Parser::<Lexer<StringReader>>::string_to_namepath("d"),
                         )))
                     )),
                     BinOp::Sub,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["e".to_string()],
+                        Parser::<Lexer<StringReader>>::string_to_namepath("e"),
                     )))
                 )),
                 BinOp::Sub,
                 Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                    vec!["f".to_string()],
+                    Parser::<Lexer<StringReader>>::string_to_namepath("f"),
                 ))),
             ))
         );
@@ -1398,17 +1391,17 @@ mod tests {
 
         let b_times_c = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["b".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("b"),
             ))),
             BinOp::Mul,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["c".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("c"),
             ))),
         ));
 
         let a_plus = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["a".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("a"),
             ))),
             BinOp::Add,
             b_times_c,
@@ -1416,11 +1409,11 @@ mod tests {
 
         let d_div_e = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["d".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("d"),
             ))),
             BinOp::Div,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["e".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("e"),
             ))),
         ));
 
@@ -1428,7 +1421,7 @@ mod tests {
             d_div_e,
             BinOp::Mod,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["f".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("f"),
             ))),
         ));
 
@@ -1463,17 +1456,17 @@ mod tests {
 
         let c_minus_d = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["c".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("c"),
             ))),
             BinOp::Sub,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["d".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("d"),
             ))),
         ));
 
         let b_times_c_minus_d = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["b".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("b"),
             ))),
             BinOp::Mul,
             c_minus_d,
@@ -1483,7 +1476,7 @@ mod tests {
             b_times_c_minus_d,
             BinOp::Div,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["e".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("e"),
             ))),
         ));
 
@@ -1491,13 +1484,13 @@ mod tests {
             b_times_c_minus_d_div_e,
             BinOp::Mod,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["f".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("f"),
             ))),
         ));
 
         let a_plus_b_times_c_minus_d_div_e_mod_f = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["a".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("a"),
             ))),
             BinOp::Add,
             b_times_c_minus_d_div_e_mod_f,
@@ -1528,11 +1521,11 @@ mod tests {
 
         let a_eq_b = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["a".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("a"),
             ))),
             BinOp::Eq,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["b".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("b"),
             ))),
         ));
 
@@ -1540,17 +1533,17 @@ mod tests {
             a_eq_b,
             BinOp::And,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["c".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("c"),
             ))),
         ));
 
         let d_neq_e = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["d".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("d"),
             ))),
             BinOp::Neq,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["e".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("e"),
             ))),
         ));
 
@@ -1580,20 +1573,20 @@ mod tests {
         let deref_a = Box::from(Expression::Unary(
             UnOp::Deref,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["a".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("a"),
             ))),
         ));
 
         let deref_d = Box::from(Expression::Unary(
             UnOp::Deref,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["d".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("d"),
             ))),
         ));
 
         let b_times_deref_d = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                vec!["b".to_string()],
+                Parser::<Lexer<StringReader>>::string_to_namepath("b"),
             ))),
             BinOp::Mul,
             deref_d,
@@ -1619,14 +1612,14 @@ mod tests {
                 Box::from(Expression::Unary(
                     UnOp::PostInc,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["a".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
                     )))
                 )),
                 BinOp::Add,
                 Box::from(Expression::Unary(
                     UnOp::PreInc,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        vec!["b".to_string()]
+                        Parser::<Lexer<StringReader>>::string_to_namepath("b")
                     )))
                 )),
             ))
@@ -1645,15 +1638,18 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::StructDef(StructDef {
-                name: "A".to_string(),
-                map: vec![
-                    ("a".to_string(), Type::Int),
-                    ("b".to_string(), Type::Float),
-                    ("c".to_string(), Type::Double),
-                    ("d".to_string(), Type::Struct("C".to_string())),
-                ]
-                .into_iter()
-                .collect(),
+                name: Reference::new("A".to_string()),
+                map: (|| {
+                    let mut map = HashMap::new();
+                    map.insert("a".to_string(), Type::Int);
+                    map.insert("b".to_string(), Type::Float);
+                    map.insert("c".to_string(), Type::Double);
+                    map.insert(
+                        "d".to_string(),
+                        Type::Struct(Reference::new("C".to_string())),
+                    );
+                    map
+                })()
             }))
         );
     }
