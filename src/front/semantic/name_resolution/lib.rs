@@ -26,7 +26,7 @@ mod tests {
                 assert_eq!(
                     var_decl.var_def.name.clone(),
                     Reference {
-                        raw: Some("a".to_string()),
+                        raw: "a".to_string(),
                         resolved: Some("0_a".to_string()),
                     }
                 );
@@ -41,7 +41,7 @@ mod tests {
                 assert_eq!(
                     fn_def.name.clone(),
                     Reference {
-                        raw: Some("main".to_string()),
+                        raw: "main".to_string(),
                         resolved: Some("0_main".to_string()),
                     }
                 );
@@ -49,7 +49,7 @@ mod tests {
                 assert_eq!(
                     fn_def.args[0].name.clone(),
                     Reference {
-                        raw: Some("a".to_string()),
+                        raw: "a".to_string(),
                         resolved: Some("1_a".to_string()),
                     }
                 );
@@ -57,7 +57,7 @@ mod tests {
                 assert_eq!(
                     fn_def.args[1].name.clone(),
                     Reference {
-                        raw: Some("b".to_string()),
+                        raw: "b".to_string(),
                         resolved: Some("0_b".to_string()),
                     }
                 );
@@ -69,7 +69,7 @@ mod tests {
                                 assert_eq!(
                                     name_path.name.clone(),
                                     Reference {
-                                        raw: Some("a".to_string()),
+                                        raw: "a".to_string(),
                                         resolved: Some("1_a".to_string()),
                                     }
                                 );
@@ -87,7 +87,7 @@ mod tests {
                         assert_eq!(
                             var_decl.var_def.name.clone(),
                             Reference {
-                                raw: Some("a".to_string()),
+                                raw: "a".to_string(),
                                 resolved: Some("2_a".to_string()),
                             }
                         );
@@ -96,7 +96,7 @@ mod tests {
                                 assert_eq!(
                                     name_path.name.clone(),
                                     Reference {
-                                        raw: Some("a".to_string()),
+                                        raw: "a".to_string(),
                                         resolved: Some("1_a".to_string()),
                                     }
                                 );

@@ -125,9 +125,8 @@ impl Resolvable for StructDef {
 
 impl Resolvable for FnDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        let raw = self.name.raw.as_ref().unwrap();
         self.name.resolved =
-            Some(scope_table.scope_bind(raw, SymbolInfo::Fn(Rc::clone(&self.mods)))?);
+            Some(scope_table.scope_bind(&self.name.raw, SymbolInfo::Fn(Rc::clone(&self.mods)))?);
         scope_table.scope_enter();
         self.register(scope_table)?;
         self.body.resolve(scope_table)?;
@@ -185,9 +184,9 @@ impl Resolvable for NamePath {
 
 impl Resolvable for Reference<String, String> {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        match scope_table.scope_lookup(&self.raw.as_ref().unwrap()) {
+        match scope_table.scope_lookup(&self.raw) {
             Some(symbol) => Ok(self.resolved = Some(symbol.resolved().clone())),
-            None => Err(ResolverError::UndefinedVariable(self.raw.clone().unwrap())),
+            None => Err(ResolverError::UndefinedVariable(self.raw.clone())),
         }
     }
 }
@@ -250,9 +249,8 @@ impl Resolvable for For {
 }
 impl Registrable for VarDef {
     fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        let raw = self.name.raw.as_ref().unwrap();
         self.name.resolved =
-            Some(scope_table.scope_bind(raw, SymbolInfo::Var(Rc::clone(&self.mods)))?);
+            Some(scope_table.scope_bind(&self.name.raw, SymbolInfo::Var(Rc::clone(&self.mods)))?);
         Ok(())
     }
 }

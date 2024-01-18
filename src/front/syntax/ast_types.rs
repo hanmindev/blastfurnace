@@ -6,14 +6,14 @@ pub type ResolvedName = String;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Reference<T, R> {
-    pub raw: Option<T>,
+    pub raw: T,
     pub resolved: Option<R>,
 }
 
 impl<T, R> Reference<T, R> {
     pub fn new(raw: T) -> Reference<T, R> {
         Reference {
-            raw: Some(raw),
+            raw,
             resolved: None,
         }
     }
