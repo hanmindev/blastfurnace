@@ -540,14 +540,29 @@ impl<T: TokenStream> Parser<T> {
             ))?,
         };
 
-        match self.parse_assignment()? {
-            Statement::VarAssign(var_assign) => Ok(VarDecl {
-                type_,
-                name: var_assign.name_path.name,
-                mods: Rc::new(mods),
-                expr: Some(var_assign.expr),
-            }),
-            _ => Err(ParseError::Unknown),
+        if matches!(self.next_token, Token::Assign) {
+            match self.parse_assignment()? {
+                Statement::VarAssign(var_assign) => Ok(VarDecl {
+                    type_,
+                    name: var_assign.name_path.name,
+                    mods: Rc::new(mods),
+                    expr: Some(var_assign.expr),
+                }),
+                _ => Err(ParseError::Unknown),
+            }
+        } else {
+            match self.eat(&Any)? {
+                Token::Ident(s) => Ok(VarDecl {
+                    type_,
+                    name: Reference::new(s),
+                    mods: Rc::new(mods),
+                    expr: None,
+                }),
+                tok => Err(ParseError::Unexpected(
+                    tok,
+                    "Expected identifier for variable name".to_string(),
+                )),
+            }
         }
     }
 
@@ -1651,6 +1666,62 @@ mod tests {
                     );
                     map
                 })()
+            }))
+        );
+    }
+
+    #[test]
+    fn multiple_declaration_test() {
+        let statement = "int a; fn main(int a) { int a; a + 1; return 0; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let block = parser.parse().unwrap();
+
+        assert_eq!(block.statements.len(), 2);
+        assert_eq!(
+            block.statements[0],
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                type_: Type::Int,
+                name: Reference::new("a".to_string()),
+                mods: Rc::new(Vec::new()),
+                expr: None,
+            }))
+        );
+        assert_eq!(
+            block.statements[1],
+            StatementBlock::Statement(Statement::FnDef(FnDef {
+                name: Reference::new("main".to_string()),
+                args: vec![(Vec::new(), Type::Int, "a".to_string())],
+                body: Block {
+                    statements: vec![
+                        StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                            type_: Type::Int,
+                            name: Reference::new("a".to_string()),
+                            mods: Rc::new(Vec::new()),
+                            expr: None,
+                        })),
+                        StatementBlock::Statement(Statement::Expression(Box::from(
+                            Expression::Binary(
+                                Box::from(Expression::AtomicExpression(
+                                    AtomicExpression::Variable(
+                                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                                    )
+                                )),
+                                BinOp::Add,
+                                Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                                    LiteralValue::Int(1)
+                                ))),
+                            )
+                        ))),
+                        StatementBlock::Statement(Statement::Return(Box::from(
+                            Expression::AtomicExpression(AtomicExpression::Literal(
+                                LiteralValue::Int(0)
+                            ))
+                        ))),
+                    ],
+                },
+                mods: Rc::new(Vec::new()),
             }))
         );
     }
