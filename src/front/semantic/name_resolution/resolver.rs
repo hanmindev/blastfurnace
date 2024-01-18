@@ -15,6 +15,7 @@ pub trait Resolvable {
 #[derive(Debug)]
 pub enum ResolverError {
     UndefinedVariable(String),
+    Redefinition(String),
 }
 
 pub type ResolveResult<T> = Result<T, ResolverError>;
@@ -53,7 +54,7 @@ impl Resolvable for VarDecl {
 
         let raw = &self.name.raw.as_ref().unwrap();
         self.name.resolved =
-            Some(scope_table.scope_bind(raw, SymbolInfo::Var(Rc::clone(&self.mods))));
+            Some(scope_table.scope_bind(raw, SymbolInfo::Var(Rc::clone(&self.mods)))?);
 
         match self.expr {
             Some(ref mut expr) => expr.resolve(scope_table)?,
@@ -68,7 +69,7 @@ impl Resolvable for StructDecl {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         let raw = &self.name.raw.as_ref().unwrap();
         self.name.resolved =
-            Some(scope_table.scope_bind(raw, SymbolInfo::Var(Rc::clone(&self.mods))));
+            Some(scope_table.scope_bind(raw, SymbolInfo::Var(Rc::clone(&self.mods)))?);
 
         match self.expr {
             Some(ref mut compound) => compound.resolve(scope_table)?,

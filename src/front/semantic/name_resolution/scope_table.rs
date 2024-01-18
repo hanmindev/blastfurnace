@@ -1,3 +1,5 @@
+use crate::front::semantic::name_resolution::resolver::ResolveResult;
+use crate::front::semantic::name_resolution::resolver::ResolverError::Redefinition;
 use crate::front::syntax::ast_types::{FnMod, VarMod};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -5,12 +7,14 @@ use std::rc::Rc;
 type Raw = String;
 type Resolved = String;
 
+#[derive(Debug)]
 pub enum SymbolInfo {
     None,
     Var(Rc<Vec<VarMod>>),
     Fn(Rc<Vec<FnMod>>),
 }
 
+#[derive(Debug)]
 pub struct Symbol {
     resolved: Resolved,
     symbol_info: SymbolInfo,
@@ -26,10 +30,12 @@ impl Symbol {
     }
 }
 
+#[derive(Debug)]
 pub struct ScopeTableNode {
-    symbols: HashMap<Raw, Vec<Rc<Symbol>>>,
+    symbols: HashMap<Raw, Rc<Symbol>>,
 }
 
+#[derive(Debug)]
 pub struct ScopeTable {
     stack: Vec<ScopeTableNode>,
     scope_level: u32,
@@ -50,6 +56,10 @@ impl ScopeTable {
         }
     }
 
+    pub fn get_global(&self) -> &HashMap<Resolved, Rc<Symbol>> {
+        &self.global
+    }
+
     pub fn scope_enter(&mut self) {
         self.stack.push(ScopeTableNode {
             symbols: HashMap::new(),
@@ -66,7 +76,7 @@ impl ScopeTable {
         self.scope_level
     }
 
-    pub fn scope_bind(&mut self, name: &String, symbol_info: SymbolInfo) -> String {
+    pub fn scope_bind(&mut self, name: &String, symbol_info: SymbolInfo) -> ResolveResult<String> {
         let mut symbols = &mut self.stack.last_mut().unwrap().symbols;
 
         let prefix_value = match self.count.get_mut(name) {
@@ -83,37 +93,34 @@ impl ScopeTable {
         let resolved = format!("{prefix_value}_{name}");
 
         match symbols.get_mut(name) {
-            Some(vec) => {
-                vec.push(Rc::new(Symbol {
-                    resolved: String::from(&resolved),
-                    symbol_info,
-                }));
+            Some(_) => {
+                return Err(Redefinition(name.clone()));
             }
             None => {
                 symbols.insert(
                     name.to_string(),
-                    vec![Rc::new(Symbol {
+                    Rc::new(Symbol {
                         resolved: String::from(&resolved),
                         symbol_info,
-                    })],
+                    }),
                 );
             }
         }
 
-        return resolved;
+        return Ok(resolved);
     }
 
     pub fn scope_lookup_current(&self, name: &String) -> Option<&Symbol> {
-        if let Some(vec) = self.stack.last().unwrap().symbols.get(name) {
-            return Some(vec.last().unwrap());
+        if let Some(sym) = self.stack.last().unwrap().symbols.get(name) {
+            return Some(sym);
         }
         None
     }
 
     pub fn scope_lookup(&self, name: &String) -> Option<&Symbol> {
         for node in self.stack.iter().rev() {
-            if let Some(vec) = node.symbols.get(name) {
-                return Some(vec.last().unwrap());
+            if let Some(sym) = node.symbols.get(name) {
+                return Some(sym);
             }
         }
         None
