@@ -3,8 +3,8 @@ use crate::front::lexical::token_types::Token;
 use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
-    If, LiteralValue, NamePath, Reference, Statement, StatementBlock, StructAssign, StructDecl,
-    StructDef, Type, UnOp, VarAssign, VarDecl, VarDef, VarMod, While,
+    If, LiteralValue, NamePath, Reference, Statement, StatementBlock, StructDef, Type, UnOp,
+    VarAssign, VarDecl, VarDef, VarMod, While,
 };
 use std::collections::HashMap;
 use std::mem;
@@ -78,6 +78,13 @@ impl<T: TokenStream> Parser<T> {
     }
 
     fn parse_atomic_expression(&mut self) -> ParseResult<Expression> {
+        if matches!(self.curr_token, Token::LBrace) {
+            let compound = self.parse_compound()?;
+            return Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+                LiteralValue::Compound(compound),
+            )));
+        }
+
         match self.eat(&Any)? {
             Token::Null => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
                 LiteralValue::Null,
@@ -135,7 +142,7 @@ impl<T: TokenStream> Parser<T> {
                 }
             }
             tok => Err(ParseError::Unexpected(
-                tok,
+                tok.clone(),
                 "Expected type for atomic expression parsing".to_string(),
             )),
         }
@@ -331,35 +338,23 @@ impl<T: TokenStream> Parser<T> {
 
                 let assign_op = match self.eat(&Any)? {
                     Token::Assign => {
-                        return if matches!(self.curr_token, Token::LBrace) {
-                            Ok(Statement::StructAssign(StructAssign {
-                                name_path,
-                                compound: self.parse_compound()?,
-                            }))
-                        } else {
-                            Ok(Statement::VarAssign(VarAssign {
-                                name_path,
-                                expr: self.parse_expression()?,
-                            }))
-                        };
+                        return Ok(Statement::VarAssign(VarAssign {
+                            name_path,
+                            expr: self.parse_expression()?,
+                        }))
                     }
                     Token::PlusAssign => BinOp::Add,
                     Token::MinusAssign => BinOp::Sub,
                     Token::StarAssign => BinOp::Mul,
                     Token::SlashAssign => BinOp::Div,
                     Token::PercentAssign => BinOp::Mod,
-                    tok => Err(ParseError::Unexpected(
-                        tok.clone(),
-                        "Expected binary operator".to_string(),
-                    ))?,
+                    tok => {
+                        return Err(ParseError::Unexpected(
+                            tok.clone(),
+                            "Expected binary operator".to_string(),
+                        ))?
+                    }
                 };
-
-                if matches!(self.curr_token, Token::LBrace) {
-                    Err(ParseError::Unexpected(
-                        self.curr_token.clone(),
-                        "Cannot use for struct assignment".to_string(),
-                    ))?
-                }
 
                 let rhs = self.parse_expression()?;
 
@@ -394,14 +389,14 @@ impl<T: TokenStream> Parser<T> {
             | Token::Const
             | Token::Static => {
                 // variable declaration
-                Ok(self.parse_struct_or_var_decl()?)
+                Ok(Statement::VarDecl(self.parse_var_decl()?))
             }
 
             Token::Ident(_) => {
                 match &self.next_token {
                     Token::Ident(_) => {
                         // struct declaration
-                        Ok(self.parse_struct_or_var_decl()?)
+                        Ok(Statement::VarDecl(self.parse_var_decl()?))
                     }
 
                     // variable / struct assignment
@@ -484,53 +479,17 @@ impl<T: TokenStream> Parser<T> {
         Ok(compound)
     }
 
-    fn parse_struct_decl(&mut self, mods: Vec<VarMod>) -> ParseResult<StructDecl> {
-        match self.eat(&Any)? {
-            Token::Ident(s_type) => {
-                let type_ = Type::Struct(Reference::new(s_type));
+    fn parse_var_decl(&mut self) -> ParseResult<VarDecl> {
+        let mut mods: Vec<VarMod> = Vec::new();
 
-                match &self.curr_token {
-                    Token::Ident(s) => {
-                        if matches!(self.next_token, Token::Assign) {
-                            // struct assignment
-
-                            match self.parse_assignment()? {
-                                Statement::StructAssign(struct_assign) => Ok(StructDecl {
-                                    var_def: VarDef {
-                                        type_,
-                                        name: struct_assign.name_path.name,
-                                        mods: Rc::new(mods),
-                                    },
-                                    expr: Some(struct_assign.compound),
-                                }),
-                                _ => Err(ParseError::Unknown),
-                            }
-                        } else {
-                            // just struct declaration
-                            Ok(StructDecl {
-                                var_def: VarDef {
-                                    type_,
-                                    name: Reference::new(s.to_string()),
-                                    mods: Rc::new(mods),
-                                },
-                                expr: None,
-                            })
-                        }
-                    }
-                    tok => Err(ParseError::Unexpected(
-                        tok.clone(),
-                        "Expected struct name for struct declaration".to_string(),
-                    ))?,
-                }
-            }
-            tok => Err(ParseError::Unexpected(
-                tok.clone(),
-                "Expected struct type for struct declaration".to_string(),
-            )),
+        if self.eat(&Token::Const).is_ok() {
+            mods.push(VarMod::Const);
         }
-    }
 
-    fn parse_var_decl(&mut self, mods: Vec<VarMod>) -> ParseResult<VarDecl> {
+        if self.eat(&Token::Static).is_ok() {
+            mods.push(VarMod::Static);
+        }
+
         let type_ = match self.eat(&Any)? {
             Token::VoidType => Type::Void,
             Token::IntType => Type::Int,
@@ -538,6 +497,7 @@ impl<T: TokenStream> Parser<T> {
             Token::DoubleType => Type::Double,
             Token::BoolType => Type::Bool,
             Token::StringType => Type::String,
+            Token::Ident(s) => Type::Struct(Reference::new(s)),
             tok => Err(ParseError::Unexpected(
                 tok,
                 "Expected variable type annotation for variable declaration".to_string(),
@@ -571,23 +531,6 @@ impl<T: TokenStream> Parser<T> {
                     "Expected identifier for variable name".to_string(),
                 )),
             }
-        }
-    }
-
-    fn parse_struct_or_var_decl(&mut self) -> ParseResult<Statement> {
-        let mut mods: Vec<VarMod> = Vec::new();
-
-        if self.eat(&Token::Const).is_ok() {
-            mods.push(VarMod::Const);
-        }
-
-        if self.eat(&Token::Static).is_ok() {
-            mods.push(VarMod::Static);
-        }
-
-        match self.curr_token {
-            Token::Ident(_) => Ok(Statement::StructDecl(self.parse_struct_decl(mods)?)),
-            _ => Ok(Statement::VarDecl(self.parse_var_decl(mods)?)),
         }
     }
 
@@ -920,13 +863,15 @@ mod tests {
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::StructDecl(StructDecl {
+            StatementBlock::Statement(Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Type::Struct(Reference::new("A".to_string())),
                     name: Reference::new("a".to_string()),
                     mods: Rc::new(Vec::new()),
                 },
-                expr: Some(compound),
+                expr: Some(Box::from(Expression::AtomicExpression(
+                    AtomicExpression::Literal(LiteralValue::Compound(compound))
+                ))),
             }))
         );
     }
@@ -1046,31 +991,33 @@ mod tests {
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::StructAssign(StructAssign {
+            StatementBlock::Statement(Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
-                compound: (|| {
-                    let mut map = HashMap::new();
-                    map.insert(
-                        "a".to_string(),
-                        CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                            AtomicExpression::Literal(LiteralValue::Int(0)),
-                        ))),
-                    );
-                    map.insert(
-                        "b".to_string(),
-                        CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                            AtomicExpression::Literal(LiteralValue::Int(1)),
-                        ))),
-                    );
-                    map.insert(
-                        "c".to_string(),
-                        CompoundValue::Expression(Box::from(Expression::AtomicExpression(
-                            AtomicExpression::Literal(LiteralValue::Int(2)),
-                        ))),
-                    );
+                expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
+                    LiteralValue::Compound((|| {
+                        let mut map = HashMap::new();
+                        map.insert(
+                            "a".to_string(),
+                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                                AtomicExpression::Literal(LiteralValue::Int(0)),
+                            ))),
+                        );
+                        map.insert(
+                            "b".to_string(),
+                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                                AtomicExpression::Literal(LiteralValue::Int(1)),
+                            ))),
+                        );
+                        map.insert(
+                            "c".to_string(),
+                            CompoundValue::Expression(Box::from(Expression::AtomicExpression(
+                                AtomicExpression::Literal(LiteralValue::Int(2)),
+                            ))),
+                        );
 
-                    map
-                })()
+                        map
+                    })())
+                ))),
             }))
         );
     }

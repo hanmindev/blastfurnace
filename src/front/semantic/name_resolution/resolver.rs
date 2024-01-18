@@ -1,8 +1,8 @@
 use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolInfo};
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, For, If,
-    LiteralValue, NamePath, Reference, Statement, StatementBlock, StructAssign, StructDecl,
-    StructDef, VarAssign, VarDecl, VarDef, While,
+    LiteralValue, NamePath, Reference, Statement, StatementBlock, StructDef, VarAssign, VarDecl,
+    VarDef, While,
 };
 use std::rc::Rc;
 
@@ -51,9 +51,7 @@ impl Resolvable for Statement {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         return Ok(match self {
             Statement::VarDecl(statement) => statement.resolve(scope_table)?,
-            Statement::StructDecl(statement) => statement.resolve(scope_table)?,
             Statement::VarAssign(statement) => statement.resolve(scope_table)?,
-            Statement::StructAssign(statement) => statement.resolve(scope_table)?,
             Statement::StructDef(statement) => statement.resolve(scope_table)?,
             Statement::FnDef(statement) => statement.resolve(scope_table)?,
             Statement::If(statement) => statement.resolve(scope_table)?,
@@ -85,31 +83,10 @@ impl Resolvable for VarDecl {
     }
 }
 
-impl Resolvable for StructDecl {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        match self.expr {
-            Some(ref mut compound) => compound.resolve(scope_table)?,
-            None => (),
-        }
-        self.var_def.resolve(scope_table)?;
-
-        Ok(())
-    }
-}
-
 impl Resolvable for VarAssign {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         self.name_path.resolve(scope_table)?;
         self.expr.resolve(scope_table)?;
-
-        Ok(())
-    }
-}
-
-impl Resolvable for StructAssign {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name_path.resolve(scope_table)?;
-        self.compound.resolve(scope_table)?;
 
         Ok(())
     }

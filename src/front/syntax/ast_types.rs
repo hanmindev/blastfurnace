@@ -89,24 +89,12 @@ pub struct StructDef {
     pub map: HashMap<String, Type>,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct StructDecl {
-    pub var_def: VarDef,
-    pub expr: Option<Compound>,
-}
-
 pub type Compound = HashMap<String, CompoundValue>;
 
 #[derive(Debug, PartialEq)]
 pub enum CompoundValue {
     Expression(Box<Expression>),
     Compound(Box<Compound>),
-}
-
-#[derive(Debug, PartialEq)]
-pub struct StructAssign {
-    pub name_path: NamePath,
-    pub compound: Compound,
 }
 
 #[derive(Debug, PartialEq)]
@@ -184,9 +172,7 @@ pub struct For {
 #[derive(Debug, PartialEq)]
 pub enum Statement {
     VarDecl(VarDecl),
-    StructDecl(StructDecl),
     VarAssign(VarAssign),
-    StructAssign(StructAssign),
     StructDef(StructDef),
     FnDef(FnDef),
     If(If),
