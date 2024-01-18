@@ -7,7 +7,7 @@ use crate::front::syntax::ast_types::{
 use std::rc::Rc;
 
 pub trait Resolvable {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {
         Ok(())
     }
 }
