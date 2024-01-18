@@ -128,8 +128,10 @@ impl Resolvable for FnDef {
         let raw = self.name.raw.as_ref().unwrap();
         self.name.resolved =
             Some(scope_table.scope_bind(raw, SymbolInfo::Fn(Rc::clone(&self.mods)))?);
+        scope_table.scope_enter();
         self.register(scope_table)?;
         self.body.resolve(scope_table)?;
+        scope_table.scope_exit();
 
         Ok(())
     }
