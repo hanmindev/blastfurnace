@@ -258,7 +258,7 @@ impl Registrable for VarDef {
 }
 impl Registrable for FnDef {
     fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        for mut arg in &mut self.args {
+        for arg in &mut self.args {
             arg.register(scope_table)?;
         }
         Ok(())

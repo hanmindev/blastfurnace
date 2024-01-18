@@ -2,7 +2,6 @@ use crate::front::semantic::name_resolution::resolver::ResolveResult;
 use crate::front::semantic::name_resolution::resolver::ResolverError::Redefinition;
 use crate::front::syntax::ast_types::{FnMod, VarMod};
 use std::collections::HashMap;
-use std::fmt::format;
 use std::rc::Rc;
 
 type Raw = String;
@@ -78,7 +77,7 @@ impl ScopeTable {
     }
 
     pub fn scope_bind(&mut self, name: &String, symbol_info: SymbolInfo) -> ResolveResult<String> {
-        let mut symbols = &mut self.stack.last_mut().unwrap().symbols;
+        let symbols = &mut self.stack.last_mut().unwrap().symbols;
 
         let resolved = match self.count.get_mut(name) {
             Some(count) => {

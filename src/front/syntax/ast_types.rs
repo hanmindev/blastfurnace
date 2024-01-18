@@ -122,7 +122,7 @@ pub struct VarDef {
 #[derive(Debug, PartialEq)]
 pub struct FnDef {
     pub name: Reference<String, String>,
-    pub args: Vec<(VarDef)>,
+    pub args: Vec<VarDef>,
     pub body: Block,
     pub mods: Rc<Vec<FnMod>>,
 }

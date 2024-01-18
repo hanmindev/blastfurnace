@@ -3,9 +3,9 @@ mod tests {
     use crate::front::lexical::lexer::Lexer;
     use crate::front::lexical::lexer_string_reader::StringReader;
     use crate::front::semantic::name_resolution::resolver::Resolvable;
-    use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolInfo};
+    use crate::front::semantic::name_resolution::scope_table::ScopeTable;
     use crate::front::syntax::ast_types::{
-        AtomicExpression, Expression, Reference, Statement, StatementBlock, Type, VarDecl,
+        AtomicExpression, Expression, Reference, Statement, StatementBlock,
     };
     use crate::front::syntax::parser::Parser;
 
