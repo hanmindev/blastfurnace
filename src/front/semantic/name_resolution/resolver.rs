@@ -1,8 +1,8 @@
 use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolInfo};
 use crate::front::syntax::ast_types::{
-    AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, LiteralValue,
-    NamePath, Reference, Statement, StatementBlock, StructAssign, StructDecl, StructDef, VarAssign,
-    VarDecl,
+    AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, For, If,
+    LiteralValue, NamePath, Reference, Statement, StatementBlock, StructAssign, StructDecl,
+    StructDef, VarAssign, VarDecl, While,
 };
 use std::rc::Rc;
 
@@ -34,7 +34,8 @@ impl Resolvable for Block {
 impl Resolvable for StatementBlock {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
-            s => s.resolve(scope_table)?,
+            StatementBlock::Statement(statement) => statement.resolve(scope_table)?,
+            StatementBlock::Block(block) => block.resolve(scope_table)?,
         }
         Ok(())
     }
@@ -43,7 +44,18 @@ impl Resolvable for StatementBlock {
 impl Resolvable for Statement {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         return Ok(match self {
-            s => s.resolve(scope_table)?,
+            Statement::VarDecl(statement) => statement.resolve(scope_table)?,
+            Statement::StructDecl(statement) => statement.resolve(scope_table)?,
+            Statement::VarAssign(statement) => statement.resolve(scope_table)?,
+            Statement::StructAssign(statement) => statement.resolve(scope_table)?,
+            Statement::StructDef(statement) => statement.resolve(scope_table)?,
+            Statement::FnDef(statement) => statement.resolve(scope_table)?,
+            Statement::If(statement) => statement.resolve(scope_table)?,
+            Statement::While(statement) => statement.resolve(scope_table)?,
+            Statement::For(statement) => statement.resolve(scope_table)?,
+            Statement::Return(statement) => statement.resolve(scope_table)?,
+            Statement::Expression(statement) => statement.resolve(scope_table)?,
+            _ => {}
         });
     }
 }
@@ -187,6 +199,41 @@ impl Resolvable for FnCall {
         for arg in &mut self.args {
             arg.resolve(scope_table)?;
         }
+        Ok(())
+    }
+}
+
+impl Resolvable for If {
+    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        self.cond.resolve(scope_table)?;
+        self.body.resolve(scope_table)?;
+        if let Some(ref mut else_body) = self.else_ {
+            else_body.resolve(scope_table)?;
+        }
+        Ok(())
+    }
+}
+
+impl Resolvable for While {
+    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        self.cond.resolve(scope_table)?;
+        self.body.resolve(scope_table)?;
+        Ok(())
+    }
+}
+
+impl Resolvable for For {
+    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        if let Some(ref mut init) = self.init {
+            init.resolve(scope_table)?;
+        }
+        if let Some(ref mut cond) = self.cond {
+            cond.resolve(scope_table)?;
+        }
+        if let Some(ref mut step) = self.step {
+            step.resolve(scope_table)?;
+        }
+        self.body.resolve(scope_table)?;
         Ok(())
     }
 }
