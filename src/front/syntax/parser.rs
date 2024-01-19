@@ -390,6 +390,17 @@ impl<T: TokenStream> Parser<T> {
                 Ok(Statement::VarDecl(self.parse_var_decl()?))
             }
 
+            Token::Pub => match &self.next_token {
+                Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
+                Token::StructType => Ok(Statement::StructDef(self.parse_struct_def()?)),
+                Token::Ident(_) => Ok(Statement::VarDecl(self.parse_var_decl()?)),
+                _ => Err(ParseError::Unexpected(
+                    self.next_token.clone(),
+                    "Expected function, struct, or variable definition after pub keyword"
+                        .to_string(),
+                )),
+            },
+
             Token::Ident(_) => {
                 match &self.next_token {
                     Token::Ident(_) => {
@@ -481,6 +492,9 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_var_decl(&mut self) -> ParseResult<VarDecl> {
         let mut mods: Vec<VarMod> = Vec::new();
+        if self.eat(&Token::Pub).is_ok() {
+            mods.push(VarMod::Pub);
+        }
 
         if self.eat(&Token::Const).is_ok() {
             mods.push(VarMod::Const);
@@ -532,6 +546,10 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_fn_def(&mut self) -> ParseResult<FnDef> {
         let mut mods = Vec::new();
+
+        if self.eat(&Token::Pub).is_ok() {
+            mods.push(FnMod::Pub);
+        }
 
         if self.eat(&Token::Rec).is_ok() {
             mods.push(FnMod::Rec);
