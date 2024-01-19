@@ -78,6 +78,11 @@ pub enum Token {
     Break,
     Continue,
 
+    Use,
+    As,
+    Mod,
+    Pub,
+
     // Misc
     Eof,
 }

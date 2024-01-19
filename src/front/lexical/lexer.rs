@@ -127,6 +127,11 @@ impl<T: ByteStream> Lexer<T> {
                 "static" => Token::Static,
                 "inline" => Token::Inline,
 
+                "use" => Token::Use,
+                "as" => Token::As,
+                "mod" => Token::Mod,
+                "pub" => Token::Pub,
+
                 _ => Token::Ident(ident),
             });
         }
@@ -384,7 +389,7 @@ mod tests {
 
     #[test]
     fn key_word_test() {
-        let statement = "const static void int float double bool string struct impl fn rec inline if else while for return break continue true false";
+        let statement = "const static void int float double bool string struct impl fn rec inline if else while for return break continue true false use as mod pub";
         let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
 
         assert_eq!(lexer.next().unwrap(), Token::Const);
@@ -409,5 +414,9 @@ mod tests {
         assert_eq!(lexer.next().unwrap(), Token::Continue);
         assert_eq!(lexer.next().unwrap(), Token::Bool(true));
         assert_eq!(lexer.next().unwrap(), Token::Bool(false));
+        assert_eq!(lexer.next().unwrap(), Token::Use);
+        assert_eq!(lexer.next().unwrap(), Token::As);
+        assert_eq!(lexer.next().unwrap(), Token::Mod);
+        assert_eq!(lexer.next().unwrap(), Token::Pub);
     }
 }
