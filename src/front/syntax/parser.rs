@@ -434,7 +434,7 @@ impl<T: TokenStream> Parser<T> {
                 self.eat(&Token::Continue)?;
                 Ok(Statement::Continue)
             }
-            Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
+            Token::Fn | Token::Rec | Token::Inline => Ok(Statement::FnDef(self.parse_fn_def()?)),
             Token::StructType => Ok(Statement::StructDef(self.parse_struct_def()?)),
             Token::Mod => Ok(Statement::ModuleImport(self.parse_module_import()?)),
             Token::Use => Ok(Statement::Use(self.parse_use_import()?)),
@@ -551,12 +551,21 @@ impl<T: TokenStream> Parser<T> {
             mods.push(FnMod::Pub);
         }
 
+        let mut rec = false;
+
         if self.eat(&Token::Rec).is_ok() {
             mods.push(FnMod::Rec);
+            rec = true;
         }
 
         if self.eat(&Token::Inline).is_ok() {
             mods.push(FnMod::Inline);
+            if rec {
+                Err(ParseError::Unexpected(
+                    Token::Inline,
+                    "Inline functions cannot be recursive".to_string(),
+                ))?;
+            }
         }
 
         self.eat(&Token::Fn)?;
