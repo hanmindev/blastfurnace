@@ -385,8 +385,7 @@ impl<T: TokenStream> Parser<T> {
             | Token::DoubleType
             | Token::BoolType
             | Token::StringType
-            | Token::Const
-            | Token::Static => {
+            | Token::Const => {
                 // variable declaration
                 Ok(Statement::VarDecl(self.parse_var_decl()?))
             }
@@ -485,10 +484,6 @@ impl<T: TokenStream> Parser<T> {
 
         if self.eat(&Token::Const).is_ok() {
             mods.push(VarMod::Const);
-        }
-
-        if self.eat(&Token::Static).is_ok() {
-            mods.push(VarMod::Static);
         }
 
         let type_ = match self.eat(&Any)? {
@@ -793,7 +788,7 @@ mod tests {
 
     #[test]
     fn variable_declarations_test() {
-        let statement = "const int a = 0; static int b = 1; int c = 2; float d = 3.0; double e = 4.0; bool f = true; string g = \"hello\";";
+        let statement = "const int a = 0; const int b = 1; int c = 2; float d = 3.0; double e = 4.0; bool f = true; string g = \"hello\";";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -819,7 +814,7 @@ mod tests {
                 var_def: VarDef {
                     type_: Type::Int,
                     name: Reference::new("b".to_string()),
-                    mods: Rc::new(vec![VarMod::Static]),
+                    mods: Rc::new(vec![VarMod::Const]),
                 },
                 expr: Some(Box::from(Expression::AtomicExpression(
                     AtomicExpression::Literal(LiteralValue::Int(1))

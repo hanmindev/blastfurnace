@@ -68,7 +68,6 @@ pub struct NamePath {
 #[derive(Debug, PartialEq)]
 pub enum VarMod {
     Const,
-    Static,
 }
 
 #[derive(Debug, PartialEq)]

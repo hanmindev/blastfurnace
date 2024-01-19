@@ -389,11 +389,10 @@ mod tests {
 
     #[test]
     fn key_word_test() {
-        let statement = "const static void int float double bool string struct impl fn rec inline if else while for return break continue true false use as mod pub";
+        let statement = "const void int float double bool string struct impl fn rec inline if else while for return break continue true false use as mod pub";
         let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
 
         assert_eq!(lexer.next().unwrap(), Token::Const);
-        assert_eq!(lexer.next().unwrap(), Token::Static);
         assert_eq!(lexer.next().unwrap(), Token::VoidType);
         assert_eq!(lexer.next().unwrap(), Token::IntType);
         assert_eq!(lexer.next().unwrap(), Token::FloatType);
