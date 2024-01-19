@@ -3,8 +3,8 @@ use crate::front::lexical::token_types::Token;
 use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
-    If, LiteralValue, NamePath, Reference, Statement, StatementBlock, StructDef, Type, UnOp,
-    VarAssign, VarDecl, VarDef, VarMod, While,
+    If, LiteralValue, ModuleImport, NamePath, Reference, Statement, StatementBlock, StructDef,
+    Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While,
 };
 use std::collections::HashMap;
 use std::mem;
@@ -426,6 +426,8 @@ impl<T: TokenStream> Parser<T> {
             }
             Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
             Token::StructType => Ok(Statement::StructDef(self.parse_struct_def()?)),
+            Token::Mod => Ok(Statement::ModuleImport(self.parse_module_import()?)),
+            Token::Use => Ok(Statement::Use(self.parse_use_import()?)),
             _ => Ok(Statement::Expression(self.parse_expression()?)),
         }
     }
@@ -691,6 +693,69 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::Eof)?;
 
         Ok(Block { statements })
+    }
+    fn parse_module_import(&mut self) -> ParseResult<ModuleImport> {
+        let public = self.eat(&Token::Pub).is_ok();
+
+        if let Token::Ident(s) = self.eat(&Any)? {
+            Ok(ModuleImport { public, name: s })
+        } else {
+            Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                "Expected identifier for module name".to_string(),
+            ))
+        }
+    }
+    fn parse_use_import(&mut self) -> ParseResult<Use> {
+        self.eat(&Token::Use)?;
+
+        let mut use_ = Use {
+            path: Vec::new(),
+            elements: Vec::new(),
+        };
+
+        loop {
+            if let Token::Ident(s) = self.eat(&Any)? {
+                match self.eat(&Any)? {
+                    Token::Colon => {
+                        self.eat(&Token::Colon)?;
+                        use_.path.push(s);
+                    }
+                    Token::LBrace => {
+                        use_.path.push(s);
+                        break;
+                    }
+                    Token::Semicolon | Token::As => {
+                        use_.elements.push(UseElement {
+                            origin_name: s.clone(),
+                            imported_name: Reference::new((|| {
+                                if self.eat(&Token::As).is_ok() {
+                                    return if let Token::Ident(s) = self.eat(&Any)? {
+                                        Ok(s)
+                                    } else {
+                                        Err(ParseError::Unexpected(
+                                            self.curr_token.clone(),
+                                            "Expected identifier for imported name alias"
+                                                .to_string(),
+                                        ))
+                                    };
+                                }
+                                Ok(s)
+                            })()?),
+                        });
+
+                        return Ok(use_);
+                    }
+                    tok => {
+                        return Err(ParseError::Unexpected(
+                            tok.clone(),
+                            "Expected identifier for use path".to_string(),
+                        ));
+                    }
+                }
+            }
+        }
+        Ok(use_)
     }
 }
 

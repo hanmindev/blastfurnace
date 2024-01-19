@@ -182,6 +182,8 @@ pub enum Statement {
     Break,
     Continue,
     Expression(Box<Expression>),
+    ModuleImport(ModuleImport),
+    Use(Use),
 }
 
 #[derive(Debug, PartialEq)]
@@ -193,4 +195,22 @@ pub enum StatementBlock {
 #[derive(Debug, PartialEq)]
 pub struct Block {
     pub statements: Vec<StatementBlock>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ModuleImport {
+    pub public: bool,
+    pub name: String,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct UseElement {
+    pub origin_name: String,
+    pub imported_name: Reference<RawName, ResolvedName>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Use {
+    pub path: Vec<String>,
+    pub elements: Vec<UseElement>,
 }
