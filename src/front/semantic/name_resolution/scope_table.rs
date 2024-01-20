@@ -131,14 +131,17 @@ impl ScopeTable {
         name: &String,
         symbol_type: SymbolType,
     ) -> Rc<ResolvedName> {
-        for node in self.stack.iter().rev() {
-            if let Some(rn) = node.symbols.get(&(name.to_string(), symbol_type)) {
-                return rn.clone();
-            }
+        if let Some(rn) = self.scope_lookup(name, symbol_type) {
+            return rn;
+        }
+
+        let key = (name.clone(), symbol_type);
+        let node = &mut self.stack.last_mut().unwrap();
+        if let Some(resolved) = node.unresolved.get(&key) {
+            return resolved.clone();
         }
 
         // symbol is not resolved yet, bind it to the current scope so future lookups will be equal
-        let key = (name.clone(), symbol_type);
 
         let resolved = Rc::new(match self.global_count.get_mut(&key) {
             Some(count) => {
