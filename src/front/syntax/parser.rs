@@ -696,6 +696,7 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn parse(&mut self) -> ParseResult<Block> {
+        let mut priority_statements = Vec::new();
         let mut statements = Vec::new();
         while !matches!(self.curr_token, Token::Eof) {
             let statement = self.parse_statement()?;
@@ -711,11 +712,22 @@ impl<T: TokenStream> Parser<T> {
                 self.eat(&Token::Semicolon)?;
             }
 
-            statements.push(StatementBlock::Statement(statement));
+            if !matches!(statement, Statement::StructDef(_) | Statement::FnDef(_)) {
+                priority_statements.push(StatementBlock::Statement(statement));
+            } else {
+                statements.push(StatementBlock::Statement(statement));
+            }
         }
         self.eat(&Token::Eof)?;
 
-        Ok(Block { statements })
+        if priority_statements.is_empty() {
+            Ok(Block { statements })
+        } else {
+            priority_statements.append(&mut statements);
+            Ok(Block {
+                statements: priority_statements,
+            })
+        }
     }
     fn parse_module_import(&mut self) -> ParseResult<ModuleImport> {
         let public = self.eat(&Token::Pub).is_ok();
