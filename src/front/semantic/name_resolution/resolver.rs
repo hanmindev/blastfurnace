@@ -1,10 +1,9 @@
-use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolInfo};
+use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, For, If,
-    LiteralValue, NamePath, Reference, Statement, StatementBlock, StructDef, VarAssign, VarDecl,
-    VarDef, While,
+    LiteralValue, NamePath, Statement, StatementBlock, StructDef, VarAssign, VarDecl, VarDef,
+    While,
 };
-use std::rc::Rc;
 
 pub trait Resolvable {
     fn resolve(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {
@@ -94,7 +93,7 @@ impl Resolvable for VarAssign {
 
 impl Resolvable for StructDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name.resolve(scope_table)?;
+        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Struct)?);
 
         Ok(())
     }
@@ -102,8 +101,6 @@ impl Resolvable for StructDef {
 
 impl Resolvable for FnDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name.resolved =
-            Some(scope_table.scope_bind(&self.name.raw, SymbolInfo::Fn(Rc::clone(&self.mods)))?);
         scope_table.scope_enter();
         self.register(scope_table)?;
         self.body.resolve(scope_table)?;
@@ -153,19 +150,12 @@ impl Resolvable for AtomicExpression {
 
 impl Resolvable for NamePath {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name.resolve(scope_table)?;
-        Ok(())
-    }
-}
-
-impl Resolvable for Reference<String, String> {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        match scope_table.scope_lookup(&self.raw) {
-            Some(symbol) => {
-                self.resolved = Some(symbol.resolved().clone());
+        match scope_table.scope_lookup(&self.name.raw, SymbolType::Var) {
+            Some(name) => {
+                self.name.resolved = Some(name.clone());
                 Ok(())
             }
-            None => Err(ResolverError::UndefinedVariable(self.raw.clone())),
+            None => Err(ResolverError::UndefinedVariable(self.name.raw.clone())),
         }
     }
 }
@@ -228,13 +218,13 @@ impl Resolvable for For {
 }
 impl Registrable for VarDef {
     fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name.resolved =
-            Some(scope_table.scope_bind(&self.name.raw, SymbolInfo::Var(Rc::clone(&self.mods)))?);
+        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Var)?);
         Ok(())
     }
 }
 impl Registrable for FnDef {
     fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Fn)?);
         for arg in &mut self.args {
             arg.register(scope_table)?;
         }

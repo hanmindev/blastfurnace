@@ -1,35 +1,18 @@
 use crate::front::semantic::name_resolution::resolver::ResolveResult;
 use crate::front::semantic::name_resolution::resolver::ResolverError::Redefinition;
-use crate::front::syntax::ast_types::{FnMod, RawName, ResolvedName, VarMod};
+use crate::front::syntax::ast_types::{RawName, ResolvedName};
 use std::collections::HashMap;
-use std::rc::Rc;
 
-#[derive(Debug)]
-pub enum SymbolInfo {
-    None,
-    Var(Rc<Vec<VarMod>>),
-    Fn(Rc<Vec<FnMod>>),
-}
-
-#[derive(Debug)]
-pub struct Symbol {
-    resolved: ResolvedName,
-    symbol_info: SymbolInfo,
-}
-
-impl Symbol {
-    pub fn resolved(&self) -> &ResolvedName {
-        &self.resolved as &String
-    }
-
-    pub fn symbol_info(&self) -> &SymbolInfo {
-        &self.symbol_info
-    }
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+pub enum SymbolType {
+    Var,
+    Fn,
+    Struct,
 }
 
 #[derive(Debug)]
 pub struct ScopeTableNode {
-    symbols: HashMap<RawName, Rc<Symbol>>,
+    symbols: HashMap<(RawName, SymbolType), ResolvedName>,
 }
 
 #[derive(Debug)]
@@ -37,8 +20,7 @@ pub struct ScopeTable {
     stack: Vec<ScopeTableNode>,
     scope_level: u32,
 
-    global: HashMap<ResolvedName, Rc<Symbol>>,
-    count: HashMap<RawName, i32>,
+    count: HashMap<(RawName, SymbolType), i32>,
 }
 
 impl ScopeTable {
@@ -48,13 +30,8 @@ impl ScopeTable {
                 symbols: HashMap::new(),
             }],
             scope_level: 0,
-            global: HashMap::new(),
             count: HashMap::new(),
         }
-    }
-
-    pub fn get_global(&self) -> &HashMap<ResolvedName, Rc<Symbol>> {
-        &self.global
     }
 
     pub fn scope_enter(&mut self) {
@@ -73,48 +50,53 @@ impl ScopeTable {
         self.scope_level
     }
 
-    pub fn scope_bind(&mut self, name: &String, symbol_info: SymbolInfo) -> ResolveResult<String> {
+    pub fn scope_bind(&mut self, name: &String, symbol_type: SymbolType) -> ResolveResult<String> {
         let symbols = &mut self.stack.last_mut().unwrap().symbols;
+        let key = (name.clone(), symbol_type);
 
-        let resolved = match self.count.get_mut(name) {
+        let resolved = match self.count.get_mut(&key) {
             Some(count) => {
                 *count += 1;
                 format!("{count}_{name}")
             }
             None => {
-                self.count.insert(name.clone(), 0);
+                self.count.insert((name.clone(), symbol_type), 0);
                 format!("0_{name}")
             }
         };
 
-        match symbols.get_mut(name) {
+        match symbols.get_mut(&key) {
             Some(_) => {
                 return Err(Redefinition(name.clone()));
             }
             None => {
-                symbols.insert(
-                    name.to_string(),
-                    Rc::new(Symbol {
-                        resolved: String::from(&resolved),
-                        symbol_info,
-                    }),
-                );
+                symbols.insert(key, resolved.clone());
             }
         }
 
         Ok(resolved)
     }
 
-    pub fn scope_lookup_current(&self, name: &String) -> Option<&Symbol> {
-        if let Some(sym) = self.stack.last().unwrap().symbols.get(name) {
+    pub fn scope_lookup_current(
+        &self,
+        name: &String,
+        symbol_type: SymbolType,
+    ) -> Option<&ResolvedName> {
+        if let Some(sym) = self
+            .stack
+            .last()
+            .unwrap()
+            .symbols
+            .get(&(name.to_string(), symbol_type))
+        {
             return Some(sym);
         }
         None
     }
 
-    pub fn scope_lookup(&self, name: &String) -> Option<&Symbol> {
+    pub fn scope_lookup(&self, name: &String, symbol_type: SymbolType) -> Option<&ResolvedName> {
         for node in self.stack.iter().rev() {
-            if let Some(sym) = node.symbols.get(name) {
+            if let Some(sym) = node.symbols.get(&(name.to_string(), symbol_type)) {
                 return Some(sym);
             }
         }
