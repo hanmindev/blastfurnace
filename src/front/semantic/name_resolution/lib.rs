@@ -8,6 +8,7 @@ mod tests {
         AtomicExpression, Expression, Reference, Statement, StatementBlock,
     };
     use crate::front::syntax::parser::Parser;
+    use std::rc::Rc;
 
     #[test]
     fn simple_scope() {
@@ -27,7 +28,7 @@ mod tests {
                     var_decl.var_def.name.clone(),
                     Reference {
                         raw: "a".to_string(),
-                        resolved: Some("0_a".to_string()),
+                        resolved: Some(Rc::new("0_a".to_string())),
                     }
                 );
             }
@@ -42,7 +43,7 @@ mod tests {
                     fn_def.name.clone(),
                     Reference {
                         raw: "main".to_string(),
-                        resolved: Some("0_main".to_string()),
+                        resolved: Some(Rc::new("0_main".to_string())),
                     }
                 );
 
@@ -50,7 +51,7 @@ mod tests {
                     fn_def.args[0].name.clone(),
                     Reference {
                         raw: "a".to_string(),
-                        resolved: Some("1_a".to_string()),
+                        resolved: Some(Rc::new("1_a".to_string())),
                     }
                 );
 
@@ -58,7 +59,7 @@ mod tests {
                     fn_def.args[1].name.clone(),
                     Reference {
                         raw: "b".to_string(),
-                        resolved: Some("0_b".to_string()),
+                        resolved: Some(Rc::new("0_b".to_string())),
                     }
                 );
 
@@ -70,7 +71,7 @@ mod tests {
                                     name_path.name.clone(),
                                     Reference {
                                         raw: "a".to_string(),
-                                        resolved: Some("1_a".to_string()),
+                                        resolved: Some(Rc::new("1_a".to_string())),
                                     }
                                 );
                             }
@@ -88,7 +89,7 @@ mod tests {
                             var_decl.var_def.name.clone(),
                             Reference {
                                 raw: "a".to_string(),
-                                resolved: Some("2_a".to_string()),
+                                resolved: Some(Rc::new("2_a".to_string())),
                             }
                         );
                         match var_decl.expr.as_ref().unwrap().as_ref() {
@@ -97,7 +98,7 @@ mod tests {
                                     name_path.name.clone(),
                                     Reference {
                                         raw: "a".to_string(),
-                                        resolved: Some("1_a".to_string()),
+                                        resolved: Some(Rc::new("1_a".to_string())),
                                     }
                                 );
                             }
@@ -115,5 +116,47 @@ mod tests {
                 panic!("Expected FnDef");
             }
         }
+    }
+
+    fn struct_defn_after() {
+        let mut scope_table = ScopeTable::new();
+
+        let statement = "A a; struct A { };";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let mut block = parser.parse().unwrap();
+
+        block.resolve(&mut scope_table).unwrap();
+
+        match &block.statements[0] {
+            StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+                assert_eq!(
+                    var_decl.var_def.name.clone(),
+                    Reference {
+                        raw: "a".to_string(),
+                        resolved: Some(Rc::new("-1_a".to_string())),
+                    }
+                );
+            }
+            _ => {
+                panic!("Expected VarDecl");
+            }
+        };
+
+        match &block.statements[1] {
+            StatementBlock::Statement(Statement::StructDef(struct_def)) => {
+                assert_eq!(
+                    struct_def.type_name.clone(),
+                    Reference {
+                        raw: "A".to_string(),
+                        resolved: Some(Rc::new("-1_A".to_string())),
+                    }
+                );
+            }
+            _ => {
+                panic!("Expected StructDef");
+            }
+        };
     }
 }
