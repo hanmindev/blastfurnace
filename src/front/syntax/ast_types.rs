@@ -106,17 +106,18 @@ pub struct StructDef {
 
 #[derive(Debug, PartialEq)]
 pub struct VarDef {
-    pub name: Reference<RawName, ResolvedName>,
     pub mods: Rc<Vec<VarMod>>,
+    pub name: Reference<RawName, ResolvedName>,
     pub type_: Type,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FnDef {
+    pub return_type: Type,
+    pub mods: Rc<Vec<FnMod>>,
     pub name: Reference<RawName, ResolvedName>,
     pub args: Vec<VarDef>,
     pub body: Block,
-    pub mods: Rc<Vec<FnMod>>,
 }
 
 #[derive(Debug, PartialEq)]
