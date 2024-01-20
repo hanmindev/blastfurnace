@@ -96,6 +96,13 @@ impl Resolvable for StructDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         self.type_name.resolved =
             Some(scope_table.scope_bind(&self.type_name.raw, SymbolType::Struct)?);
+
+        for v in &mut self.map.values_mut() {
+            if let Type::Struct(struct_name) = v {
+                struct_name.resolved =
+                    Some(scope_table.scope_lookup_force(&struct_name.raw, SymbolType::Struct));
+            }
+        }
         Ok(())
     }
 }
