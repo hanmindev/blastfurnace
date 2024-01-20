@@ -1,8 +1,8 @@
 use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::syntax::ast_types::{
-    AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, For, If,
-    LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign, VarDecl,
-    VarDef, While,
+    AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, For,
+    If, LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign,
+    VarDecl, VarDef, While,
 };
 
 pub trait Resolvable {
@@ -22,6 +22,10 @@ pub type ResolveResult<T> = Result<T, ResolverError>;
 impl Resolvable for Block {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         scope_table.scope_enter();
+        for definitions in &mut self.definitions {
+            definitions.resolve(scope_table)?;
+        }
+
         for statement in &mut self.statements {
             statement.resolve(scope_table)?;
         }
@@ -40,19 +44,29 @@ impl Resolvable for StatementBlock {
     }
 }
 
+impl Resolvable for Definition {
+    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        match self {
+            Definition::VarDecl(statement) => statement.resolve(scope_table)?,
+            Definition::StructDef(statement) => statement.resolve(scope_table)?,
+            Definition::FnDef(statement) => statement.resolve(scope_table)?,
+            Definition::Use(statement) => statement.resolve(scope_table)?,
+            Definition::ModuleImport(_) => {}
+        }
+        Ok(())
+    }
+}
+
 impl Resolvable for Statement {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
             Statement::VarDecl(statement) => statement.resolve(scope_table)?,
             Statement::VarAssign(statement) => statement.resolve(scope_table)?,
-            Statement::StructDef(statement) => statement.resolve(scope_table)?,
-            Statement::FnDef(statement) => statement.resolve(scope_table)?,
             Statement::If(statement) => statement.resolve(scope_table)?,
             Statement::While(statement) => statement.resolve(scope_table)?,
             Statement::For(statement) => statement.resolve(scope_table)?,
             Statement::Return(statement) => statement.resolve(scope_table)?,
             Statement::Expression(statement) => statement.resolve(scope_table)?,
-            Statement::Use(statement) => statement.resolve(scope_table)?,
 
             _ => {}
         };

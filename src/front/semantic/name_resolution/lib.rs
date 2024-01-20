@@ -5,7 +5,7 @@ mod tests {
     use crate::front::semantic::name_resolution::resolver::Resolvable;
     use crate::front::semantic::name_resolution::scope_table::ScopeTable;
     use crate::front::syntax::ast_types::{
-        AtomicExpression, Expression, Reference, Statement, StatementBlock, Type,
+        AtomicExpression, Definition, Expression, Reference, Statement, StatementBlock, Type,
     };
     use crate::front::syntax::parser::Parser;
     use std::rc::Rc;
@@ -22,8 +22,8 @@ mod tests {
 
         block.resolve(&mut scope_table).unwrap();
 
-        match &block.statements[0] {
-            StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+        match &block.definitions[0] {
+            Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.name.clone(),
                     Reference {
@@ -37,8 +37,8 @@ mod tests {
             }
         };
 
-        match &block.statements[1] {
-            StatementBlock::Statement(Statement::FnDef(fn_def)) => {
+        match &block.definitions[1] {
+            Definition::FnDef(fn_def) => {
                 assert_eq!(
                     fn_def.name.clone(),
                     Reference {
@@ -130,8 +130,8 @@ mod tests {
 
         block.resolve(&mut scope_table).unwrap();
 
-        match &block.statements[0] {
-            StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+        match &block.definitions[0] {
+            Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
                     Type::Struct(Reference {
@@ -152,8 +152,8 @@ mod tests {
                 panic!("Expected VarDecl");
             }
         };
-        match &block.statements[1] {
-            StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+        match &block.definitions[1] {
+            Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
                     Type::Struct(Reference {
@@ -174,8 +174,8 @@ mod tests {
                 panic!("Expected VarDecl");
             }
         };
-        match &block.statements[2] {
-            StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+        match &block.definitions[2] {
+            Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
                     Type::Struct(Reference {
@@ -197,8 +197,8 @@ mod tests {
             }
         };
 
-        match &block.statements[3] {
-            StatementBlock::Statement(Statement::StructDef(struct_def)) => {
+        match &block.definitions[3] {
+            Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
                     Reference {
@@ -225,8 +225,8 @@ mod tests {
 
         block.resolve(&mut scope_table).unwrap();
 
-        match &block.statements[0] {
-            StatementBlock::Statement(Statement::StructDef(struct_def)) => {
+        match &block.definitions[0] {
+            Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
                     Reference {
@@ -254,8 +254,138 @@ mod tests {
             }
         }
 
-        match &block.statements[1] {
-            StatementBlock::Statement(Statement::StructDef(struct_def)) => {
+        match &block.definitions[1] {
+            Definition::StructDef(struct_def) => {
+                assert_eq!(
+                    struct_def.type_name.clone(),
+                    Reference {
+                        raw: "B".to_string(),
+                        resolved: Some(Rc::new("0_B".to_string())),
+                    }
+                );
+                match &struct_def.map.get("a").unwrap() {
+                    Type::Struct(struct_name) => {
+                        assert_eq!(
+                            struct_name.clone(),
+                            Reference {
+                                raw: "A".to_string(),
+                                resolved: Some(Rc::new("0_A".to_string())),
+                            }
+                        );
+                    }
+                    _ => {
+                        panic!("Expected Struct");
+                    }
+                }
+            }
+            _ => {
+                panic!("Expected StructDef");
+            }
+        }
+    }
+
+    #[test]
+    fn struct_defn_rec_scope() {
+        let mut scope_table = ScopeTable::new();
+
+        let statement = "fn main() { A a; B b; } struct A { B b; } struct B { A a; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let mut block = parser.parse().unwrap();
+
+        block.resolve(&mut scope_table).unwrap();
+        match &block.definitions[2] {
+            Definition::FnDef(fn_def) => {
+                assert_eq!(
+                    fn_def.name.clone(),
+                    Reference {
+                        raw: "main".to_string(),
+                        resolved: Some(Rc::new("0_main".to_string())),
+                    }
+                );
+
+                match &fn_def.body.statements[0] {
+                    StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+                        assert_eq!(
+                            var_decl.var_def.type_,
+                            Type::Struct(Reference {
+                                raw: "A".to_string(),
+                                resolved: Some(Rc::new("0_A".to_string())),
+                            })
+                        );
+
+                        assert_eq!(
+                            var_decl.var_def.name.clone(),
+                            Reference {
+                                raw: "a".to_string(),
+                                resolved: Some(Rc::new("0_a".to_string())),
+                            }
+                        );
+                    }
+                    _ => {
+                        panic!("Expected VarDecl");
+                    }
+                };
+                match &fn_def.body.statements[1] {
+                    StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+                        assert_eq!(
+                            var_decl.var_def.type_,
+                            Type::Struct(Reference {
+                                raw: "B".to_string(),
+                                resolved: Some(Rc::new("0_B".to_string())),
+                            })
+                        );
+
+                        assert_eq!(
+                            var_decl.var_def.name.clone(),
+                            Reference {
+                                raw: "b".to_string(),
+                                resolved: Some(Rc::new("0_b".to_string())),
+                            }
+                        );
+                    }
+                    _ => {
+                        panic!("Expected VarDecl");
+                    }
+                };
+            }
+            _ => {
+                panic!("Expected FnDef");
+            }
+        }
+
+        match &block.definitions[0] {
+            Definition::StructDef(struct_def) => {
+                assert_eq!(
+                    struct_def.type_name.clone(),
+                    Reference {
+                        raw: "A".to_string(),
+                        resolved: Some(Rc::new("0_A".to_string())),
+                    }
+                );
+                match &struct_def.map.get("b").unwrap() {
+                    Type::Struct(struct_name) => {
+                        assert_eq!(
+                            struct_name.clone(),
+                            Reference {
+                                raw: "B".to_string(),
+                                resolved: Some(Rc::new("0_B".to_string())),
+                            }
+                        );
+                    }
+                    _ => {
+                        panic!("Expected Struct");
+                    }
+                }
+            }
+            _ => {
+                panic!("Expected StructDef");
+            }
+        }
+
+        match &block.definitions[1] {
+            Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
                     Reference {

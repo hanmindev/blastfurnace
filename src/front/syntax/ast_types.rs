@@ -175,8 +175,6 @@ pub struct For {
 pub enum Statement {
     VarDecl(VarDecl),
     VarAssign(VarAssign),
-    StructDef(StructDef),
-    FnDef(FnDef),
     If(If),
     While(While),
     For(For),
@@ -184,8 +182,6 @@ pub enum Statement {
     Break,
     Continue,
     Expression(Box<Expression>),
-    ModuleImport(ModuleImport),
-    Use(Use),
 }
 
 #[derive(Debug, PartialEq)]
@@ -195,7 +191,18 @@ pub enum StatementBlock {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum Definition {
+    ModuleImport(ModuleImport),
+    Use(Use),
+
+    VarDecl(VarDecl),
+    StructDef(StructDef),
+    FnDef(FnDef),
+}
+
+#[derive(Debug, PartialEq)]
 pub struct Block {
+    pub definitions: Vec<Definition>,
     pub statements: Vec<StatementBlock>,
 }
 

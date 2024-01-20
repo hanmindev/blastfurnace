@@ -2,9 +2,9 @@ use crate::front::lexical::lexer::TokenError;
 use crate::front::lexical::token_types::Token;
 use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
-    AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
-    If, LiteralValue, ModuleImport, NamePath, Reference, Statement, StatementBlock, StructDef,
-    Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While,
+    AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
+    FnMod, For, If, LiteralValue, ModuleImport, NamePath, Reference, Statement, StatementBlock,
+    StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While,
 };
 use std::collections::HashMap;
 use std::mem;
@@ -390,17 +390,6 @@ impl<T: TokenStream> Parser<T> {
                 Ok(Statement::VarDecl(self.parse_var_decl()?))
             }
 
-            Token::Pub => match &self.next_token {
-                Token::Fn => Ok(Statement::FnDef(self.parse_fn_def()?)),
-                Token::StructType => Ok(Statement::StructDef(self.parse_struct_def()?)),
-                Token::Ident(_) => Ok(Statement::VarDecl(self.parse_var_decl()?)),
-                _ => Err(ParseError::Unexpected(
-                    self.next_token.clone(),
-                    "Expected function, struct, or variable definition after pub keyword"
-                        .to_string(),
-                )),
-            },
-
             Token::Ident(_) => {
                 match &self.next_token {
                     Token::Ident(_) => {
@@ -434,29 +423,138 @@ impl<T: TokenStream> Parser<T> {
                 self.eat(&Token::Continue)?;
                 Ok(Statement::Continue)
             }
-            Token::Fn | Token::Rec | Token::Inline => Ok(Statement::FnDef(self.parse_fn_def()?)),
-            Token::StructType => Ok(Statement::StructDef(self.parse_struct_def()?)),
-            Token::Mod => Ok(Statement::ModuleImport(self.parse_module_import()?)),
-            Token::Use => Ok(Statement::Use(self.parse_use_import()?)),
             _ => Ok(Statement::Expression(self.parse_expression()?)),
         }
     }
 
-    fn parse_block(&mut self) -> ParseResult<Block> {
-        self.eat(&Token::LBrace)?;
+    fn parse_definition(&mut self) -> ParseResult<Definition> {
+        match &self.curr_token {
+            Token::Pub => match &self.next_token {
+                Token::Fn => Ok(Definition::FnDef(self.parse_fn_def()?)),
+                Token::StructType => Ok(Definition::StructDef(self.parse_struct_def()?)),
+                Token::Ident(_) => Ok(Definition::VarDecl(self.parse_var_decl()?)),
+                _ => Err(ParseError::Unexpected(
+                    self.next_token.clone(),
+                    "Expected function, struct, or variable definition after pub keyword"
+                        .to_string(),
+                )),
+            },
+            Token::Fn | Token::Rec | Token::Inline => Ok(Definition::FnDef(self.parse_fn_def()?)),
+            Token::StructType => Ok(Definition::StructDef(self.parse_struct_def()?)),
+            Token::Mod => Ok(Definition::ModuleImport(self.parse_module_import()?)),
+            Token::Use => Ok(Definition::Use(self.parse_use_import()?)),
+            Token::VoidType
+            | Token::IntType
+            | Token::FloatType
+            | Token::DoubleType
+            | Token::BoolType
+            | Token::StringType
+            | Token::Const
+            | Token::Ident(_) => Ok(Definition::VarDecl(self.parse_var_decl()?)),
+            _ => Err(ParseError::Unexpected(
+                self.curr_token.clone(),
+                "Expected definition".to_string(),
+            )),
+        }
+    }
+
+    fn parse_block_no_brace(&mut self, global: bool) -> ParseResult<Block> {
+        let mut struct_var_definitions = Vec::new();
+        let mut fn_definitions = Vec::new();
         let mut statements = Vec::new();
-        while !matches!(self.curr_token, Token::RBrace) {
+        loop {
+            let _ = self.eat(&Token::Semicolon).is_err();
+
+            if matches!(self.curr_token, Token::RBrace | Token::Eof) {
+                break;
+            }
+
             match self.curr_token {
                 Token::LBrace => statements.push(StatementBlock::Block(self.parse_block()?)),
+                Token::Fn | Token::Rec | Token::Inline | Token::StructType | Token::Use => {
+                    match self.parse_definition()? {
+                        Definition::VarDecl(def) => {
+                            struct_var_definitions.push(Definition::VarDecl(def));
+                        }
+                        Definition::StructDef(def) => {
+                            struct_var_definitions.push(Definition::StructDef(def));
+                        }
+                        Definition::FnDef(def) => {
+                            fn_definitions.push(Definition::FnDef(def));
+                        }
+                        _ => {}
+                    }
+                }
+                Token::Pub | Token::Mod => {
+                    if global {
+                        match self.parse_definition()? {
+                            Definition::VarDecl(def) => {
+                                struct_var_definitions.push(Definition::VarDecl(def));
+                            }
+                            Definition::StructDef(def) => {
+                                struct_var_definitions.push(Definition::StructDef(def));
+                            }
+                            Definition::FnDef(def) => {
+                                fn_definitions.push(Definition::FnDef(def));
+                            }
+                            _ => {}
+                        }
+                    } else {
+                        Err(ParseError::Unexpected(
+                            self.curr_token.clone(),
+                            "Can only be used in global scope".to_string(),
+                        ))?
+                    }
+                }
+
+                Token::VoidType
+                | Token::IntType
+                | Token::FloatType
+                | Token::DoubleType
+                | Token::BoolType
+                | Token::StringType
+                | Token::Const
+                | Token::Ident(_) => {
+                    if global {
+                        struct_var_definitions.push(self.parse_definition()?);
+                    } else {
+                        statements.push(StatementBlock::Statement(self.parse_statement()?));
+                    }
+                }
+
                 _ => {
-                    statements.push(StatementBlock::Statement(self.parse_statement()?));
-                    self.eat(&Token::Semicolon)?;
+                    if global {
+                        Err(ParseError::Unexpected(
+                            self.curr_token.clone(),
+                            "Cannot be used in global scope".to_string(),
+                        ))?
+                    }
+                    let statement = self.parse_statement()?;
+                    match statement {
+                        Statement::If(_) | Statement::For(_) | Statement::While(_) => {}
+                        _ => {
+                            self.eat(&Token::Semicolon)?;
+                        }
+                    }
+                    statements.push(StatementBlock::Statement(statement));
                 }
             }
         }
+
+        struct_var_definitions.append(&mut fn_definitions);
+
+        Ok(Block {
+            definitions: struct_var_definitions,
+            statements,
+        })
+    }
+
+    fn parse_block(&mut self) -> ParseResult<Block> {
+        self.eat(&Token::LBrace)?;
+        let block = self.parse_block_no_brace(false)?;
         self.eat(&Token::RBrace)?;
 
-        Ok(Block { statements })
+        Ok(block)
     }
 
     fn parse_compound_value(&mut self) -> ParseResult<CompoundValue> {
@@ -696,40 +794,10 @@ impl<T: TokenStream> Parser<T> {
     }
 
     pub fn parse(&mut self) -> ParseResult<Block> {
-        let mut priority_statements = Vec::new();
-        let mut statements = Vec::new();
-        while !matches!(self.curr_token, Token::Eof) {
-            let _ = self.eat(&Token::Semicolon).is_err();
-
-            let statement = self.parse_statement()?;
-
-            if !matches!(
-                statement,
-                Statement::FnDef(_)
-                    | Statement::If(_)
-                    | Statement::For(_)
-                    | Statement::While(_)
-                    | Statement::StructDef(_)
-            ) {
-                self.eat(&Token::Semicolon)?;
-            }
-
-            if !matches!(statement, Statement::StructDef(_) | Statement::FnDef(_)) {
-                priority_statements.push(StatementBlock::Statement(statement));
-            } else {
-                statements.push(StatementBlock::Statement(statement));
-            }
-        }
+        let block = self.parse_block_no_brace(true)?;
         self.eat(&Token::Eof)?;
 
-        if priority_statements.is_empty() {
-            Ok(Block { statements })
-        } else {
-            priority_statements.append(&mut statements);
-            Ok(Block {
-                statements: priority_statements,
-            })
-        }
+        Ok(block)
     }
     fn parse_module_import(&mut self) -> ParseResult<ModuleImport> {
         let public = self.eat(&Token::Pub).is_ok();
@@ -808,16 +876,17 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(block.definitions.len(), 1);
         assert_eq!(
-            block.statements[0],
-            StatementBlock::Statement(Statement::FnDef(FnDef {
+            block.definitions[0],
+            Definition::FnDef(FnDef {
                 return_type: Type::Void,
                 name: Reference::new("main".to_string()),
                 args: Vec::new(),
                 body: Block {
+                    definitions: Vec::new(),
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
                             0
@@ -825,7 +894,7 @@ mod tests {
                     )))],
                 },
                 mods: Rc::new(Vec::new()),
-            }))
+            })
         );
     }
 
@@ -835,7 +904,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 7);
         assert_eq!(
@@ -937,7 +1006,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         let compound = {
             let mut map = HashMap::new();
@@ -984,7 +1053,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 7);
         assert_eq!(
@@ -1088,7 +1157,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
@@ -1130,12 +1199,12 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(block.definitions.len(), 1);
         assert_eq!(
-            block.statements[0],
-            StatementBlock::Statement(Statement::FnDef(FnDef {
+            block.definitions[0],
+            (Definition::FnDef(FnDef {
                 return_type: Type::Void,
                 name: Reference::new("add".to_string()),
                 args: vec![
@@ -1151,6 +1220,7 @@ mod tests {
                     },
                 ],
                 body: Block {
+                    definitions: vec![],
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression::Binary(
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
@@ -1174,7 +1244,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1204,7 +1274,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1220,6 +1290,7 @@ mod tests {
                     ))),
                 )),
                 body: Box::from(Block {
+                    definitions: vec![],
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
                             0
@@ -1238,7 +1309,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1254,6 +1325,7 @@ mod tests {
                     ))),
                 )),
                 body: Box::from(Block {
+                    definitions: vec![],
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
                             0
@@ -1271,6 +1343,7 @@ mod tests {
                         ))),
                     )),
                     body: Box::from(Block {
+                        definitions: vec![],
                         statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                             Expression::AtomicExpression(AtomicExpression::Literal(
                                 LiteralValue::Int(1)
@@ -1282,6 +1355,7 @@ mod tests {
                             LiteralValue::Bool(true)
                         ))),
                         body: Box::from(Block {
+                            definitions: vec![],
                             statements: vec![StatementBlock::Statement(Statement::Return(
                                 Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
                                     LiteralValue::Int(2)
@@ -1301,7 +1375,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1317,6 +1391,7 @@ mod tests {
                     ))),
                 )),
                 body: Box::from(Block {
+                    definitions: vec![],
                     statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
                         name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                         expr: Box::from(Expression::Binary(
@@ -1340,7 +1415,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1378,6 +1453,7 @@ mod tests {
                     )),
                 }))),
                 body: Block {
+                    definitions: vec![],
                     statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
                         name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
                         expr: Box::from(Expression::Binary(
@@ -1401,7 +1477,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1411,6 +1487,7 @@ mod tests {
                     LiteralValue::Bool(true)
                 ))),
                 body: Box::from(Block {
+                    definitions: vec![],
                     statements: vec![
                         StatementBlock::Statement(Statement::Break),
                         StatementBlock::Statement(Statement::Continue),
@@ -1732,12 +1809,12 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(block.definitions.len(), 1);
         assert_eq!(
-            block.statements[0],
-            StatementBlock::Statement(Statement::StructDef(StructDef {
+            block.definitions[0],
+            Definition::StructDef(StructDef {
                 type_name: Reference::new("A".to_string()),
                 map: {
                     let mut map = HashMap::new();
@@ -1750,7 +1827,7 @@ mod tests {
                     );
                     map
                 }
-            }))
+            })
         );
     }
 
@@ -1760,9 +1837,10 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse().unwrap();
+        let block = parser.parse_block_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 2);
+        assert_eq!(block.definitions.len(), 1);
+        assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::VarDecl(VarDecl {
@@ -1775,8 +1853,8 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[1],
-            StatementBlock::Statement(Statement::FnDef(FnDef {
+            block.definitions[0],
+            (Definition::FnDef(FnDef {
                 return_type: Type::Void,
                 name: Reference::new("main".to_string()),
                 args: vec![VarDef {
@@ -1785,6 +1863,7 @@ mod tests {
                     name: Reference::new("a".to_string()),
                 }],
                 body: Block {
+                    definitions: vec![],
                     statements: vec![
                         StatementBlock::Statement(Statement::VarDecl(VarDecl {
                             var_def: VarDef {
