@@ -93,7 +93,7 @@ impl Resolvable for VarAssign {
 
 impl Resolvable for StructDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Struct)?);
+        self.register(scope_table)?;
 
         Ok(())
     }
@@ -213,6 +213,12 @@ impl Resolvable for For {
             step.resolve(scope_table)?;
         }
         self.body.resolve(scope_table)?;
+        Ok(())
+    }
+}
+impl Registrable for StructDef {
+    fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Struct)?);
         Ok(())
     }
 }
