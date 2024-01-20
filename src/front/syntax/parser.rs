@@ -689,7 +689,7 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::RBrace)?;
 
         Ok(StructDef {
-            name: Reference::new(struct_name),
+            type_name: Reference::new(struct_name),
             map,
         })
     }
@@ -1721,7 +1721,7 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::StructDef(StructDef {
-                name: Reference::new("A".to_string()),
+                type_name: Reference::new("A".to_string()),
                 map: {
                     let mut map = HashMap::new();
                     map.insert("a".to_string(), Type::Int);

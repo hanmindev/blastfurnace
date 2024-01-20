@@ -225,7 +225,8 @@ impl Resolvable for For {
 }
 impl Registrable for StructDef {
     fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Struct)?);
+        self.type_name.resolved =
+            Some(scope_table.scope_bind(&self.type_name.raw, SymbolType::Struct)?);
         Ok(())
     }
 }
