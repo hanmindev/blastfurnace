@@ -5,7 +5,7 @@ mod tests {
     use crate::front::semantic::name_resolution::resolver::Resolvable;
     use crate::front::semantic::name_resolution::scope_table::ScopeTable;
     use crate::front::syntax::ast_types::{
-        AtomicExpression, Expression, Reference, Statement, StatementBlock,
+        AtomicExpression, Expression, Reference, Statement, StatementBlock, Type,
     };
     use crate::front::syntax::parser::Parser;
     use std::rc::Rc;
@@ -118,10 +118,11 @@ mod tests {
         }
     }
 
+    #[test]
     fn struct_defn_after() {
         let mut scope_table = ScopeTable::new();
 
-        let statement = "A a; struct A { };";
+        let statement = "A a; A b; A c; struct A { }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -132,10 +133,62 @@ mod tests {
         match &block.statements[0] {
             StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
                 assert_eq!(
+                    var_decl.var_def.type_,
+                    Type::Struct(Reference {
+                        raw: "A".to_string(),
+                        resolved: Some(Rc::new("0_A".to_string())),
+                    })
+                );
+
+                assert_eq!(
                     var_decl.var_def.name.clone(),
                     Reference {
                         raw: "a".to_string(),
-                        resolved: Some(Rc::new("-1_a".to_string())),
+                        resolved: Some(Rc::new("0_a".to_string())),
+                    }
+                );
+            }
+            _ => {
+                panic!("Expected VarDecl");
+            }
+        };
+        match &block.statements[1] {
+            StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+                assert_eq!(
+                    var_decl.var_def.type_,
+                    Type::Struct(Reference {
+                        raw: "A".to_string(),
+                        resolved: Some(Rc::new("0_A".to_string())),
+                    })
+                );
+
+                assert_eq!(
+                    var_decl.var_def.name.clone(),
+                    Reference {
+                        raw: "b".to_string(),
+                        resolved: Some(Rc::new("0_b".to_string())),
+                    }
+                );
+            }
+            _ => {
+                panic!("Expected VarDecl");
+            }
+        };
+        match &block.statements[2] {
+            StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+                assert_eq!(
+                    var_decl.var_def.type_,
+                    Type::Struct(Reference {
+                        raw: "A".to_string(),
+                        resolved: Some(Rc::new("0_A".to_string())),
+                    })
+                );
+
+                assert_eq!(
+                    var_decl.var_def.name.clone(),
+                    Reference {
+                        raw: "c".to_string(),
+                        resolved: Some(Rc::new("0_c".to_string())),
                     }
                 );
             }
@@ -144,13 +197,13 @@ mod tests {
             }
         };
 
-        match &block.statements[1] {
+        match &block.statements[3] {
             StatementBlock::Statement(Statement::StructDef(struct_def)) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
                     Reference {
                         raw: "A".to_string(),
-                        resolved: Some(Rc::new("-1_A".to_string())),
+                        resolved: Some(Rc::new("0_A".to_string())),
                     }
                 );
             }
