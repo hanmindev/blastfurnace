@@ -1,8 +1,8 @@
 use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, For, If,
-    LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, VarAssign, VarDecl, VarDef,
-    While,
+    LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign, VarDecl,
+    VarDef, While,
 };
 
 pub trait Resolvable {
@@ -52,6 +52,8 @@ impl Resolvable for Statement {
             Statement::For(statement) => statement.resolve(scope_table)?,
             Statement::Return(statement) => statement.resolve(scope_table)?,
             Statement::Expression(statement) => statement.resolve(scope_table)?,
+            Statement::Use(statement) => statement.resolve(scope_table)?,
+
             _ => {}
         };
         Ok(())
@@ -223,6 +225,17 @@ impl Resolvable for For {
             step.resolve(scope_table)?;
         }
         self.body.resolve(scope_table)?;
+        Ok(())
+    }
+}
+
+impl Resolvable for Use {
+    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        for element in &mut self.elements {
+            element.imported_name.resolved =
+                Some(scope_table.scope_bind(&element.imported_name.raw, SymbolType::Struct)?);
+        }
+
         Ok(())
     }
 }

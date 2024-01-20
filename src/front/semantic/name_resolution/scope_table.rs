@@ -14,15 +14,15 @@ pub enum SymbolType {
 #[derive(Debug)]
 pub struct ScopeTableNode {
     symbols: HashMap<(RawName, SymbolType), Rc<ResolvedName>>,
+    unresolved: HashMap<(RawName, SymbolType), Rc<ResolvedName>>,
 }
 
 #[derive(Debug)]
 pub struct ScopeTable {
     stack: Vec<ScopeTableNode>,
-    scope_level: u32,
+    scope_level: i32,
 
-    unresolved: HashMap<(RawName, SymbolType), Rc<ResolvedName>>,
-    count: HashMap<(RawName, SymbolType), i32>,
+    global_count: HashMap<(RawName, SymbolType), i32>,
 }
 
 pub fn name_format(name: &String, count: i32) -> String {
@@ -34,16 +34,17 @@ impl ScopeTable {
         ScopeTable {
             stack: vec![ScopeTableNode {
                 symbols: HashMap::new(),
+                unresolved: HashMap::new(),
             }],
             scope_level: 0,
-            unresolved: HashMap::new(),
-            count: HashMap::new(),
+            global_count: HashMap::new(),
         }
     }
 
     pub fn scope_enter(&mut self) {
         self.stack.push(ScopeTableNode {
             symbols: HashMap::new(),
+            unresolved: HashMap::new(),
         });
         self.scope_level += 1;
     }
@@ -53,7 +54,7 @@ impl ScopeTable {
         self.scope_level -= 1;
     }
 
-    pub fn scope_level(&self) -> u32 {
+    pub fn scope_level(&self) -> i32 {
         self.scope_level
     }
 
@@ -62,36 +63,37 @@ impl ScopeTable {
         name: &String,
         symbol_type: SymbolType,
     ) -> ResolveResult<Rc<ResolvedName>> {
-        let symbols = &mut self.stack.last_mut().unwrap().symbols;
         let key = (name.clone(), symbol_type);
 
-        let resolved = Rc::new(match self.count.get_mut(&key) {
-            Some(count) => {
-                *count += 1;
-                name_format(name, *count)
-            }
-            None => {
-                if self.scope_level == 0 {
-                    if let Some(rn) = self.unresolved.get(&key) {
-                        return Ok(rn.clone());
-                    }
+        let node = &mut self.stack.last_mut().unwrap();
+
+        // first see if it is unresolved in the current scope. If so, remove it from unresolved and resolve it
+        if let Some(resolved) = node.unresolved.remove(&key) {
+            // resolve it
+            node.symbols.insert(key, resolved.clone());
+            Ok(resolved)
+        } else {
+            let resolved = Rc::new(match self.global_count.get_mut(&key) {
+                Some(count) => {
+                    *count += 1;
+                    name_format(name, *count)
                 }
+                None => {
+                    self.global_count.insert((name.clone(), symbol_type), 0);
+                    name_format(name, 0)
+                }
+            });
 
-                self.count.insert((name.clone(), symbol_type), 0);
-                name_format(name, 0)
+            match node.symbols.get_mut(&key) {
+                Some(_) => {
+                    return Err(Redefinition(name.clone()));
+                }
+                None => {
+                    node.symbols.insert(key, resolved.clone());
+                }
             }
-        });
-
-        match symbols.get_mut(&key) {
-            Some(_) => {
-                return Err(Redefinition(name.clone()));
-            }
-            None => {
-                symbols.insert(key, resolved.clone());
-            }
+            Ok(resolved)
         }
-
-        Ok(resolved)
     }
 
     pub fn scope_lookup_current(
@@ -120,25 +122,40 @@ impl ScopeTable {
         None
     }
 
+    /*
+    Warning: This works with the assumption that all scope-based names are defined at the start of the scope.
+    Some preprocessing may have to be done to the AST to ensure this is true.
+     */
     pub fn scope_lookup_force(
         &mut self,
         name: &String,
         symbol_type: SymbolType,
     ) -> Rc<ResolvedName> {
         for node in self.stack.iter().rev() {
-            if let Some(sym) = node.symbols.get(&(name.to_string(), symbol_type)) {
-                return sym.clone();
+            if let Some(rn) = node.symbols.get(&(name.to_string(), symbol_type)) {
+                return rn.clone();
             }
         }
+
+        // symbol is not resolved yet, bind it to the current scope so future lookups will be equal
         let key = (name.clone(), symbol_type);
 
-        let resolved = Rc::new(name_format(name, -1));
+        let resolved = Rc::new(match self.global_count.get_mut(&key) {
+            Some(count) => {
+                *count += 1;
+                name_format(name, *count)
+            }
+            None => {
+                self.global_count.insert(key.clone(), 0);
+                name_format(name, 0)
+            }
+        });
 
         self.stack
             .last_mut()
             .unwrap()
-            .symbols
-            .insert(key, resolved.clone());
+            .unresolved
+            .insert(key.clone(), resolved.clone());
 
         resolved
     }
