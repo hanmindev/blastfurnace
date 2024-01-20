@@ -51,6 +51,8 @@ pub enum Token {
     LAngle, // <>
     RAngle,
 
+    Arrow, // ->
+
     // Key words
     Const,
 
@@ -63,6 +65,8 @@ pub enum Token {
     StructType,
 
     Impl,
+
+    Let,
 
     Fn,
     Rec,

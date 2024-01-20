@@ -4,7 +4,7 @@ use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
     FnMod, For, If, LiteralValue, ModuleImport, NamePath, Reference, Statement, StatementBlock,
-    StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While,
+    StructDef, StructMod, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While,
 };
 use std::collections::{HashMap, VecDeque};
 use std::mem;
@@ -393,31 +393,22 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_statement(&mut self) -> ParseResult<Statement> {
         match &self.curr_token {
-            Token::VoidType
-            | Token::IntType
-            | Token::FloatType
-            | Token::DoubleType
-            | Token::BoolType
-            | Token::StringType
-            | Token::Const => {
+            Token::Const | Token::Let => {
                 // variable declaration
                 Ok(Statement::VarDecl(self.parse_var_decl()?))
             }
 
             Token::Ident(_) => {
                 match self.peek(1) {
-                    Token::Ident(_) => {
-                        // struct declaration
-                        Ok(Statement::VarDecl(self.parse_var_decl()?))
-                    }
-
-                    // variable / struct assignment
                     Token::Assign
                     | Token::PlusAssign
                     | Token::MinusAssign
                     | Token::StarAssign
                     | Token::SlashAssign
-                    | Token::PercentAssign => self.parse_assignment(),
+                    | Token::PercentAssign => {
+                        // variable / struct assignment
+                        self.parse_assignment()
+                    }
                     _ => Ok(Statement::Expression(self.parse_expression()?)),
                 }
             }
@@ -441,30 +432,36 @@ impl<T: TokenStream> Parser<T> {
         }
     }
 
-    fn parse_definition(&mut self) -> ParseResult<Definition> {
-        match &self.curr_token {
+    fn peek_def_type(&mut self) -> Option<Token> {
+        match self.curr_token {
+            Token::Fn | Token::Rec | Token::Inline => Some(Token::Fn),
+            Token::StructType => Some(Token::StructType),
+            Token::Const | Token::Let => Some(Token::Const),
+
             Token::Pub => match self.peek(1) {
-                Token::Fn => Ok(Definition::FnDef(self.parse_fn_def()?)),
-                Token::StructType => Ok(Definition::StructDef(self.parse_struct_def()?)),
-                Token::Ident(_) => Ok(Definition::VarDecl(self.parse_var_decl()?)),
-                _ => Err(ParseError::Unexpected(
-                    self.peek(1).clone(),
-                    "Expected function, struct, or variable definition after pub keyword"
-                        .to_string(),
-                )),
+                Token::Fn | Token::Rec | Token::Inline => Some(Token::Fn),
+                Token::StructType => Some(Token::StructType),
+                Token::Const | Token::Let => Some(Token::Let),
+                _ => None,
             },
-            Token::Fn | Token::Rec | Token::Inline => Ok(Definition::FnDef(self.parse_fn_def()?)),
-            Token::StructType => Ok(Definition::StructDef(self.parse_struct_def()?)),
+
+            _ => None,
+        }
+    }
+
+    fn parse_definition(&mut self) -> ParseResult<Definition> {
+        if let Some(type_) = self.peek_def_type() {
+            match type_ {
+                Token::Fn => return Ok(Definition::FnDef(self.parse_fn_def()?)),
+                Token::StructType => return Ok(Definition::StructDef(self.parse_struct_def()?)),
+                Token::Let => return Ok(Definition::VarDecl(self.parse_var_decl()?)),
+                _ => {}
+            }
+        }
+
+        match self.curr_token {
             Token::Mod => Ok(Definition::ModuleImport(self.parse_module_import()?)),
             Token::Use => Ok(Definition::Use(self.parse_use_import()?)),
-            Token::VoidType
-            | Token::IntType
-            | Token::FloatType
-            | Token::DoubleType
-            | Token::BoolType
-            | Token::StringType
-            | Token::Const
-            | Token::Ident(_) => Ok(Definition::VarDecl(self.parse_var_decl()?)),
             _ => Err(ParseError::Unexpected(
                 self.curr_token.clone(),
                 "Expected definition".to_string(),
@@ -483,59 +480,34 @@ impl<T: TokenStream> Parser<T> {
                 break;
             }
 
+            if let Some(type_) = self.peek_def_type() {
+                match type_ {
+                    Token::Fn => {
+                        fn_definitions.push(Definition::FnDef(self.parse_fn_def()?));
+                        continue;
+                    }
+                    Token::StructType => {
+                        struct_var_definitions
+                            .push(Definition::StructDef(self.parse_struct_def()?));
+                        continue;
+                    }
+                    Token::Let => {
+                        if global {
+                            struct_var_definitions
+                                .push(Definition::VarDecl(self.parse_var_decl()?));
+                        } else {
+                            statements.push(StatementBlock::Statement(Statement::VarDecl(
+                                self.parse_var_decl()?,
+                            )));
+                        }
+                        continue;
+                    }
+                    _ => {}
+                }
+            }
+
             match self.curr_token {
                 Token::LBrace => statements.push(StatementBlock::Block(self.parse_block()?)),
-                Token::Fn | Token::Rec | Token::Inline | Token::StructType | Token::Use => {
-                    match self.parse_definition()? {
-                        Definition::VarDecl(def) => {
-                            struct_var_definitions.push(Definition::VarDecl(def));
-                        }
-                        Definition::StructDef(def) => {
-                            struct_var_definitions.push(Definition::StructDef(def));
-                        }
-                        Definition::FnDef(def) => {
-                            fn_definitions.push(Definition::FnDef(def));
-                        }
-                        _ => {}
-                    }
-                }
-                Token::Pub | Token::Mod => {
-                    if global {
-                        match self.parse_definition()? {
-                            Definition::VarDecl(def) => {
-                                struct_var_definitions.push(Definition::VarDecl(def));
-                            }
-                            Definition::StructDef(def) => {
-                                struct_var_definitions.push(Definition::StructDef(def));
-                            }
-                            Definition::FnDef(def) => {
-                                fn_definitions.push(Definition::FnDef(def));
-                            }
-                            _ => {}
-                        }
-                    } else {
-                        Err(ParseError::Unexpected(
-                            self.curr_token.clone(),
-                            "Can only be used in global scope".to_string(),
-                        ))?
-                    }
-                }
-
-                Token::VoidType
-                | Token::IntType
-                | Token::FloatType
-                | Token::DoubleType
-                | Token::BoolType
-                | Token::StringType
-                | Token::Const
-                | Token::Ident(_) => {
-                    if global {
-                        struct_var_definitions.push(self.parse_definition()?);
-                    } else {
-                        statements.push(StatementBlock::Statement(self.parse_statement()?));
-                    }
-                }
-
                 _ => {
                     if global {
                         Err(ParseError::Unexpected(
@@ -610,7 +582,19 @@ impl<T: TokenStream> Parser<T> {
 
         if self.eat(&Token::Const).is_ok() {
             mods.push(VarMod::Const);
+        } else {
+            self.eat(&Token::Let)?;
         }
+
+        let var_name = match self.eat(&Any)? {
+            Token::Ident(s) => s,
+            tok => Err(ParseError::Unexpected(
+                tok,
+                "Expected identifier for variable name".to_string(),
+            ))?,
+        };
+
+        self.eat(&Token::Colon)?; // required for now because we don't have type inference
 
         let type_ = match self.eat(&Any)? {
             Token::VoidType => Type::Void,
@@ -626,34 +610,20 @@ impl<T: TokenStream> Parser<T> {
             ))?,
         };
 
-        if matches!(self.peek(1), Token::Assign) {
-            match self.parse_assignment()? {
-                Statement::VarAssign(var_assign) => Ok(VarDecl {
-                    var_def: VarDef {
-                        type_,
-                        name: var_assign.name_path.name,
-                        mods: Rc::new(mods),
-                    },
-                    expr: Some(var_assign.expr),
-                }),
-                _ => Err(ParseError::Unknown),
-            }
+        let expr = if self.eat(&Token::Assign).is_ok() {
+            Some(self.parse_expression()?)
         } else {
-            match self.eat(&Any)? {
-                Token::Ident(s) => Ok(VarDecl {
-                    var_def: VarDef {
-                        type_,
-                        name: Reference::new(s),
-                        mods: Rc::new(mods),
-                    },
-                    expr: None,
-                }),
-                tok => Err(ParseError::Unexpected(
-                    tok,
-                    "Expected identifier for variable name".to_string(),
-                )),
-            }
-        }
+            None
+        };
+
+        Ok(VarDecl {
+            var_def: VarDef {
+                type_,
+                name: Reference::new(var_name),
+                mods: Rc::new(mods),
+            },
+            expr,
+        })
     }
 
     fn parse_fn_def(&mut self) -> ParseResult<FnDef> {
@@ -699,6 +669,18 @@ impl<T: TokenStream> Parser<T> {
                     mods.push(VarMod::Const);
                 }
 
+                let name = Reference::new(match self.eat(&Any)? {
+                    Token::Ident(s) => s,
+                    tok => {
+                        return Err(ParseError::Unexpected(
+                            tok,
+                            "Expected identifier for function argument name".to_string(),
+                        ));
+                    }
+                });
+
+                self.eat(&Token::Colon)?; // required for now because we don't have type inference
+
                 let type_ = match self.eat(&Any)? {
                     Token::VoidType => Type::Void,
                     Token::IntType => Type::Int,
@@ -715,16 +697,6 @@ impl<T: TokenStream> Parser<T> {
                     }
                 };
 
-                let name = Reference::new(match self.eat(&Any)? {
-                    Token::Ident(s) => s,
-                    tok => {
-                        return Err(ParseError::Unexpected(
-                            tok,
-                            "Expected identifier for function argument name".to_string(),
-                        ));
-                    }
-                });
-
                 args.push(VarDef {
                     mods: Rc::new(mods),
                     type_,
@@ -739,10 +711,30 @@ impl<T: TokenStream> Parser<T> {
             self.eat(&Token::RParen)?;
         }
 
+        let return_type = if self.eat(&Token::Arrow).is_ok() {
+            match self.eat(&Any)? {
+                Token::VoidType => Type::Void,
+                Token::IntType => Type::Int,
+                Token::FloatType => Type::Float,
+                Token::DoubleType => Type::Double,
+                Token::BoolType => Type::Bool,
+                Token::StringType => Type::String,
+                Token::Ident(s) => Type::Struct(Reference::new(s)),
+                tok => {
+                    return Err(ParseError::Unexpected(
+                        tok,
+                        "Expected type for function return type".to_string(),
+                    ));
+                }
+            }
+        } else {
+            Type::Void
+        };
+
         let body = self.parse_block()?;
 
         Ok(FnDef {
-            return_type: Type::Void,
+            return_type,
             name: Reference::new(name),
             args,
             body,
@@ -751,6 +743,12 @@ impl<T: TokenStream> Parser<T> {
     }
 
     fn parse_struct_def(&mut self) -> ParseResult<StructDef> {
+        let mut mods = Vec::new();
+
+        if self.eat(&Token::Pub).is_ok() {
+            mods.push(StructMod::Pub);
+        }
+
         self.eat(&Token::StructType)?;
 
         let struct_name = match self.eat(&Any)? {
@@ -768,6 +766,18 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::LBrace)?;
 
         while !matches!(self.curr_token, Token::RBrace) {
+            let name = match self.eat(&Any)? {
+                Token::Ident(s) => s,
+                tok => {
+                    return Err(ParseError::Unexpected(
+                        tok,
+                        "Expected identifier for struct field name".to_string(),
+                    ));
+                }
+            };
+
+            self.eat(&Token::Colon)?; // required for now because we don't have type inference
+
             let type_ = match self.eat(&Any)? {
                 Token::VoidType => Type::Void,
                 Token::IntType => Type::Int,
@@ -784,24 +794,17 @@ impl<T: TokenStream> Parser<T> {
                 }
             };
 
-            let name = match self.eat(&Any)? {
-                Token::Ident(s) => s,
-                tok => {
-                    return Err(ParseError::Unexpected(
-                        tok,
-                        "Expected identifier for struct field name".to_string(),
-                    ));
-                }
-            };
-
             map.insert(name, type_);
 
-            self.eat(&Token::Semicolon)?;
+            if self.eat(&Token::Comma).is_err() {
+                break;
+            }
         }
 
         self.eat(&Token::RBrace)?;
 
         Ok(StructDef {
+            mods: Rc::new(mods),
             type_name: Reference::new(struct_name),
             map,
         })
@@ -809,6 +812,13 @@ impl<T: TokenStream> Parser<T> {
 
     pub fn parse(&mut self) -> ParseResult<Block> {
         let block = self.parse_block_no_brace(true)?;
+        self.eat(&Token::Eof)?;
+
+        Ok(block)
+    }
+
+    pub fn parse_local(&mut self) -> ParseResult<Block> {
+        let block = self.parse_block_no_brace(false)?;
         self.eat(&Token::Eof)?;
 
         Ok(block)
@@ -914,7 +924,7 @@ mod tests {
 
     #[test]
     fn variable_declarations_test() {
-        let statement = "const int a = 0; const int b = 1; int c = 2; float d = 3.0; double e = 4.0; bool f = true; string g = \"hello\";";
+        let statement = "const a: int = 0; const b: int = 1; let c: int = 2; let d: float = 3.0; let e: double = 4.0; let f: bool = true; let g: string = \"hello\";";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -1016,7 +1026,8 @@ mod tests {
 
     #[test]
     fn struct_declarations_test() {
-        let statement = "A a = { a: 0, b: 1, c: 2 }; B b = { a: 0, b: \"hello\", c: 2.54 };";
+        let statement =
+            "let a: A = { a: 0, b: 1, c: 2 }; let b: B = { a: 0, b: \"hello\", c: 2.54 };";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -1209,7 +1220,7 @@ mod tests {
 
     #[test]
     fn function_definition_tests() {
-        let statement = "fn add(int a, B b) { return a + b; }";
+        let statement = "fn add(a: int, b: B) -> int { return a + b; }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -1219,7 +1230,7 @@ mod tests {
         assert_eq!(
             block.definitions[0],
             (Definition::FnDef(FnDef {
-                return_type: Type::Void,
+                return_type: Type::Int,
                 name: Reference::new("add".to_string()),
                 args: vec![
                     VarDef {
@@ -1425,7 +1436,7 @@ mod tests {
 
     #[test]
     fn for_test() {
-        let statement = "for (int i = 0; i < 10; i += 1) { a += 1; }";
+        let statement = "for (let i: int = 0; i < 10; i += 1) { a += 1; }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -1819,7 +1830,7 @@ mod tests {
 
     #[test]
     fn struct_definition_test() {
-        let statement = "struct A { int a; float b; double c; C d; }";
+        let statement = "struct A { a: int, b: float, c: double, d: C, }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -1829,6 +1840,7 @@ mod tests {
         assert_eq!(
             block.definitions[0],
             Definition::StructDef(StructDef {
+                mods: Rc::new(Vec::new()),
                 type_name: Reference::new("A".to_string()),
                 map: {
                     let mut map = HashMap::new();
@@ -1847,7 +1859,7 @@ mod tests {
 
     #[test]
     fn multiple_declaration_test() {
-        let statement = "int a; fn main(int a) { int a; a + 1; return 0; }";
+        let statement = "let a: int; fn main(a: int) { let a: int; a + 1; return 0; }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 

@@ -99,7 +99,13 @@ pub enum FnMod {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum StructMod {
+    Pub,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct StructDef {
+    pub mods: Rc<Vec<StructMod>>,
     pub type_name: Reference<RawName, ResolvedName>,
     pub map: HashMap<String, Type>,
 }

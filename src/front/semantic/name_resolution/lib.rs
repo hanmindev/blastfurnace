@@ -14,7 +14,8 @@ mod tests {
     fn simple_scope() {
         let mut scope_table = ScopeTable::new();
 
-        let statement = "int a; fn main(int a, int b) { a + 1; int a = a; return 0; }";
+        let statement =
+            "pub let a: int; fn main(a: int, b: int) -> int { a + 1; let a: int = a; return 0; }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -122,7 +123,7 @@ mod tests {
     fn struct_defn_after() {
         let mut scope_table = ScopeTable::new();
 
-        let statement = "A a; A b; A c; struct A { }";
+        let statement = "pub let a: A; pub let b: A; pub let c: A; pub struct A { }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
@@ -217,11 +218,11 @@ mod tests {
     fn struct_defn_rec() {
         let mut scope_table = ScopeTable::new();
 
-        let statement = "struct A { B b; } struct B { A a; }";
+        let statement = "struct A { b: B } struct B { a: A }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let mut block = parser.parse().unwrap();
+        let mut block = parser.parse_local().unwrap();
 
         block.resolve(&mut scope_table).unwrap();
 
@@ -288,11 +289,11 @@ mod tests {
     fn struct_defn_rec_scope() {
         let mut scope_table = ScopeTable::new();
 
-        let statement = "fn main() { A a; B b; } struct A { B b; } struct B { A a; }";
+        let statement = "fn main() { let a: A; let b: B; } struct A { b: B } struct B { a: A }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let mut block = parser.parse().unwrap();
+        let mut block = parser.parse_local().unwrap();
 
         block.resolve(&mut scope_table).unwrap();
         match &block.definitions[2] {

@@ -123,6 +123,7 @@ impl<T: ByteStream> Lexer<T> {
                 "struct" => Token::StructType,
 
                 "impl" => Token::Impl,
+                "let" => Token::Let,
                 "const" => Token::Const,
                 "inline" => Token::Inline,
 
@@ -202,6 +203,10 @@ impl<T: ByteStream> Lexer<T> {
             ('-', '-') => {
                 self.eat();
                 return Ok(Token::MinusMinus);
+            }
+            ('-', '>') => {
+                self.eat();
+                return Ok(Token::Arrow);
             }
             _ => {}
         }
