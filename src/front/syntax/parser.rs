@@ -699,6 +699,8 @@ impl<T: TokenStream> Parser<T> {
         let mut priority_statements = Vec::new();
         let mut statements = Vec::new();
         while !matches!(self.curr_token, Token::Eof) {
+            let _ = self.eat(&Token::Semicolon).is_err();
+
             let statement = self.parse_statement()?;
 
             if !matches!(
