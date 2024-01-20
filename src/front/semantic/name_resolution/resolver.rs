@@ -1,4 +1,4 @@
-use crate::front::semantic::name_resolution::scope_table::{name_format, ScopeTable, SymbolType};
+use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, For, If,
     LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, VarAssign, VarDecl, VarDef,
@@ -7,12 +7,6 @@ use crate::front::syntax::ast_types::{
 
 pub trait Resolvable {
     fn resolve(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        Ok(())
-    }
-}
-
-pub trait Registrable {
-    fn register(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {
         Ok(())
     }
 }
@@ -68,12 +62,10 @@ impl Resolvable for VarDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         if let Type::Struct(struct_name) = &mut self.type_ {
             struct_name.resolved =
-                match scope_table.scope_lookup(&struct_name.raw, SymbolType::Struct) {
-                    Some(name) => Some(name.clone()),
-                    None => Some(name_format(&struct_name.raw, 0)),
-                }
+                Some(scope_table.scope_lookup_force(&struct_name.raw, SymbolType::Struct));
         }
-        self.register(scope_table)?;
+
+        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Var)?);
         Ok(())
     }
 }
@@ -100,8 +92,8 @@ impl Resolvable for VarAssign {
 
 impl Resolvable for StructDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.register(scope_table)?;
-
+        self.type_name.resolved =
+            Some(scope_table.scope_bind(&self.type_name.raw, SymbolType::Struct)?);
         Ok(())
     }
 }
@@ -109,7 +101,12 @@ impl Resolvable for StructDef {
 impl Resolvable for FnDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         scope_table.scope_enter();
-        self.register(scope_table)?;
+
+        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Fn)?);
+        for arg in &mut self.args {
+            arg.resolve(scope_table)?;
+        }
+
         self.body.resolve(scope_table)?;
         scope_table.scope_exit();
 
@@ -226,28 +223,6 @@ impl Resolvable for For {
             step.resolve(scope_table)?;
         }
         self.body.resolve(scope_table)?;
-        Ok(())
-    }
-}
-impl Registrable for StructDef {
-    fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.type_name.resolved =
-            Some(scope_table.scope_bind(&self.type_name.raw, SymbolType::Struct)?);
-        Ok(())
-    }
-}
-impl Registrable for VarDef {
-    fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Var)?);
-        Ok(())
-    }
-}
-impl Registrable for FnDef {
-    fn register(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Fn)?);
-        for arg in &mut self.args {
-            arg.register(scope_table)?;
-        }
         Ok(())
     }
 }

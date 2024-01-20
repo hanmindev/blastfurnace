@@ -7,7 +7,7 @@ pub type ResolvedName = String;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Reference<T, R> {
     pub raw: T,
-    pub resolved: Option<R>,
+    pub resolved: Option<Rc<R>>,
 }
 
 impl<T, R> Reference<T, R> {
