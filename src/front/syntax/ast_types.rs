@@ -83,12 +83,6 @@ pub struct VarAssign {
     pub expr: Box<Expression>,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct StructDef {
-    pub type_name: Reference<RawName, ResolvedName>,
-    pub map: HashMap<String, Type>,
-}
-
 pub type Compound = HashMap<String, CompoundValue>;
 
 #[derive(Debug, PartialEq)]
@@ -102,6 +96,12 @@ pub enum FnMod {
     Pub,
     Rec,
     Inline,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct StructDef {
+    pub type_name: Reference<RawName, ResolvedName>,
+    pub map: HashMap<String, Type>,
 }
 
 #[derive(Debug, PartialEq)]
