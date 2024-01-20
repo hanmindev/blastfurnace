@@ -6,7 +6,7 @@ use crate::front::syntax::ast_types::{
     FnMod, For, If, LiteralValue, ModuleImport, NamePath, Reference, Statement, StatementBlock,
     StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
 
@@ -25,7 +25,7 @@ pub trait TokenStream {
 pub struct Parser<T: TokenStream> {
     lexer: T,
     curr_token: Token,
-    next_token: Token,
+    future_tokens: VecDeque<Token>,
 }
 
 impl<T: TokenStream> Parser<T> {
@@ -33,23 +33,24 @@ impl<T: TokenStream> Parser<T> {
         let mut parser = Parser {
             lexer,
             curr_token: Token::Eof,
-            next_token: Token::Eof,
+            future_tokens: VecDeque::new(),
         };
-        parser.eat(&Token::Eof).unwrap();
         parser.eat(&Token::Eof).unwrap();
         parser
     }
 
     fn next(&mut self) -> Token {
-        self.lexer.next().unwrap()
+        match self.future_tokens.pop_front() {
+            None => self.lexer.next().unwrap(),
+            Some(front) => front,
+        }
     }
 
     fn eat(&mut self, type_: &Token) -> ParseResult<Token> {
         // return old lexical, set new lexical, set one buffer of next lexical
         if mem::discriminant(&self.curr_token) == mem::discriminant(type_) || matches!(type_, Any) {
             let old_curr = self.curr_token.clone();
-            self.curr_token = self.next_token.clone();
-            self.next_token = self.next();
+            self.curr_token = self.next();
 
             Ok(old_curr)
         } else {
@@ -58,6 +59,19 @@ impl<T: TokenStream> Parser<T> {
                 format!("Tried to eat {:?}, ate {:?}", type_, self.curr_token),
             ))
         }
+    }
+
+    fn peek(&mut self, count: i32) -> &Token {
+        if count == 0 {
+            return &self.curr_token;
+        }
+
+        while self.future_tokens.len() < count as usize {
+            let next = self.next();
+            self.future_tokens.push_back(next);
+        }
+
+        &self.future_tokens[count as usize - 1]
     }
 
     pub fn string_to_namepath(s: &str) -> NamePath {
@@ -391,7 +405,7 @@ impl<T: TokenStream> Parser<T> {
             }
 
             Token::Ident(_) => {
-                match &self.next_token {
+                match self.peek(1) {
                     Token::Ident(_) => {
                         // struct declaration
                         Ok(Statement::VarDecl(self.parse_var_decl()?))
@@ -429,12 +443,12 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_definition(&mut self) -> ParseResult<Definition> {
         match &self.curr_token {
-            Token::Pub => match &self.next_token {
+            Token::Pub => match self.peek(1) {
                 Token::Fn => Ok(Definition::FnDef(self.parse_fn_def()?)),
                 Token::StructType => Ok(Definition::StructDef(self.parse_struct_def()?)),
                 Token::Ident(_) => Ok(Definition::VarDecl(self.parse_var_decl()?)),
                 _ => Err(ParseError::Unexpected(
-                    self.next_token.clone(),
+                    self.peek(1).clone(),
                     "Expected function, struct, or variable definition after pub keyword"
                         .to_string(),
                 )),
@@ -612,7 +626,7 @@ impl<T: TokenStream> Parser<T> {
             ))?,
         };
 
-        if matches!(self.next_token, Token::Assign) {
+        if matches!(self.peek(1), Token::Assign) {
             match self.parse_assignment()? {
                 Statement::VarAssign(var_assign) => Ok(VarDecl {
                     var_def: VarDef {
