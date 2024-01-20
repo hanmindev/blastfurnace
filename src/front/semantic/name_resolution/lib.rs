@@ -212,4 +212,75 @@ mod tests {
             }
         };
     }
+
+    #[test]
+    fn struct_defn_rec() {
+        let mut scope_table = ScopeTable::new();
+
+        let statement = "struct A { B b; } struct B { A a; }";
+        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut parser = Parser::new(lexer);
+
+        let mut block = parser.parse().unwrap();
+
+        block.resolve(&mut scope_table).unwrap();
+
+        match &block.statements[0] {
+            StatementBlock::Statement(Statement::StructDef(struct_def)) => {
+                assert_eq!(
+                    struct_def.type_name.clone(),
+                    Reference {
+                        raw: "A".to_string(),
+                        resolved: Some(Rc::new("0_A".to_string())),
+                    }
+                );
+                match &struct_def.map.get("b").unwrap() {
+                    Type::Struct(struct_name) => {
+                        assert_eq!(
+                            struct_name.clone(),
+                            Reference {
+                                raw: "B".to_string(),
+                                resolved: Some(Rc::new("0_B".to_string())),
+                            }
+                        );
+                    }
+                    _ => {
+                        panic!("Expected Struct");
+                    }
+                }
+            }
+            _ => {
+                panic!("Expected StructDef");
+            }
+        }
+
+        match &block.statements[1] {
+            StatementBlock::Statement(Statement::StructDef(struct_def)) => {
+                assert_eq!(
+                    struct_def.type_name.clone(),
+                    Reference {
+                        raw: "B".to_string(),
+                        resolved: Some(Rc::new("0_B".to_string())),
+                    }
+                );
+                match &struct_def.map.get("a").unwrap() {
+                    Type::Struct(struct_name) => {
+                        assert_eq!(
+                            struct_name.clone(),
+                            Reference {
+                                raw: "A".to_string(),
+                                resolved: Some(Rc::new("0_A".to_string())),
+                            }
+                        );
+                    }
+                    _ => {
+                        panic!("Expected Struct");
+                    }
+                }
+            }
+            _ => {
+                panic!("Expected StructDef");
+            }
+        }
+    }
 }
