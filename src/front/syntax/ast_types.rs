@@ -122,7 +122,7 @@ pub struct FnDef {
 
 #[derive(Debug, PartialEq)]
 pub struct FnCall {
-    pub name_path: NamePath,
+    pub name: Reference<RawName, ResolvedName>,
     pub args: Vec<Box<Expression>>,
 }
 

@@ -104,7 +104,7 @@ impl<T: TokenStream> Parser<T> {
             Token::Ident(s) => {
                 if matches!(self.curr_token, Token::LParen) {
                     let mut fn_call = Box::from(FnCall {
-                        name_path: Parser::<T>::string_to_namepath(&s),
+                        name: Reference::new(s),
                         args: Vec::new(),
                     });
                     self.eat(&Token::LParen)?;
@@ -630,6 +630,7 @@ impl<T: TokenStream> Parser<T> {
         let body = self.parse_block()?;
 
         Ok(FnDef {
+            return_type: Type::Void,
             name: Reference::new(name),
             args,
             body,
@@ -799,6 +800,7 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::FnDef(FnDef {
+                return_type: Type::Void,
                 name: Reference::new("main".to_string()),
                 args: Vec::new(),
                 body: Block {
@@ -1120,6 +1122,7 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::FnDef(FnDef {
+                return_type: Type::Void,
                 name: Reference::new("add".to_string()),
                 args: vec![
                     VarDef {
@@ -1164,7 +1167,7 @@ mod tests {
             block.statements[0],
             StatementBlock::Statement(Statement::Expression(Box::from(
                 Expression::AtomicExpression(AtomicExpression::FnCall(Box::from(FnCall {
-                    name_path: Parser::<Lexer<StringReader>>::string_to_namepath("add"),
+                    name: Reference::new("add".to_string()),
                     args: vec![
                         Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
                             LiteralValue::Int(1)
@@ -1760,6 +1763,7 @@ mod tests {
         assert_eq!(
             block.statements[1],
             StatementBlock::Statement(Statement::FnDef(FnDef {
+                return_type: Type::Void,
                 name: Reference::new("main".to_string()),
                 args: vec![VarDef {
                     mods: Rc::new(Vec::new()),

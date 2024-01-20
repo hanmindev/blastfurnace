@@ -181,7 +181,13 @@ impl Resolvable for Compound {
 
 impl Resolvable for FnCall {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name_path.resolve(scope_table)?;
+        match scope_table.scope_lookup(&self.name.raw, SymbolType::Fn) {
+            Some(name) => {
+                self.name.resolved = Some(name.clone());
+            }
+            None => return Err(ResolverError::UndefinedVariable(self.name.raw.clone())),
+        }
+
         for arg in &mut self.args {
             arg.resolve(scope_table)?;
         }
