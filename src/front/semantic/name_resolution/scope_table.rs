@@ -23,6 +23,10 @@ pub struct ScopeTable {
     count: HashMap<(RawName, SymbolType), i32>,
 }
 
+pub fn name_format(name: &String, count: i32) -> String {
+    format!("{count}_{name}")
+}
+
 impl ScopeTable {
     pub fn new() -> ScopeTable {
         ScopeTable {
@@ -57,11 +61,11 @@ impl ScopeTable {
         let resolved = match self.count.get_mut(&key) {
             Some(count) => {
                 *count += 1;
-                format!("{count}_{name}")
+                name_format(name, *count)
             }
             None => {
                 self.count.insert((name.clone(), symbol_type), 0);
-                format!("0_{name}")
+                name_format(name, 0)
             }
         };
 

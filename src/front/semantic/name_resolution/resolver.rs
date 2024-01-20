@@ -1,7 +1,7 @@
-use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolType};
+use crate::front::semantic::name_resolution::scope_table::{name_format, ScopeTable, SymbolType};
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Expression, FnCall, FnDef, For, If,
-    LiteralValue, NamePath, Statement, StatementBlock, StructDef, VarAssign, VarDecl, VarDef,
+    LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, VarAssign, VarDecl, VarDef,
     While,
 };
 
@@ -66,6 +66,13 @@ impl Resolvable for Statement {
 
 impl Resolvable for VarDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        if let Type::Struct(struct_name) = &mut self.type_ {
+            struct_name.resolved =
+                match scope_table.scope_lookup(&struct_name.raw, SymbolType::Struct) {
+                    Some(name) => Some(name.clone()),
+                    None => Some(name_format(&struct_name.raw, 0)),
+                }
+        }
         self.register(scope_table)?;
         Ok(())
     }
