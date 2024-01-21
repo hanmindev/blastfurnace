@@ -3,8 +3,9 @@ use crate::front::lexical::token_types::Token;
 use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
-    FnMod, For, If, LiteralValue, ModuleImport, NamePath, Reference, Statement, StatementBlock,
-    StructDef, StructMod, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While,
+    FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement,
+    StatementBlock, StructDef, StructMod, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef,
+    VarMod, While,
 };
 use std::collections::{HashMap, VecDeque};
 use std::mem;
@@ -469,9 +470,13 @@ impl<T: TokenStream> Parser<T> {
         }
     }
 
-    fn parse_block_no_brace(&mut self, global: bool) -> ParseResult<Block> {
+    fn parse_module_no_brace(&mut self, global: bool) -> ParseResult<Module> {
         let mut struct_var_definitions = Vec::new();
         let mut fn_definitions = Vec::new();
+
+        let mut pub_struct_var_definitions = Vec::new();
+        let mut pub_fn_definitions = Vec::new();
+
         let mut statements = Vec::new();
         loop {
             let _ = self.eat(&Token::Semicolon).is_err();
@@ -487,21 +492,37 @@ impl<T: TokenStream> Parser<T> {
                 ));
             }
 
+            let pub_ = self.curr_token == Token::Pub;
+
             if let Some(type_) = self.peek_def_type() {
                 match type_ {
                     Token::Fn => {
-                        fn_definitions.push(Definition::FnDef(self.parse_fn_def()?));
+                        if pub_ {
+                            pub_fn_definitions.push(Definition::FnDef(self.parse_fn_def()?));
+                        } else {
+                            fn_definitions.push(Definition::FnDef(self.parse_fn_def()?));
+                        }
                         continue;
                     }
                     Token::StructType => {
-                        struct_var_definitions
-                            .push(Definition::StructDef(self.parse_struct_def()?));
+                        if pub_ {
+                            pub_struct_var_definitions
+                                .push(Definition::StructDef(self.parse_struct_def()?));
+                        } else {
+                            struct_var_definitions
+                                .push(Definition::StructDef(self.parse_struct_def()?));
+                        }
                         continue;
                     }
                     Token::Let => {
                         if global {
-                            struct_var_definitions
-                                .push(Definition::VarDecl(self.parse_var_decl()?));
+                            if pub_ {
+                                pub_struct_var_definitions
+                                    .push(Definition::VarDecl(self.parse_var_decl()?));
+                            } else {
+                                struct_var_definitions
+                                    .push(Definition::VarDecl(self.parse_var_decl()?));
+                            }
                         } else {
                             statements.push(StatementBlock::Statement(Statement::VarDecl(
                                 self.parse_var_decl()?,
@@ -535,19 +556,30 @@ impl<T: TokenStream> Parser<T> {
         }
 
         struct_var_definitions.append(&mut fn_definitions);
+        pub_struct_var_definitions.append(&mut pub_fn_definitions);
 
-        Ok(Block {
-            definitions: struct_var_definitions,
-            statements,
+        Ok(Module {
+            public_definitions: pub_struct_var_definitions,
+            block: Block {
+                definitions: struct_var_definitions,
+                statements,
+            },
         })
     }
 
     fn parse_block(&mut self) -> ParseResult<Block> {
         self.eat(&Token::LBrace)?;
-        let block = self.parse_block_no_brace(false)?;
+        let module = self.parse_module_no_brace(false)?;
         self.eat(&Token::RBrace)?;
 
-        Ok(block)
+        if !module.public_definitions.is_empty() {
+            Err(ParseError::Unexpected(
+                Token::Pub,
+                "Cannot use pub in local scope".to_string(),
+            ))?;
+        }
+
+        Ok(module.block)
     }
 
     fn parse_compound_value(&mut self) -> ParseResult<CompoundValue> {
@@ -817,18 +849,11 @@ impl<T: TokenStream> Parser<T> {
         })
     }
 
-    pub fn parse_module(&mut self) -> ParseResult<Block> {
-        let block = self.parse_block_no_brace(true)?;
+    pub fn parse_module(&mut self) -> ParseResult<Module> {
+        let module = self.parse_module_no_brace(true)?;
         self.eat(&Token::Eof)?;
 
-        Ok(block)
-    }
-
-    pub fn parse_local(&mut self) -> ParseResult<Block> {
-        let block = self.parse_block_no_brace(false)?;
-        self.eat(&Token::Eof)?;
-
-        Ok(block)
+        Ok(module)
     }
     fn parse_module_import(&mut self) -> ParseResult<ModuleImport> {
         let public = self.eat(&Token::Pub).is_ok();
@@ -907,7 +932,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.definitions.len(), 1);
         assert_eq!(
@@ -935,7 +960,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 7);
         assert_eq!(
@@ -1038,7 +1063,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         let compound = {
             let mut map = HashMap::new();
@@ -1085,7 +1110,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 7);
         assert_eq!(
@@ -1189,7 +1214,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
@@ -1231,7 +1256,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.definitions.len(), 1);
         assert_eq!(
@@ -1276,7 +1301,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1306,7 +1331,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1341,7 +1366,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1407,7 +1432,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1447,7 +1472,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1509,7 +1534,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
@@ -1841,7 +1866,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.definitions.len(), 1);
         assert_eq!(
@@ -1870,7 +1895,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_block_no_brace(false).unwrap();
+        let block = parser.parse_module_no_brace(false).unwrap().block;
 
         assert_eq!(block.definitions.len(), 1);
         assert_eq!(block.statements.len(), 1);

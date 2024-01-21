@@ -213,6 +213,12 @@ pub struct Block {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct Module {
+    pub public_definitions: Vec<Definition>,
+    pub block: Block,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct ModuleImport {
     pub public: bool,
     pub name: String,

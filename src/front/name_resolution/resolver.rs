@@ -1,7 +1,7 @@
 use crate::front::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, For,
-    If, LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign,
+    If, LiteralValue, Module, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign,
     VarDecl, VarDef, While,
 };
 
@@ -29,6 +29,19 @@ impl Resolvable for Block {
         for statement in &mut self.statements {
             statement.resolve(scope_table)?;
         }
+        scope_table.scope_exit();
+        Ok(())
+    }
+}
+
+impl Resolvable for Module {
+    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        scope_table.scope_enter();
+        for definitions in &mut self.public_definitions {
+            definitions.resolve(scope_table)?;
+        }
+
+        self.block.resolve(scope_table)?;
         scope_table.scope_exit();
         Ok(())
     }

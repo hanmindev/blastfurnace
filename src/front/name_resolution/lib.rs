@@ -15,15 +15,15 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement =
-            "pub let a: int; fn main(a: int, b: int) -> int { a + 1; let a: int = a; return 0; }";
+            "pub let a: int; pub fn main(a: int, b: int) -> int { a + 1; let a: int = a; return 0; }";
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let mut block = parser.parse().unwrap();
+        let mut module = parser.parse_module().unwrap();
 
-        block.resolve(&mut scope_table).unwrap();
+        module.resolve(&mut scope_table).unwrap();
 
-        match &block.definitions[0] {
+        match &module.public_definitions[0] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.name.clone(),
@@ -38,7 +38,7 @@ mod tests {
             }
         };
 
-        match &block.definitions[1] {
+        match &module.public_definitions[1] {
             Definition::FnDef(fn_def) => {
                 assert_eq!(
                     fn_def.name.clone(),
@@ -127,11 +127,11 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let mut block = parser.parse().unwrap();
+        let mut module = parser.parse_module().unwrap();
 
-        block.resolve(&mut scope_table).unwrap();
+        module.resolve(&mut scope_table).unwrap();
 
-        match &block.definitions[0] {
+        match &module.public_definitions[0] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
@@ -153,7 +153,7 @@ mod tests {
                 panic!("Expected VarDecl");
             }
         };
-        match &block.definitions[1] {
+        match &module.public_definitions[1] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
@@ -175,7 +175,7 @@ mod tests {
                 panic!("Expected VarDecl");
             }
         };
-        match &block.definitions[2] {
+        match &module.public_definitions[2] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
@@ -198,7 +198,7 @@ mod tests {
             }
         };
 
-        match &block.definitions[3] {
+        match &module.public_definitions[3] {
             Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
@@ -222,7 +222,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let mut block = parser.parse_local().unwrap();
+        let mut block = parser.parse_module().unwrap().block;
 
         block.resolve(&mut scope_table).unwrap();
 
@@ -293,7 +293,7 @@ mod tests {
         let lexer = Lexer::new(StringReader::new(statement.to_string()));
         let mut parser = Parser::new(lexer);
 
-        let mut block = parser.parse_local().unwrap();
+        let mut block = parser.parse_module().unwrap().block;
 
         block.resolve(&mut scope_table).unwrap();
         match &block.definitions[2] {
