@@ -1,4 +1,4 @@
-use crate::front::semantic::name_resolution::scope_table::{ScopeTable, SymbolType};
+use crate::front::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, For,
     If, LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign,
