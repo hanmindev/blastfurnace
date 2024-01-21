@@ -480,6 +480,13 @@ impl<T: TokenStream> Parser<T> {
                 break;
             }
 
+            if !global && self.curr_token == Token::Pub {
+                return Err(ParseError::Unexpected(
+                    self.curr_token.clone(),
+                    "Cannot use pub in local scope".to_string(),
+                ));
+            }
+
             if let Some(type_) = self.peek_def_type() {
                 match type_ {
                     Token::Fn => {
@@ -810,7 +817,7 @@ impl<T: TokenStream> Parser<T> {
         })
     }
 
-    pub fn parse(&mut self) -> ParseResult<Block> {
+    pub fn parse_module(&mut self) -> ParseResult<Block> {
         let block = self.parse_block_no_brace(true)?;
         self.eat(&Token::Eof)?;
 
