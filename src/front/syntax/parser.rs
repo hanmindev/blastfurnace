@@ -125,7 +125,7 @@ impl<T: TokenStream> Parser<T> {
                     self.eat(&Token::LParen)?;
 
                     loop {
-                        fn_call.args.push(self.parse_expression()?);
+                        fn_call.args.push(*self.parse_expression()?);
                         match self.eat(&Token::Comma) {
                             Ok(_) => {}
                             Err(_) => {
@@ -355,7 +355,7 @@ impl<T: TokenStream> Parser<T> {
                         return Ok(Statement::VarAssign(VarAssign {
                             name_path,
                             expr: self.parse_expression()?,
-                        }))
+                        }));
                     }
                     Token::PlusAssign => BinOp::Add,
                     Token::MinusAssign => BinOp::Sub,
@@ -366,7 +366,7 @@ impl<T: TokenStream> Parser<T> {
                         return Err(ParseError::Unexpected(
                             tok.clone(),
                             "Expected binary operator".to_string(),
-                        ))?
+                        ))?;
                     }
                 };
 
@@ -1324,14 +1324,14 @@ mod tests {
                 Expression::AtomicExpression(AtomicExpression::FnCall(Box::from(FnCall {
                     name: Reference::new("add".to_string()),
                     args: vec![
-                        Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
-                            LiteralValue::Int(1)
+                        Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
+                            1
                         ))),
-                        Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
-                            LiteralValue::Int(2)
+                        Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
+                            2
                         ))),
-                        Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
-                            LiteralValue::Int(3)
+                        Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
+                            3
                         ))),
                     ],
                 })))
@@ -1605,22 +1605,22 @@ mod tests {
                                     AtomicExpression::Variable(
                                         Parser::<Lexer>::string_to_namepath("b"),
                                     )
-                                ))
+                                )),
                             )),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
                                 Parser::<Lexer>::string_to_namepath("c"),
-                            )))
+                            ))),
                         )),
                         BinOp::Add,
                         Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
                             Parser::<Lexer>::string_to_namepath("d"),
-                        )))
+                        ))),
                     )),
                     BinOp::Sub,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
                         Parser::<Lexer>::string_to_namepath("e"),
-                    )))
+                    ))),
                 )),
                 BinOp::Sub,
                 Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
@@ -1883,14 +1883,14 @@ mod tests {
                     UnOp::PostInc,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
                         Parser::<Lexer>::string_to_namepath("a")
-                    )))
+                    ))),
                 )),
                 BinOp::Add,
                 Box::from(Expression::Unary(
                     UnOp::PreInc,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
                         Parser::<Lexer>::string_to_namepath("b")
-                    )))
+                    ))),
                 )),
             ))
         );
@@ -1922,7 +1922,7 @@ mod tests {
                         Type::Struct(Reference::new("C".to_string())),
                     );
                     map
-                }
+                },
             })
         );
     }

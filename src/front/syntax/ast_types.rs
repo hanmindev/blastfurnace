@@ -129,7 +129,7 @@ pub struct FnDef {
 #[derive(Debug, PartialEq)]
 pub struct FnCall {
     pub name: Reference<RawName, ResolvedName>,
-    pub args: Vec<Box<Expression>>,
+    pub args: Vec<Expression>,
 }
 
 #[derive(Debug, PartialEq)]
