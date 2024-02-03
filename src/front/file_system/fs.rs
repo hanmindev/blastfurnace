@@ -87,7 +87,7 @@ impl FileSystem for MockFileSystem {
     fn exit_dir(&mut self) {
         if self.current_dir != "/" {
             self.current_dir = self.current_dir.split('/').collect::<Vec<&str>>()
-                [..self.current_dir.split('/').count() - 1]
+                [..self.current_dir.split('/').count() - 2]
                 .join("/");
             self.current_dir.push('/');
         }

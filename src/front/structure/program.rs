@@ -70,9 +70,11 @@ impl<T: FileSystem> Program<T> {
             assert_eq!(value.submodules.len(), 0);
             root.submodules
                 .remove("/main")
-                .expect("main module not found");
+                .expect("main module not found in submodules");
             value.submodules = root.submodules;
             self.modules.insert("main".to_string(), value);
+        } else {
+            panic!("main module not found");
         }
     }
 
@@ -130,17 +132,13 @@ mod tests {
                 module: None,
             })
         );
-    }
-
-    #[test]
-    fn test_parse_files() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "fn main() {}");
-        mock_file_system.insert_file("/test.ing", "pub mod example;");
-        mock_file_system.insert_dir("/test");
-        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
-
-        let mut program = Program::new(mock_file_system);
-        program.read_nodes();
+        assert_eq!(
+            program.modules.get("/test/example"),
+            Some(&ModuleNode {
+                source: "/test/example".to_string(),
+                submodules: HashMap::new(),
+                module: None,
+            })
+        );
     }
 }
