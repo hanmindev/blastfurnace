@@ -143,7 +143,9 @@ impl Resolvable for FnDef {
             arg.resolve(scope_table)?;
         }
 
-        self.body.resolve(scope_table)?;
+        if let Some(body) = &mut self.body {
+            body.resolve(scope_table)?;
+        }
         scope_table.scope_exit();
 
         Ok(())

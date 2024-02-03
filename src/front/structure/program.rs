@@ -172,10 +172,10 @@ mod tests {
                         name: Reference::new("main".to_string()),
                         args: vec![],
                         return_type: Void,
-                        body: Block {
+                        body: Some(Block {
                             definitions: vec![],
                             statements: vec![],
-                        },
+                        }),
                         mods: Rc::new(vec![]),
                     })],
                     statements: vec![],

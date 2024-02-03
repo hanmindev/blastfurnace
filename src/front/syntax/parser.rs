@@ -770,7 +770,7 @@ impl<T: TokenStream> Parser<T> {
             Type::Void
         };
 
-        let body = self.parse_block()?;
+        let body = Some(self.parse_block()?);
 
         Ok(FnDef {
             return_type,
@@ -943,14 +943,14 @@ mod tests {
                 return_type: Type::Void,
                 name: Reference::new("main".to_string()),
                 args: Vec::new(),
-                body: Block {
+                body: Some(Block {
                     definitions: Vec::new(),
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
                             0
                         )))
                     )))],
-                },
+                }),
                 mods: Rc::new(Vec::new()),
             })
         );
@@ -1288,7 +1288,7 @@ mod tests {
                         name: Reference::new("b".to_string()),
                     },
                 ],
-                body: Block {
+                body: Some(Block {
                     definitions: vec![],
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression::Binary(
@@ -1301,7 +1301,7 @@ mod tests {
                             ))),
                         )
                     )))],
-                },
+                }),
                 mods: Rc::new(Vec::new()),
             }))
         );
@@ -1960,7 +1960,7 @@ mod tests {
                     type_: Type::Int,
                     name: Reference::new("a".to_string()),
                 }],
-                body: Block {
+                body: Some(Block {
                     definitions: vec![],
                     statements: vec![
                         StatementBlock::Statement(Statement::VarDecl(VarDecl {
@@ -1990,7 +1990,7 @@ mod tests {
                             ))
                         ))),
                     ],
-                },
+                }),
                 mods: Rc::new(Vec::new()),
             }))
         );
