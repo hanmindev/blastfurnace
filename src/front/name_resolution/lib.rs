@@ -3,6 +3,7 @@ mod tests {
     use crate::front::file_system::byte_stream::{ByteStream, StringReader};
     use crate::front::lexical::lexer::Lexer;
     use crate::front::name_resolution::resolver::Resolvable;
+    use crate::front::name_resolution::resolver::ResolverError::Redefinition;
     use crate::front::name_resolution::scope_table::ScopeTable;
     use crate::front::syntax::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, StatementBlock, Type,
@@ -288,6 +289,24 @@ mod tests {
             _ => {
                 panic!("Expected StructDef");
             }
+        }
+    }
+    #[test]
+    fn struct_defn_dupe() {
+        let mut scope_table = ScopeTable::new();
+
+        let statement = "struct A { b: int } struct A { a: int }";
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
+        let mut parser = Parser::new(lexer);
+
+        let mut block = parser.parse_module().unwrap().block;
+
+        if let Err(error) = block.resolve(&mut scope_table) {
+            assert_eq!(error, Redefinition("A".to_string()));
+        } else {
+            panic!("Expected error");
         }
     }
 

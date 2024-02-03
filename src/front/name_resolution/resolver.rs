@@ -11,7 +11,7 @@ pub trait Resolvable {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ResolverError {
     UndefinedVariable(String),
     Redefinition(String),
