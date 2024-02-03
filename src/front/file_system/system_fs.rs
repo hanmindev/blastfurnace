@@ -88,6 +88,7 @@ impl FileSystem for SystemFs {
             self.current_dir = self.current_dir.split('/').collect::<Vec<&str>>()
                 [..self.current_dir.split('/').count() - 1]
                 .join("/");
+            self.current_dir.push('/');
         }
     }
 

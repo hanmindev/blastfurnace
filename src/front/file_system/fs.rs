@@ -9,9 +9,11 @@ pub enum FileSystemError {
 pub type FileSystemResult<T> = Result<T, FileSystemError>;
 
 pub trait FileSystem {
-    fn new(root: String) -> Self;
-    fn ls_files_with_extension(&self, extension: &str) -> Vec<String>;
-    fn read_file(&self, path: &str) -> FileSystemResult<ByteStream>;
+    // paths must be relative to root
+    // the absolute root should never be returned
+    fn new(root: String) -> Self; // must be absolute path
+    fn ls_files_with_extension(&self, extension: &str) -> Vec<String>; // must return only the file name
+    fn read_file(&self, file_path: &str) -> FileSystemResult<ByteStream>;
     fn check_dir(&self, path: &str) -> bool;
     fn enter_dir(&mut self, path: &str) -> bool;
     fn exit_dir(&mut self);
@@ -38,7 +40,10 @@ impl FileSystem for MockFileSystem {
         for (path, _) in self.files.iter() {
             match path.strip_prefix(&self.current_dir) {
                 Some(stripped_path) => {
-                    if !stripped_path.contains('/') && stripped_path.ends_with(extension) {
+                    if !stripped_path.contains('/')
+                        && stripped_path.ends_with(extension)
+                        && stripped_path.len() != extension.len() + 1
+                    {
                         files.push(stripped_path.to_string());
                     }
                 }
@@ -64,8 +69,15 @@ impl FileSystem for MockFileSystem {
     }
 
     fn enter_dir(&mut self, path: &str) -> bool {
-        if self.dirs.contains(path) {
-            self.current_dir = path.to_string();
+        assert!(path.starts_with('/'));
+        let path = if path.ends_with('/') {
+            path.to_string()
+        } else {
+            format!("{}/", path)
+        };
+
+        if self.dirs.contains(&path) {
+            self.current_dir = path;
             true
         } else {
             false
@@ -77,6 +89,7 @@ impl FileSystem for MockFileSystem {
             self.current_dir = self.current_dir.split('/').collect::<Vec<&str>>()
                 [..self.current_dir.split('/').count() - 1]
                 .join("/");
+            self.current_dir.push('/');
         }
     }
 

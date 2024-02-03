@@ -38,22 +38,21 @@ impl<T: FileSystem> Program<T> {
             let file_name = full_file_name.strip_suffix(".ing").unwrap().to_string();
             let submodules = HashMap::new();
 
+            let mut path = self.file_system.return_current_dir();
+            path.push_str(&file_name);
+
             let mut module = ModuleNode {
-                source: file_name.clone(),
+                source: path.clone(),
                 submodules,
                 module: None,
             };
 
-            if self.file_system.enter_dir(file_name.as_str()) {
+            if self.file_system.enter_dir(path.as_str()) {
                 self.read_nodes_rec(&mut module);
                 self.file_system.exit_dir();
             }
 
-            parent_module.submodules.insert(file_name.clone(), None);
-
-            let mut path = self.file_system.return_current_dir();
-            path.push_str(&file_name);
-
+            parent_module.submodules.insert(path.clone(), None);
             self.modules.insert(path, module);
         }
     }
@@ -67,11 +66,14 @@ impl<T: FileSystem> Program<T> {
 
         self.read_nodes_rec(&mut root);
         self.root = Some("main".to_string());
-        self.modules
-            .get_mut("main")
-            .unwrap()
-            .submodules
-            .extend(root.submodules);
+        if let Some(mut value) = self.modules.remove("/main") {
+            assert_eq!(value.submodules.len(), 0);
+            root.submodules
+                .remove("/main")
+                .expect("main module not found");
+            value.submodules = root.submodules;
+            self.modules.insert("main".to_string(), value);
+        }
     }
 
     fn parse_files_rec(&mut self, module_source: Source) {
@@ -105,26 +107,26 @@ mod tests {
         let mut mock_file_system = MockFileSystem::new("/".to_string());
         mock_file_system.insert_file("/main.ing", "fn main() {}");
         mock_file_system.insert_file("/test.ing", "pub mod example;");
-        mock_file_system.insert_dir("/test");
+        mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
         let mut program = Program::new(mock_file_system);
         program.read_nodes();
 
-        assert_eq!(program.modules.len(), 2);
+        assert_eq!(program.modules.len(), 3);
         assert_eq!(
             program.modules.get("main"),
             Some(&ModuleNode {
-                source: "main".to_string(),
-                submodules: HashMap::new(),
+                source: "/main".to_string(),
+                submodules: HashMap::from([("/test".to_string(), None)]),
                 module: None,
             })
         );
         assert_eq!(
-            program.modules.get("test"),
+            program.modules.get("/test"),
             Some(&ModuleNode {
-                source: "test".to_string(),
-                submodules: HashMap::new(),
+                source: "/test".to_string(),
+                submodules: HashMap::from([("/test/example".to_string(), None)]),
                 module: None,
             })
         );
