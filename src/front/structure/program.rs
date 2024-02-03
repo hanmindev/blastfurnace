@@ -1,30 +1,25 @@
-use crate::front::structure::fs::FileSystem;
+use crate::front::file_system::fs::FileSystem;
+use crate::front::lexical::lexer::Lexer;
+use crate::front::name_resolution::resolver::Resolvable;
+use crate::front::name_resolution::scope_table::ScopeTable;
 use crate::front::syntax::ast_types::Module;
+use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 type Source = String;
 
 #[derive(Debug, PartialEq)]
-pub struct SubModule {
-    pub public: Option<bool>,
-    pub module_node: Rc<ModuleNode>,
-}
-
-#[derive(Debug, PartialEq)]
 pub struct ModuleNode {
     pub source: Source,
-    pub submodules: HashMap<Source, SubModule>,
+    pub submodules: HashMap<Source, Option<bool>>,
     pub module: Option<Module>,
 }
 
 #[derive(Debug)]
 pub struct Program<T> {
     file_system: T,
-
-    pub root: Option<Rc<ModuleNode>>,
-
-    pub modules: HashMap<Source, Rc<ModuleNode>>,
+    pub root: Option<Source>,
+    pub modules: HashMap<Source, ModuleNode>,
 }
 
 impl<T: FileSystem> Program<T> {
@@ -54,17 +49,12 @@ impl<T: FileSystem> Program<T> {
                 self.file_system.exit_dir();
             }
 
-            let rc_module = Rc::new(module);
+            parent_module.submodules.insert(file_name.clone(), None);
 
-            parent_module.submodules.insert(
-                file_name.clone(),
-                SubModule {
-                    public: None,
-                    module_node: Rc::clone(&rc_module),
-                },
-            );
+            let mut path = self.file_system.return_current_dir();
+            path.push_str(&file_name);
 
-            self.modules.insert(file_name, rc_module);
+            self.modules.insert(path, module);
         }
     }
 
@@ -76,17 +66,39 @@ impl<T: FileSystem> Program<T> {
         };
 
         self.read_nodes_rec(&mut root);
-        if let Some(sub_module) = root.submodules.get_mut("main") {
-            sub_module.public = Some(true);
+        self.root = Some("main".to_string());
+        self.modules
+            .get_mut("main")
+            .unwrap()
+            .submodules
+            .extend(root.submodules);
+    }
+
+    fn parse_files_rec(&mut self, module_source: Source) {
+        if let Some(module_node) = self.modules.get_mut(&module_source) {
+            let mut scope_table = ScopeTable::new();
+            if let Ok(byte_stream) = self.file_system.read_file(&module_source) {
+                let lexer = Lexer::new(byte_stream);
+                let mut parser = Parser::new(lexer);
+                let mut module = parser.parse_module().unwrap();
+                module.resolve(&mut scope_table).unwrap();
+                module_node.module = Some(module);
+            } else {
+                panic!("File not found");
+            }
         }
-        self.root = Some(Rc::new(root));
+    }
+
+    pub fn parse_files(&mut self) {
+        let root = self.root.as_ref().unwrap().clone();
+        self.parse_files_rec(root);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::front::structure::fs::MockFileSystem;
+    use crate::front::file_system::fs::MockFileSystem;
 
     #[test]
     fn test_read_rec() {
@@ -100,22 +112,33 @@ mod tests {
         program.read_nodes();
 
         assert_eq!(program.modules.len(), 2);
+        assert_eq!(
+            program.modules.get("main"),
+            Some(&ModuleNode {
+                source: "main".to_string(),
+                submodules: HashMap::new(),
+                module: None,
+            })
+        );
+        assert_eq!(
+            program.modules.get("test"),
+            Some(&ModuleNode {
+                source: "test".to_string(),
+                submodules: HashMap::new(),
+                module: None,
+            })
+        );
+    }
 
-        let root = program.root.unwrap();
-        assert_eq!(root.submodules.len(), 2);
-        assert_eq!(
-            root.submodules.get("main"),
-            Some(&SubModule {
-                public: Some(true),
-                module_node: program.modules.get("main").unwrap().clone(),
-            })
-        );
-        assert_eq!(
-            root.submodules.get("test"),
-            Some(&SubModule {
-                public: None,
-                module_node: program.modules.get("test").unwrap().clone(),
-            })
-        );
+    #[test]
+    fn test_parse_files() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file("/main.ing", "fn main() {}");
+        mock_file_system.insert_file("/test.ing", "pub mod example;");
+        mock_file_system.insert_dir("/test");
+        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+
+        let mut program = Program::new(mock_file_system);
+        program.read_nodes();
     }
 }
