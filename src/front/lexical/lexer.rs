@@ -1,12 +1,9 @@
+use crate::front::file_system::byte_stream::{ByteStream, ByteStreamable};
 use crate::front::lexical::token_types::Token;
 use crate::front::syntax::parser::TokenStream;
 
-pub trait ByteStream {
-    fn next(&mut self) -> char;
-}
-
-pub struct Lexer<T: ByteStream> {
-    reader: T,
+pub struct Lexer {
+    reader: ByteStream,
     curr: char,
 }
 
@@ -16,8 +13,8 @@ pub enum TokenError {
     MultipleDecimals,
 }
 
-impl<T: ByteStream> Lexer<T> {
-    pub fn new(reader: T) -> Lexer<T> {
+impl Lexer {
+    pub fn new(reader: ByteStream) -> Lexer {
         let mut lexer = Lexer { reader, curr: '\0' };
         lexer.eat();
         lexer
@@ -238,7 +235,7 @@ impl<T: ByteStream> Lexer<T> {
     }
 }
 
-impl<T: ByteStream> TokenStream for Lexer<T> {
+impl TokenStream for Lexer {
     fn next(&mut self) -> Result<Token, TokenError> {
         self.get_token()
     }
@@ -247,12 +244,14 @@ impl<T: ByteStream> TokenStream for Lexer<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::front::lexical::lexer_string_reader::StringReader;
+    use crate::front::file_system::byte_stream::StringReader;
 
     #[test]
     fn simple_test() {
         let statement = "fn main() { return 0; }";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::Fn);
         assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
@@ -269,7 +268,9 @@ mod tests {
     #[test]
     fn number_comprehension() {
         let statement = "643214 3243.24321 .432432 2342.342315.321534";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::Int(643214));
         assert_eq!(lexer.next().unwrap(), Token::Decimal(3243.24321));
@@ -280,7 +281,9 @@ mod tests {
     #[test]
     fn comment_test() {
         let statement = "fn main() { // return 0; \n return 1; }";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::Fn);
         assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
@@ -297,7 +300,9 @@ mod tests {
     #[test]
     fn whitespace_test() {
         let statement = "fn main()                   {       return 0; }";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::Fn);
         assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
@@ -314,7 +319,9 @@ mod tests {
     #[test]
     fn operator_test() {
         let statement = "fn main() { return 0 + 1 - 2 * 3 / 4 % 5; }";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::Fn);
         assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
@@ -341,7 +348,9 @@ mod tests {
     #[test]
     fn singleton_symbol_test() {
         let statement = "=,;:(){}[]<>+-*/%!&";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::Assign);
         assert_eq!(lexer.next().unwrap(), Token::Comma);
@@ -367,7 +376,9 @@ mod tests {
     #[test]
     fn symbol_equals_test() {
         let statement = "== != <= >= += -= *= /= %=";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::Equal);
         assert_eq!(lexer.next().unwrap(), Token::NotEqual);
@@ -383,7 +394,9 @@ mod tests {
     #[test]
     fn other_symbols_test() {
         let statement = "&& || ++ --";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::And);
         assert_eq!(lexer.next().unwrap(), Token::Or);
@@ -394,7 +407,9 @@ mod tests {
     #[test]
     fn key_word_test() {
         let statement = "const void int float double bool string struct impl fn rec inline if else while for return break continue true false use as mod pub";
-        let mut lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
 
         assert_eq!(lexer.next().unwrap(), Token::Const);
         assert_eq!(lexer.next().unwrap(), Token::VoidType);

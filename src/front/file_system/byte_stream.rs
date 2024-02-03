@@ -1,4 +1,19 @@
-use crate::front::lexical::lexer::ByteStream;
+pub struct ByteStream {
+    stream: Box<dyn ByteStreamable>,
+}
+
+impl ByteStream {
+    pub fn new(stream: Box<dyn ByteStreamable>) -> ByteStream {
+        ByteStream { stream }
+    }
+    pub fn next(&mut self) -> char {
+        self.stream.next()
+    }
+}
+
+pub trait ByteStreamable {
+    fn next(&mut self) -> char;
+}
 
 pub struct StringReader {
     string: String,
@@ -11,7 +26,7 @@ impl StringReader {
     }
 }
 
-impl ByteStream for StringReader {
+impl ByteStreamable for StringReader {
     fn next(&mut self) -> char {
         if self.index >= self.string.len() {
             return '\0';

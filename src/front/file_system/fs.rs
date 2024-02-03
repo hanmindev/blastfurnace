@@ -1,3 +1,4 @@
+use crate::front::file_system::byte_stream::{ByteStream, ByteStreamable, StringReader};
 use std::collections::{HashMap, HashSet};
 
 pub enum FileSystemError {
@@ -10,7 +11,7 @@ pub type FileSystemResult<T> = Result<T, FileSystemError>;
 pub trait FileSystem {
     fn new(root: String) -> Self;
     fn ls_files_with_extension(&self, extension: &str) -> Vec<String>;
-    fn read_file(&self, path: &str) -> FileSystemResult<String>;
+    fn read_file(&self, path: &str) -> FileSystemResult<ByteStream>;
     fn check_dir(&self, path: &str) -> bool;
     fn enter_dir(&mut self, path: &str) -> bool;
     fn exit_dir(&mut self);
@@ -49,9 +50,11 @@ impl FileSystem for MockFileSystem {
         files
     }
 
-    fn read_file(&self, path: &str) -> FileSystemResult<String> {
+    fn read_file(&self, path: &str) -> FileSystemResult<ByteStream> {
         match self.files.get(path) {
-            Some(content) => Ok(content.clone()),
+            Some(content) => Ok(ByteStream::new(Box::new(StringReader::new(
+                content.to_string(),
+            )))),
             None => Err(FileSystemError::FileNotFound),
         }
     }
