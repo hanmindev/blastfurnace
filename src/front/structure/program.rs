@@ -7,19 +7,20 @@ use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
 
 type Source = String;
+type Path = String;
 
 #[derive(Debug, PartialEq)]
 pub struct ModuleNode {
     pub source: Source,
-    pub submodules: HashMap<Source, Option<bool>>,
+    pub submodules: HashMap<Path, Option<bool>>,
     pub module: Option<Module>,
 }
 
 #[derive(Debug)]
 pub struct Program<T> {
     file_system: T,
-    pub root: Option<Source>,
-    pub modules: HashMap<Source, ModuleNode>,
+    pub root: Option<Path>,
+    pub modules: HashMap<Path, ModuleNode>,
 }
 
 impl<T: FileSystem> Program<T> {
@@ -78,14 +79,19 @@ impl<T: FileSystem> Program<T> {
         }
     }
 
-    fn parse_files_rec(&mut self, module_source: Source) {
-        if let Some(module_node) = self.modules.get_mut(&module_source) {
-            let mut scope_table = ScopeTable::new();
-            if let Ok(byte_stream) = self.file_system.read_file(&module_source) {
+    fn parse_files_rec(&mut self, module_path: Path, resolve_name: bool) {
+        if let Some(module_node) = self.modules.get_mut(&module_path) {
+            let mut source = module_node.source.clone();
+            source.push_str(".ing");
+            if let Ok(byte_stream) = self.file_system.read_file(&source) {
                 let lexer = Lexer::new(byte_stream);
                 let mut parser = Parser::new(lexer);
                 let mut module = parser.parse_module().unwrap();
-                module.resolve(&mut scope_table).unwrap();
+
+                if resolve_name {
+                    let mut scope_table = ScopeTable::new();
+                    module.resolve(&mut scope_table).unwrap();
+                }
                 module_node.module = Some(module);
             } else {
                 panic!("File not found");
@@ -93,9 +99,9 @@ impl<T: FileSystem> Program<T> {
         }
     }
 
-    pub fn parse_files(&mut self) {
+    pub fn parse_files(&mut self, resolve_name: bool) {
         let root = self.root.as_ref().unwrap().clone();
-        self.parse_files_rec(root);
+        self.parse_files_rec(root, resolve_name);
     }
 }
 
@@ -103,6 +109,9 @@ impl<T: FileSystem> Program<T> {
 mod tests {
     use super::*;
     use crate::front::file_system::fs::MockFileSystem;
+    use crate::front::syntax::ast_types::Type::Void;
+    use crate::front::syntax::ast_types::{Block, Definition, FnDef, Reference};
+    use std::rc::Rc;
 
     #[test]
     fn test_read_rec() {
@@ -138,6 +147,40 @@ mod tests {
                 source: "/test/example".to_string(),
                 submodules: HashMap::new(),
                 module: None,
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_files() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file("/main.ing", "fn main() {}");
+        mock_file_system.insert_file("/test.ing", "pub mod example;");
+        mock_file_system.insert_dir("/test/");
+        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+
+        let mut program = Program::new(mock_file_system);
+        program.read_nodes();
+        program.parse_files(false);
+
+        assert_eq!(program.modules.len(), 3);
+        assert_eq!(
+            program.modules.get("main").unwrap().module,
+            Some(Module {
+                block: Block {
+                    definitions: vec![Definition::FnDef(FnDef {
+                        name: Reference::new("main".to_string()),
+                        args: vec![],
+                        return_type: Void,
+                        body: Block {
+                            definitions: vec![],
+                            statements: vec![],
+                        },
+                        mods: Rc::new(vec![]),
+                    })],
+                    statements: vec![],
+                },
+                public_definitions: vec![],
             })
         );
     }
