@@ -1,4 +1,4 @@
-use crate::front::file_system::byte_stream::{ByteStream, ByteStreamable, StringReader};
+use crate::front::file_system::byte_stream::{ByteStream, StringReader};
 use std::collections::{HashMap, HashSet};
 
 pub enum FileSystemError {
