@@ -923,13 +923,15 @@ impl<T: TokenStream> Parser<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::front::file_system::byte_stream::{ByteStream, StringReader};
     use crate::front::lexical::lexer::Lexer;
-    use crate::front::lexical::lexer_string_reader::StringReader;
 
     #[test]
     fn simple_test() {
         let statement = "fn main() { return 0; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -957,7 +959,9 @@ mod tests {
     #[test]
     fn variable_declarations_test() {
         let statement = "const a: int = 0; const b: int = 1; let c: int = 2; let d: float = 3.0; let e: double = 4.0; let f: bool = true; let g: string = \"hello\";";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1060,7 +1064,9 @@ mod tests {
     fn struct_declarations_test() {
         let statement =
             "let a: A = { a: 0, b: 1, c: 2 }; let b: B = { a: 0, b: \"hello\", c: 2.54 };";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1107,7 +1113,9 @@ mod tests {
     #[test]
     fn variable_assignment_tests() {
         let statement = "a = 0; b = 2.4; a += 2; a -= 3; a *= 4; a /= 5; a %= 6;";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1116,7 +1124,7 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
                     LiteralValue::Int(0)
                 ))),
@@ -1125,7 +1133,7 @@ mod tests {
         assert_eq!(
             block.statements[1],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("b"),
+                name_path: Parser::<Lexer>::string_to_namepath("b"),
                 expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
                     LiteralValue::Decimal(2.4)
                 ))),
@@ -1134,10 +1142,10 @@ mod tests {
         assert_eq!(
             block.statements[2],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     ))),
                     BinOp::Add,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1149,10 +1157,10 @@ mod tests {
         assert_eq!(
             block.statements[3],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     ))),
                     BinOp::Sub,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1164,10 +1172,10 @@ mod tests {
         assert_eq!(
             block.statements[4],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     ))),
                     BinOp::Mul,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1179,10 +1187,10 @@ mod tests {
         assert_eq!(
             block.statements[5],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     ))),
                     BinOp::Div,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1194,10 +1202,10 @@ mod tests {
         assert_eq!(
             block.statements[6],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     ))),
                     BinOp::Mod,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1211,7 +1219,9 @@ mod tests {
     #[test]
     fn struct_assignment_tests() {
         let statement = "a = { a: 0, b: 1, c: 2 }; b = { a: 0, b: \"hello\", c: 2.54 };";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1220,7 +1230,7 @@ mod tests {
         assert_eq!(
             block.statements[0],
             StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
                     LiteralValue::Compound({
                         let mut map = HashMap::new();
@@ -1253,7 +1263,9 @@ mod tests {
     #[test]
     fn function_definition_tests() {
         let statement = "fn add(a: int, b: B) -> int { return a + b; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1281,11 +1293,11 @@ mod tests {
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression::Binary(
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                                Parser::<Lexer>::string_to_namepath("a")
                             ))),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                Parser::<Lexer<StringReader>>::string_to_namepath("b")
+                                Parser::<Lexer>::string_to_namepath("b")
                             ))),
                         )
                     )))],
@@ -1298,7 +1310,9 @@ mod tests {
     #[test]
     fn function_call_tests() {
         let statement = "add(1, 2, 3);";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1328,7 +1342,9 @@ mod tests {
     #[test]
     fn if_simple_test() {
         let statement = "if (a == 0) { return 0; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1339,7 +1355,7 @@ mod tests {
             StatementBlock::Statement(Statement::If(If {
                 cond: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     ))),
                     BinOp::Eq,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1363,7 +1379,9 @@ mod tests {
     fn if_statement_complex_test() {
         let statement =
             "if (a == 0) { return 0; } else if (a == 1) { return 1; } else { return 2; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1374,7 +1392,7 @@ mod tests {
             StatementBlock::Statement(Statement::If(If {
                 cond: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     ))),
                     BinOp::Eq,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1392,7 +1410,7 @@ mod tests {
                 else_: Some(Box::from(If {
                     cond: Box::from(Expression::Binary(
                         Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                            Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                            Parser::<Lexer>::string_to_namepath("a")
                         ))),
                         BinOp::Eq,
                         Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1429,7 +1447,9 @@ mod tests {
     #[test]
     fn while_test() {
         let statement = "while (a < 10) { a += 1; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1440,7 +1460,7 @@ mod tests {
             StatementBlock::Statement(Statement::While(While {
                 cond: Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     ))),
                     BinOp::Lt,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1450,10 +1470,10 @@ mod tests {
                 body: Box::from(Block {
                     definitions: vec![],
                     statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                        name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                        name_path: Parser::<Lexer>::string_to_namepath("a"),
                         expr: Box::from(Expression::Binary(
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                                Parser::<Lexer>::string_to_namepath("a")
                             ))),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1469,7 +1489,9 @@ mod tests {
     #[test]
     fn for_test() {
         let statement = "for (let i: int = 0; i < 10; i += 1) { a += 1; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1490,7 +1512,7 @@ mod tests {
                 }))),
                 cond: Some(Box::from(Expression::Binary(
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("i")
+                        Parser::<Lexer>::string_to_namepath("i")
                     ))),
                     BinOp::Lt,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1498,10 +1520,10 @@ mod tests {
                     ))),
                 ))),
                 step: Some(Box::from(Statement::VarAssign(VarAssign {
-                    name_path: Parser::<Lexer<StringReader>>::string_to_namepath("i"),
+                    name_path: Parser::<Lexer>::string_to_namepath("i"),
                     expr: Box::from(Expression::Binary(
                         Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                            Parser::<Lexer<StringReader>>::string_to_namepath("i")
+                            Parser::<Lexer>::string_to_namepath("i")
                         ))),
                         BinOp::Add,
                         Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1512,10 +1534,10 @@ mod tests {
                 body: Block {
                     definitions: vec![],
                     statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
-                        name_path: Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                        name_path: Parser::<Lexer>::string_to_namepath("a"),
                         expr: Box::from(Expression::Binary(
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                                Parser::<Lexer>::string_to_namepath("a")
                             ))),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Literal(
@@ -1531,7 +1553,9 @@ mod tests {
     #[test]
     fn loop_break_continue_test() {
         let statement = "while (true) { break; continue; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1557,7 +1581,9 @@ mod tests {
     #[test]
     fn simple_expression_order_test() {
         let statement = "a + b + c + d - e - f";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let expr = parser.parse_expression().unwrap();
@@ -1571,34 +1597,34 @@ mod tests {
                             Box::from(Expression::Binary(
                                 Box::from(Expression::AtomicExpression(
                                     AtomicExpression::Variable(
-                                        Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                                        Parser::<Lexer>::string_to_namepath("a"),
                                     )
                                 )),
                                 BinOp::Add,
                                 Box::from(Expression::AtomicExpression(
                                     AtomicExpression::Variable(
-                                        Parser::<Lexer<StringReader>>::string_to_namepath("b"),
+                                        Parser::<Lexer>::string_to_namepath("b"),
                                     )
                                 ))
                             )),
                             BinOp::Add,
                             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                                Parser::<Lexer<StringReader>>::string_to_namepath("c"),
+                                Parser::<Lexer>::string_to_namepath("c"),
                             )))
                         )),
                         BinOp::Add,
                         Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                            Parser::<Lexer<StringReader>>::string_to_namepath("d"),
+                            Parser::<Lexer>::string_to_namepath("d"),
                         )))
                     )),
                     BinOp::Sub,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("e"),
+                        Parser::<Lexer>::string_to_namepath("e"),
                     )))
                 )),
                 BinOp::Sub,
                 Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                    Parser::<Lexer<StringReader>>::string_to_namepath("f"),
+                    Parser::<Lexer>::string_to_namepath("f"),
                 ))),
             ))
         );
@@ -1607,7 +1633,9 @@ mod tests {
     #[test]
     fn expression_order_test() {
         let statement = "a + b * c - d / e % f";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let expr = parser.parse_expression().unwrap();
@@ -1625,17 +1653,17 @@ mod tests {
 
         let b_times_c = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("b"),
+                Parser::<Lexer>::string_to_namepath("b"),
             ))),
             BinOp::Mul,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("c"),
+                Parser::<Lexer>::string_to_namepath("c"),
             ))),
         ));
 
         let a_plus = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                Parser::<Lexer>::string_to_namepath("a"),
             ))),
             BinOp::Add,
             b_times_c,
@@ -1643,11 +1671,11 @@ mod tests {
 
         let d_div_e = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("d"),
+                Parser::<Lexer>::string_to_namepath("d"),
             ))),
             BinOp::Div,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("e"),
+                Parser::<Lexer>::string_to_namepath("e"),
             ))),
         ));
 
@@ -1655,7 +1683,7 @@ mod tests {
             d_div_e,
             BinOp::Mod,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("f"),
+                Parser::<Lexer>::string_to_namepath("f"),
             ))),
         ));
 
@@ -1668,7 +1696,9 @@ mod tests {
     #[test]
     fn expression_order_bracket_test() {
         let statement = "a + b * (c - d) / e % f";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let expr = parser.parse_expression().unwrap();
@@ -1690,17 +1720,17 @@ mod tests {
 
         let c_minus_d = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("c"),
+                Parser::<Lexer>::string_to_namepath("c"),
             ))),
             BinOp::Sub,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("d"),
+                Parser::<Lexer>::string_to_namepath("d"),
             ))),
         ));
 
         let b_times_c_minus_d = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("b"),
+                Parser::<Lexer>::string_to_namepath("b"),
             ))),
             BinOp::Mul,
             c_minus_d,
@@ -1710,7 +1740,7 @@ mod tests {
             b_times_c_minus_d,
             BinOp::Div,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("e"),
+                Parser::<Lexer>::string_to_namepath("e"),
             ))),
         ));
 
@@ -1718,13 +1748,13 @@ mod tests {
             b_times_c_minus_d_div_e,
             BinOp::Mod,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("f"),
+                Parser::<Lexer>::string_to_namepath("f"),
             ))),
         ));
 
         let a_plus_b_times_c_minus_d_div_e_mod_f = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                Parser::<Lexer>::string_to_namepath("a"),
             ))),
             BinOp::Add,
             b_times_c_minus_d_div_e_mod_f,
@@ -1736,7 +1766,9 @@ mod tests {
     #[test]
     fn complex_expression_order_test() {
         let statement = "a == b && c || d != e";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let expr = parser.parse_expression().unwrap();
@@ -1755,11 +1787,11 @@ mod tests {
 
         let a_eq_b = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                Parser::<Lexer>::string_to_namepath("a"),
             ))),
             BinOp::Eq,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("b"),
+                Parser::<Lexer>::string_to_namepath("b"),
             ))),
         ));
 
@@ -1767,17 +1799,17 @@ mod tests {
             a_eq_b,
             BinOp::And,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("c"),
+                Parser::<Lexer>::string_to_namepath("c"),
             ))),
         ));
 
         let d_neq_e = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("d"),
+                Parser::<Lexer>::string_to_namepath("d"),
             ))),
             BinOp::Neq,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("e"),
+                Parser::<Lexer>::string_to_namepath("e"),
             ))),
         ));
 
@@ -1790,7 +1822,9 @@ mod tests {
     #[test]
     fn expression_deref_test() {
         let statement = "*a + b * *d";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let expr = parser.parse_expression().unwrap();
@@ -1807,20 +1841,20 @@ mod tests {
         let deref_a = Box::from(Expression::Unary(
             UnOp::Deref,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("a"),
+                Parser::<Lexer>::string_to_namepath("a"),
             ))),
         ));
 
         let deref_d = Box::from(Expression::Unary(
             UnOp::Deref,
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("d"),
+                Parser::<Lexer>::string_to_namepath("d"),
             ))),
         ));
 
         let b_times_deref_d = Box::from(Expression::Binary(
             Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                Parser::<Lexer<StringReader>>::string_to_namepath("b"),
+                Parser::<Lexer>::string_to_namepath("b"),
             ))),
             BinOp::Mul,
             deref_d,
@@ -1835,7 +1869,9 @@ mod tests {
     #[test]
     fn plusplus_check_test() {
         let statement = "a++ + ++b";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let expr = parser.parse_expression().unwrap();
@@ -1846,14 +1882,14 @@ mod tests {
                 Box::from(Expression::Unary(
                     UnOp::PostInc,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                        Parser::<Lexer>::string_to_namepath("a")
                     )))
                 )),
                 BinOp::Add,
                 Box::from(Expression::Unary(
                     UnOp::PreInc,
                     Box::from(Expression::AtomicExpression(AtomicExpression::Variable(
-                        Parser::<Lexer<StringReader>>::string_to_namepath("b")
+                        Parser::<Lexer>::string_to_namepath("b")
                     )))
                 )),
             ))
@@ -1863,7 +1899,9 @@ mod tests {
     #[test]
     fn struct_definition_test() {
         let statement = "struct A { a: int, b: float, c: double, d: C, }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1892,7 +1930,9 @@ mod tests {
     #[test]
     fn multiple_declaration_test() {
         let statement = "let a: int; fn main(a: int) { let a: int; a + 1; return 0; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
@@ -1935,7 +1975,7 @@ mod tests {
                             Expression::Binary(
                                 Box::from(Expression::AtomicExpression(
                                     AtomicExpression::Variable(
-                                        Parser::<Lexer<StringReader>>::string_to_namepath("a")
+                                        Parser::<Lexer>::string_to_namepath("a")
                                     )
                                 )),
                                 BinOp::Add,

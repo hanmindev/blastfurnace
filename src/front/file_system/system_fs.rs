@@ -16,13 +16,15 @@ pub struct FileReader {
 }
 
 impl FileReader {
-    pub fn new(mut file: File) -> FileReader {
+    pub fn new(file: File) -> FileReader {
         let mut file_reader = FileReader {
             file,
             str: String::new(),
             index: 0,
         };
-        file.read_to_string(&mut file_reader.str)
+        file_reader
+            .file
+            .read_to_string(&mut file_reader.str)
             .expect("Unable to read file");
         file_reader
     }

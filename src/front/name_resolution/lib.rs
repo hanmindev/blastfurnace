@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use crate::front::file_system::byte_stream::{ByteStream, StringReader};
     use crate::front::lexical::lexer::Lexer;
-    use crate::front::lexical::lexer_string_reader::StringReader;
     use crate::front::name_resolution::resolver::Resolvable;
     use crate::front::name_resolution::scope_table::ScopeTable;
     use crate::front::syntax::ast_types::{
@@ -16,7 +16,9 @@ mod tests {
 
         let statement =
             "pub let a: int; pub fn main(a: int, b: int) -> int { a + 1; let a: int = a; return 0; }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let mut module = parser.parse_module().unwrap();
@@ -124,7 +126,9 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "pub let a: A; pub let b: A; pub let c: A; pub struct A { }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let mut module = parser.parse_module().unwrap();
@@ -219,7 +223,9 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "struct A { b: B } struct B { a: A }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let mut block = parser.parse_module().unwrap().block;
@@ -290,7 +296,9 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "fn main() { let a: A; let b: B; } struct A { b: B } struct B { a: A }";
-        let lexer = Lexer::new(StringReader::new(statement.to_string()));
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
         let mut parser = Parser::new(lexer);
 
         let mut block = parser.parse_module().unwrap().block;
