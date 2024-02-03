@@ -79,19 +79,14 @@ impl<T: FileSystem> Program<T> {
         }
     }
 
-    fn parse_files_rec(&mut self, module_path: Path, resolve_name: bool) {
+    fn parse_files_rec(&mut self, module_path: Path) {
         if let Some(module_node) = self.modules.get_mut(&module_path) {
             let mut source = module_node.source.clone();
             source.push_str(".ing");
             if let Ok(byte_stream) = self.file_system.read_file(&source) {
                 let lexer = Lexer::new(byte_stream);
                 let mut parser = Parser::new(lexer);
-                let mut module = parser.parse_module().unwrap();
-
-                if resolve_name {
-                    let mut scope_table = ScopeTable::new();
-                    module.resolve(&mut scope_table).unwrap();
-                }
+                let module = parser.parse_module().unwrap();
                 module_node.module = Some(module);
             } else {
                 panic!("File not found");
@@ -99,9 +94,9 @@ impl<T: FileSystem> Program<T> {
         }
     }
 
-    pub fn parse_files(&mut self, resolve_name: bool) {
+    pub fn parse_files(&mut self) {
         let root = self.root.as_ref().unwrap().clone();
-        self.parse_files_rec(root, resolve_name);
+        self.parse_files_rec(root);
     }
 }
 
@@ -161,7 +156,7 @@ mod tests {
 
         let mut program = Program::new(mock_file_system);
         program.read_nodes();
-        program.parse_files(false);
+        program.parse_files();
 
         assert_eq!(program.modules.len(), 3);
         assert_eq!(
