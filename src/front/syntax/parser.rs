@@ -630,9 +630,7 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_var_decl(&mut self) -> ParseResult<VarDecl> {
         let mut mods: Vec<VarMod> = Vec::new();
-        if self.eat(&Token::Pub).is_ok() {
-            mods.push(VarMod::Pub);
-        }
+        let _ = self.eat(&Token::Pub);
 
         if self.eat(&Token::Const).is_ok() {
             mods.push(VarMod::Const);
@@ -682,10 +680,7 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_fn_def(&mut self) -> ParseResult<FnDef> {
         let mut mods = Vec::new();
-
-        if self.eat(&Token::Pub).is_ok() {
-            mods.push(FnMod::Pub);
-        }
+        let _ = self.eat(&Token::Pub);
 
         let mut rec = false;
 
@@ -798,11 +793,8 @@ impl<T: TokenStream> Parser<T> {
     }
 
     fn parse_struct_def(&mut self) -> ParseResult<StructDef> {
-        let mut mods = Vec::new();
-
-        if self.eat(&Token::Pub).is_ok() {
-            mods.push(StructMod::Pub);
-        }
+        let mods = Vec::new();
+        let _ = self.eat(&Token::Pub);
 
         self.eat(&Token::StructType)?;
 

@@ -76,7 +76,6 @@ pub struct NamePath {
 #[derive(Debug, PartialEq)]
 pub enum VarMod {
     Const,
-    Pub,
 }
 
 #[derive(Debug, PartialEq)]
@@ -101,15 +100,12 @@ pub enum CompoundValue {
 
 #[derive(Debug, PartialEq)]
 pub enum FnMod {
-    Pub,
     Rec,
     Inline,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum StructMod {
-    Pub,
-}
+pub enum StructMod {}
 
 #[derive(Debug, PartialEq)]
 pub struct StructDef {
