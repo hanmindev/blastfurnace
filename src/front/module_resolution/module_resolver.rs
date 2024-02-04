@@ -79,7 +79,7 @@ impl Resolvable for Reference {
             self.global_resolved = Some(s.clone());
         } else {
             self.global_resolved = Some(Rc::from(GlobalResolvedName {
-                module: module_merger.definition_table.path.clone(),
+                module: module_merger.get_path().clone(),
                 name: self.module_resolved.clone().unwrap(),
             }));
         }
