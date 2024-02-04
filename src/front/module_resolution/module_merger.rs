@@ -7,7 +7,7 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct ModuleMerger {
     pub package_name: String,
-    path: String,
+    module_path: String,
     global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
     pub definition_table: DefinitionTable,
 }
@@ -16,19 +16,19 @@ impl ModuleMerger {
     pub fn new(package_name: &str) -> ModuleMerger {
         ModuleMerger {
             package_name: package_name.to_string(),
-            path: String::new(),
+            module_path: String::new(),
             global_name_table: HashMap::new(),
             definition_table: DefinitionTable::new(),
         }
     }
 
     pub fn switch_module(&mut self, path: &str) {
-        self.path = path.to_string();
+        self.module_path = path.to_string();
         self.global_name_table.clear()
     }
 
     pub fn get_path(&self) -> &String {
-        &self.path
+        &self.module_path
     }
 
     pub fn register_global_name(
