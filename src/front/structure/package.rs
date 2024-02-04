@@ -316,4 +316,56 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn test_import_cross_package() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file("/main.ing", "use std::test::example::a; fn main() { a(); }");
+        mock_file_system.insert_file("/test.ing", "pub mod example;");
+        mock_file_system.insert_dir("/test/");
+        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+
+        let mut program = Packager::new("pkg", mock_file_system);
+        program.read_nodes();
+        program.parse_files(true);
+        program.globalize_names();
+
+        assert_eq!(program.modules.len(), 0);
+
+        let name_map = &program.merged_modules.definition_table;
+
+        assert_eq!(name_map.function_definitions.len(), 2);
+        assert_eq!(name_map.struct_definitions.len(), 0);
+        assert_eq!(name_map.global_var_definitions.len(), 0);
+
+        let gr = Rc::from(GlobalResolvedName {
+            module: "/".to_string(),
+            name: Rc::from("0_main".to_string()),
+        });
+
+        assert_eq!(
+            name_map
+                .function_definitions
+                .get(&gr)
+                .as_ref()
+                .unwrap()
+                .body
+                .as_ref()
+                .unwrap()
+                .statements[0],
+            StatementBlock::Statement(Statement::Expression(Box::new(
+                Expression::AtomicExpression(AtomicExpression::FnCall(Box::new(FnCall {
+                    name: Reference {
+                        raw: "a".to_string(),
+                        module_resolved: Some(Rc::from("0_a".to_string())),
+                        global_resolved: Some(Rc::from(GlobalResolvedName {
+                            module: "std/test/example".to_string(),
+                            name: Rc::from("0_a".to_string()),
+                        })),
+                    },
+                    args: vec![],
+                }))),
+            )))
+        );
+    }
 }
