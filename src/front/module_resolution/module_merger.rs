@@ -24,7 +24,7 @@ impl ModuleMerger {
         }
     }
 
-    pub fn switch_module(&mut self, path: &str) {
+    fn switch_module(&mut self, path: &str) {
         self.module_path = path.to_string();
         self.global_name_table.clear()
     }
@@ -62,7 +62,8 @@ impl ModuleMerger {
         };
     }
 
-    pub fn merge_module(&mut self, module: &mut Module) {
+    pub fn merge_module(&mut self, path: &str, module: &mut Module) {
+        self.switch_module(path);
         module
             .resolve_module(self)
             .expect("Failed to resolve module");

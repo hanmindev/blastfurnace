@@ -24,8 +24,7 @@ impl<T> Packager<T> {
         let merged_modules = self.module_merger.as_mut().unwrap();
         for (path, mut module_node) in self.retriever.take().unwrap().modules.drain() {
             let module = module_node.module.as_mut().unwrap();
-            merged_modules.switch_module(&path);
-            merged_modules.merge_module(module);
+            merged_modules.merge_module(&path, module);
         }
     }
 
