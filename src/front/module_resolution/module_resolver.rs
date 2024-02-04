@@ -76,7 +76,7 @@ impl Resolvable for Reference {
             self.global_resolved = Some(s.clone());
         } else {
             self.global_resolved = Some(Rc::from(GlobalResolvedName {
-                module: module_merger.name_map.path.clone(),
+                module: module_merger.definition_table.path.clone(),
                 name: self.module_resolved.clone().unwrap(),
             }));
         }
@@ -185,14 +185,14 @@ fn resolve_definition(
                 .resolve_module(module_merger)?;
 
             module_merger
-                .name_map
+                .definition_table
                 .function_definitions
                 .insert(fn_def.name.global_resolved.clone().unwrap(), fn_def);
         }
         Definition::StructDef(mut struct_def) => {
             struct_def.type_name.resolve_module(module_merger)?;
 
-            module_merger.name_map.struct_definitions.insert(
+            module_merger.definition_table.struct_definitions.insert(
                 struct_def.type_name.global_resolved.clone().unwrap(),
                 struct_def,
             );
@@ -203,10 +203,13 @@ fn resolve_definition(
                 expr.resolve_module(module_merger)?;
             }
 
-            module_merger.name_map.global_var_definitions.insert(
-                var_decl.var_def.name.global_resolved.clone().unwrap(),
-                var_decl,
-            );
+            module_merger
+                .definition_table
+                .global_var_definitions
+                .insert(
+                    var_decl.var_def.name.global_resolved.clone().unwrap(),
+                    var_decl,
+                );
         }
     }
     Ok(())

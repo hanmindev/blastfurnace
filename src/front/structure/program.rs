@@ -109,7 +109,7 @@ impl<T: FileSystem> Program<T> {
         let mut merged_modules = &mut self.merged_modules;
         for (path, mut module_node) in self.modules.drain() {
             let module = module_node.module.as_mut().unwrap(); // if unwrap fails there's something wrong with the code
-            merged_modules.name_map.set_path(&path);
+            merged_modules.definition_table.set_path(&path);
             merged_modules.mp.clear();
             module
                 .resolve_module(merged_modules)
@@ -185,7 +185,7 @@ mod tests {
 
         assert_eq!(program.modules.len(), 0);
 
-        let name_map = &program.merged_modules.name_map;
+        let name_map = &program.merged_modules.definition_table;
 
         assert_eq!(name_map.function_definitions.len(), 2);
         assert_eq!(name_map.struct_definitions.len(), 0);
@@ -253,7 +253,7 @@ mod tests {
 
         assert_eq!(program.modules.len(), 0);
 
-        let name_map = &program.merged_modules.name_map;
+        let name_map = &program.merged_modules.definition_table;
 
         assert_eq!(name_map.function_definitions.len(), 2);
         assert_eq!(name_map.struct_definitions.len(), 0);
