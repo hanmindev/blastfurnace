@@ -1,7 +1,5 @@
 use crate::front::module_resolution::name_map::NameMap;
-use crate::front::syntax::ast_types::{
-    FnDef, GlobalResolvedName, ResolvedName, StructDef, VarDecl, VarDef,
-};
+use crate::front::syntax::ast_types::{GlobalResolvedName, ResolvedName};
 use std::collections::HashMap;
 use std::rc::Rc;
 

@@ -4,8 +4,8 @@ use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
     FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement,
-    StatementBlock, StructDef, StructMod, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef,
-    VarMod, While,
+    StatementBlock, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod,
+    While,
 };
 use std::collections::{HashMap, VecDeque};
 use std::mem;
