@@ -41,13 +41,11 @@ impl Resolvable for Module {
             use_.resolve_name(scope_table)?;
         }
 
-        scope_table.scope_enter();
         for definitions in &mut self.public_definitions {
             definitions.resolve_name(scope_table)?;
         }
 
         self.block.resolve_name(scope_table)?;
-        scope_table.scope_exit();
         scope_table.scope_exit();
         Ok(())
     }

@@ -32,7 +32,12 @@ impl ModuleMerger {
         &mut self,
         local_name: Rc<ResolvedName>,
         global_name: Rc<GlobalResolvedName>,
+        should_be_0: bool,
     ) {
+        if should_be_0 && !local_name.starts_with("0_") {
+            panic!("Local name should start with 0_");
+        }
+
         self.global_name_table.insert(local_name, global_name);
     }
 
@@ -47,7 +52,7 @@ impl ModuleMerger {
                 module: self.get_path().clone(),
                 name: resolved_name.clone(),
             });
-            self.register_global_name(Rc::clone(resolved_name), Rc::clone(&g));
+            self.register_global_name(Rc::clone(resolved_name), Rc::clone(&g), false);
             g
         };
     }

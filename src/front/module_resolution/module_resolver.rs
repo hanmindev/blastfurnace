@@ -60,7 +60,7 @@ impl Resolvable for Use {
                 module,
                 name: Rc::from(format!("0_{original_name}")),
             };
-            module_merger.register_global_name(local_name, Rc::from(global_resolved_name));
+            module_merger.register_global_name(local_name, Rc::from(global_resolved_name), false);
             element.imported_name.resolve_module(module_merger)?;
         }
 
