@@ -2,6 +2,7 @@ use crate::front::file_system::fs::FileSystem;
 use crate::front::lexical::lexer::Lexer;
 use crate::front::name_resolution::resolver::Resolvable;
 use crate::front::name_resolution::scope_table::ScopeTable;
+use crate::front::structure::merged_module::MergedModule;
 use crate::front::syntax::ast_types::Module;
 use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
@@ -21,6 +22,8 @@ pub struct Program<T> {
     file_system: T,
     pub root: Option<Path>,
     pub modules: HashMap<Path, ModuleNode>,
+
+    pub merged_modules: MergedModule,
 }
 
 impl<T: FileSystem> Program<T> {
@@ -29,6 +32,7 @@ impl<T: FileSystem> Program<T> {
             file_system,
             root: None,
             modules: HashMap::new(),
+            merged_modules: MergedModule::new(),
         }
     }
 
