@@ -1,5 +1,5 @@
 use crate::front::module_resolution::definition_table::DefinitionTable;
-use crate::front::module_resolution::module_resolver::Resolvable;
+use crate::front::module_resolution::resolvers::Resolvable;
 use crate::front::syntax::ast_types::{GlobalResolvedName, Module, ResolvedName};
 use std::collections::HashMap;
 use std::rc::Rc;
