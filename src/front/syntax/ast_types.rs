@@ -4,7 +4,7 @@ use std::rc::Rc;
 pub type RawName = String;
 pub type ResolvedName = String;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct GlobalResolvedName {
     pub module: String,
     pub name: Rc<ResolvedName>,

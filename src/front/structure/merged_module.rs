@@ -1,19 +1,16 @@
-use crate::front::syntax::ast_types::{FnDef, GlobalResolvedName, StructDef, VarDef};
+use crate::front::module_resolution::name_map::NameMap;
+use crate::front::syntax::ast_types::{FnDef, GlobalResolvedName, StructDef, VarDecl, VarDef};
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct MergedModule {
-    pub function_definitions: HashMap<GlobalResolvedName, FnDef>,
-    pub struct_definitions: HashMap<GlobalResolvedName, StructDef>,
-    pub global_var_definitions: HashMap<GlobalResolvedName, VarDef>,
+    pub name_map: NameMap,
 }
 
 impl MergedModule {
     pub fn new() -> MergedModule {
         MergedModule {
-            function_definitions: Default::default(),
-            struct_definitions: Default::default(),
-            global_var_definitions: Default::default(),
+            name_map: NameMap::new(),
         }
     }
 }

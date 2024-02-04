@@ -1,11 +1,13 @@
 use crate::front::file_system::fs::FileSystem;
 use crate::front::lexical::lexer::Lexer;
+use crate::front::module_resolution::module_resolver::Resolvable as ModuleResolvable;
 use crate::front::name_resolution::resolver::Resolvable;
 use crate::front::name_resolution::scope_table::ScopeTable;
 use crate::front::structure::merged_module::MergedModule;
-use crate::front::syntax::ast_types::Module;
+use crate::front::syntax::ast_types::{Definition, GlobalResolvedName, Module};
 use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 type Source = String;
 type Path = String;
@@ -101,6 +103,22 @@ impl<T: FileSystem> Program<T> {
                 panic!("File not found");
             }
         }
+    }
+
+    fn globalize_names(&mut self) {
+        let merged_modules = &mut self.merged_modules;
+
+        for (path, module_node) in self.modules.iter_mut() {
+            let module = module_node.module.as_mut().unwrap(); // if unwrap fails there's something wrong with the code
+            merged_modules.name_map.set_path(path);
+            module
+                .resolve_module(&mut merged_modules.name_map)
+                .expect("Failed to resolve module");
+        }
+    }
+
+    pub fn merge_modules(&mut self) {
+        self.globalize_names();
     }
 }
 

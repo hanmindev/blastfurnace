@@ -4,3 +4,4 @@ mod name_resolution;
 mod semantic;
 mod structure;
 mod syntax;
+mod module_resolution;
