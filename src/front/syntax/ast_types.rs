@@ -5,14 +5,14 @@ pub type RawName = String;
 pub type ResolvedName = String;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Reference<T, R> {
-    pub raw: T,
-    pub module_resolved: Option<Rc<R>>,
-    pub global_resolved: Option<Rc<R>>,
+pub struct Reference {
+    pub raw: RawName,
+    pub module_resolved: Option<Rc<ResolvedName>>,
+    pub global_resolved: Option<Rc<ResolvedName>>,
 }
 
-impl<T, R> Reference<T, R> {
-    pub fn new(raw: T) -> Reference<T, R> {
+impl Reference {
+    pub fn new(raw: RawName) -> Reference {
         Reference {
             raw,
             module_resolved: None,
@@ -29,7 +29,7 @@ pub enum Type {
     Float,
     Double,
     String,
-    Struct(Reference<RawName, ResolvedName>),
+    Struct(Reference),
 }
 
 #[derive(Debug, PartialEq)]
@@ -63,7 +63,7 @@ pub enum BinOp {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct NamePath {
-    pub name: Reference<RawName, ResolvedName>,
+    pub name: Reference,
     pub path: Vec<String>,
 }
 
@@ -108,14 +108,14 @@ pub enum StructMod {
 #[derive(Debug, PartialEq)]
 pub struct StructDef {
     pub mods: Rc<Vec<StructMod>>,
-    pub type_name: Reference<RawName, ResolvedName>,
+    pub type_name: Reference,
     pub map: HashMap<String, Type>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct VarDef {
     pub mods: Rc<Vec<VarMod>>,
-    pub name: Reference<RawName, ResolvedName>,
+    pub name: Reference,
     pub type_: Type,
 }
 
@@ -123,14 +123,14 @@ pub struct VarDef {
 pub struct FnDef {
     pub return_type: Type,
     pub mods: Rc<Vec<FnMod>>,
-    pub name: Reference<RawName, ResolvedName>,
+    pub name: Reference,
     pub args: Vec<VarDef>,
     pub body: Option<Block>, // only None for imported
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FnCall {
-    pub name: Reference<RawName, ResolvedName>,
+    pub name: Reference,
     pub args: Vec<Expression>,
 }
 
@@ -229,7 +229,7 @@ pub struct ModuleImport {
 #[derive(Debug, PartialEq)]
 pub struct UseElement {
     pub origin_name: String,
-    pub imported_name: Reference<RawName, ResolvedName>,
+    pub imported_name: Reference,
 }
 
 #[derive(Debug, PartialEq)]

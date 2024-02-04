@@ -87,7 +87,7 @@ impl<T: TokenStream> Parser<T> {
             }
         }
         path.push(curr);
-        let name: Reference<String, String> = Reference::new(path.remove(0));
+        let name = Reference::new(path.remove(0));
 
         NamePath { name, path }
     }
