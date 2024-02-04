@@ -38,7 +38,7 @@ impl<T> Packager<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::front::file_system::fs::MockFileSystem;
+    use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::syntax::ast_types::Type::Void;
     use crate::front::syntax::ast_types::{
         AtomicExpression, Block, Expression, FnCall, FnDef, GlobalResolvedName, Reference,

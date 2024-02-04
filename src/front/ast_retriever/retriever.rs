@@ -102,7 +102,7 @@ impl<T: FileSystem> FileRetriever<T> {
 mod tests {
     use super::*;
     use crate::front::ast_retriever::retriever::ModuleNode;
-    use crate::front::file_system::fs::MockFileSystem;
+    use crate::front::file_system::mock_fs::MockFileSystem;
 
     #[test]
     fn test_read_rec() {
