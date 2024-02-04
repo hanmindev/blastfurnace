@@ -268,8 +268,19 @@ impl Resolvable for For {
 impl Resolvable for Use {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         for element in &mut self.elements {
-            element.imported_name.resolved =
-                Some(scope_table.scope_bind(&element.imported_name.raw, SymbolType::Struct)?);
+            let struct_name =
+                scope_table.scope_bind(&element.imported_name.raw, SymbolType::Struct)?;
+            let fn_name = scope_table.scope_bind(&element.imported_name.raw, SymbolType::Fn)?;
+            let var_name = scope_table.scope_bind(&element.imported_name.raw, SymbolType::Var)?;
+
+            if struct_name == fn_name && fn_name == var_name {
+                element.imported_name.resolved =
+                    Some(scope_table.scope_bind(&element.imported_name.raw, SymbolType::Struct)?);
+            } else {
+                return Err(ResolverError::Redefinition(
+                    element.imported_name.raw.clone(),
+                ));
+            }
         }
 
         Ok(())
