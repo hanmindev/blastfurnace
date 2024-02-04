@@ -1,9 +1,9 @@
 use crate::front::file_system::fs::FileSystem;
 use crate::front::lexical::lexer::Lexer;
+use crate::front::module_resolution::merged_module::ModuleMerger;
 use crate::front::module_resolution::module_resolver::Resolvable as ModuleResolvable;
 use crate::front::name_resolution::name_resolver::Resolvable;
 use crate::front::name_resolution::scope_table::ScopeTable;
-use crate::front::structure::merged_module::ModuleMerger;
 use crate::front::syntax::ast_types::{GlobalResolvedName, Module};
 use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
