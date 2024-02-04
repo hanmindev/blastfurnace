@@ -23,7 +23,7 @@ pub struct Packager<T> {
     pub root: Option<Path>,
     pub modules: HashMap<Path, ModuleNode>,
 
-    pub merged_modules: ModuleMerger,
+    pub module_merger: Option<Box<ModuleMerger>>,
 }
 
 impl<T: FileSystem> Packager<T> {
@@ -33,7 +33,7 @@ impl<T: FileSystem> Packager<T> {
             file_system,
             root: None,
             modules: HashMap::new(),
-            merged_modules: ModuleMerger::new(package_name),
+            module_merger: Option::from(Box::from(ModuleMerger::new(package_name))),
         }
     }
 
@@ -63,7 +63,7 @@ impl<T: FileSystem> Packager<T> {
         }
     }
 
-    pub fn read_nodes(&mut self) {
+    fn read_nodes(&mut self) {
         let mut root = ModuleNode {
             source: self.file_system.return_current_dir(),
             submodules: HashMap::new(),
@@ -84,7 +84,7 @@ impl<T: FileSystem> Packager<T> {
         }
     }
 
-    pub fn parse_files(&mut self, resolve_name: bool) {
+    fn parse_files(&mut self, resolve_name: bool) {
         for module_node in self.modules.values_mut() {
             let mut source = module_node.source.clone();
             source.push_str(".ing");
@@ -104,7 +104,7 @@ impl<T: FileSystem> Packager<T> {
     }
 
     fn globalize_names(&mut self) {
-        let merged_modules = &mut self.merged_modules;
+        let merged_modules = self.module_merger.as_mut().unwrap();
         for (path, mut module_node) in self.modules.drain() {
             let module = module_node.module.as_mut().unwrap(); // if unwrap fails there's something wrong with the code
             merged_modules.switch_module(&path);
@@ -112,8 +112,12 @@ impl<T: FileSystem> Packager<T> {
         }
     }
 
-    pub fn merge_modules(&mut self) {
+    pub fn merge_modules(&mut self) -> Box<ModuleMerger> {
+        self.read_nodes();
+        self.parse_files(true);
         self.globalize_names();
+
+        self.module_merger.take().unwrap()
     }
 }
 
@@ -181,7 +185,7 @@ mod tests {
 
         assert_eq!(program.modules.len(), 0);
 
-        let name_map = &program.merged_modules.definition_table;
+        let name_map = &program.module_merger.unwrap().definition_table;
 
         assert_eq!(name_map.function_definitions.len(), 2);
         assert_eq!(name_map.struct_definitions.len(), 0);
@@ -252,7 +256,7 @@ mod tests {
 
         assert_eq!(program.modules.len(), 0);
 
-        let name_map = &program.merged_modules.definition_table;
+        let name_map = &program.module_merger.unwrap().definition_table;
 
         assert_eq!(name_map.function_definitions.len(), 2);
         assert_eq!(name_map.struct_definitions.len(), 0);
@@ -332,7 +336,7 @@ mod tests {
 
         assert_eq!(program.modules.len(), 0);
 
-        let name_map = &program.merged_modules.definition_table;
+        let name_map = &program.module_merger.unwrap().definition_table;
 
         assert_eq!(name_map.function_definitions.len(), 2);
         assert_eq!(name_map.struct_definitions.len(), 0);
