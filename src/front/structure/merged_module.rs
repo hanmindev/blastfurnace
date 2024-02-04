@@ -6,7 +6,7 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct ModuleMerger {
     path: String,
-    pub global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
+    global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
     pub definition_table: DefinitionTable,
 }
 
@@ -26,5 +26,29 @@ impl ModuleMerger {
 
     pub fn get_path(&self) -> &String {
         &self.path
+    }
+
+    pub fn register_global_name(
+        &mut self,
+        local_name: Rc<ResolvedName>,
+        global_name: Rc<GlobalResolvedName>,
+    ) {
+        self.global_name_table.insert(local_name, global_name);
+    }
+
+    pub fn resolve_global_name(
+        &mut self,
+        resolved_name: &Rc<ResolvedName>,
+    ) -> Rc<GlobalResolvedName> {
+        return if let Some(s) = self.global_name_table.get(resolved_name) {
+            Rc::clone(s)
+        } else {
+            let g = Rc::from(GlobalResolvedName {
+                module: self.get_path().clone(),
+                name: resolved_name.clone(),
+            });
+            self.register_global_name(Rc::clone(resolved_name), Rc::clone(&g));
+            g
+        };
     }
 }
