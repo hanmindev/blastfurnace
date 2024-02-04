@@ -90,11 +90,11 @@ impl Resolvable for Statement {
 impl Resolvable for VarDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         if let Type::Struct(struct_name) = &mut self.type_ {
-            struct_name.resolved =
+            struct_name.module_resolved =
                 Some(scope_table.scope_lookup_force(&struct_name.raw, SymbolType::Struct));
         }
 
-        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Var)?);
+        self.name.module_resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Var)?);
         Ok(())
     }
 }
@@ -121,12 +121,12 @@ impl Resolvable for VarAssign {
 
 impl Resolvable for StructDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.type_name.resolved =
+        self.type_name.module_resolved =
             Some(scope_table.scope_bind(&self.type_name.raw, SymbolType::Struct)?);
 
         for v in &mut self.map.values_mut() {
             if let Type::Struct(struct_name) = v {
-                struct_name.resolved =
+                struct_name.module_resolved =
                     Some(scope_table.scope_lookup_force(&struct_name.raw, SymbolType::Struct));
             }
         }
@@ -138,7 +138,7 @@ impl Resolvable for FnDef {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         scope_table.scope_enter();
 
-        self.name.resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Fn)?);
+        self.name.module_resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Fn)?);
         for arg in &mut self.args {
             arg.resolve(scope_table)?;
         }
@@ -194,7 +194,7 @@ impl Resolvable for NamePath {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match scope_table.scope_lookup(&self.name.raw, SymbolType::Var) {
             Some(name) => {
-                self.name.resolved = Some(name.clone());
+                self.name.module_resolved = Some(name.clone());
                 Ok(())
             }
             None => Err(ResolverError::UndefinedVariable(self.name.raw.clone())),
@@ -218,7 +218,7 @@ impl Resolvable for FnCall {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match scope_table.scope_lookup(&self.name.raw, SymbolType::Fn) {
             Some(name) => {
-                self.name.resolved = Some(name.clone());
+                self.name.module_resolved = Some(name.clone());
             }
             None => return Err(ResolverError::UndefinedVariable(self.name.raw.clone())),
         }
@@ -274,7 +274,7 @@ impl Resolvable for Use {
             let var_name = scope_table.scope_bind(&element.imported_name.raw, SymbolType::Var)?;
 
             if struct_name == fn_name && fn_name == var_name {
-                element.imported_name.resolved =
+                element.imported_name.module_resolved =
                     Some(scope_table.scope_bind(&element.imported_name.raw, SymbolType::Struct)?);
             } else {
                 return Err(ResolverError::Redefinition(

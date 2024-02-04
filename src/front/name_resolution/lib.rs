@@ -32,7 +32,8 @@ mod tests {
                     var_decl.var_def.name.clone(),
                     Reference {
                         raw: "a".to_string(),
-                        resolved: Some(Rc::new("0_a".to_string())),
+                        module_resolved: Some(Rc::new("0_a".to_string())),
+                        global_resolved: None
                     }
                 );
             }
@@ -47,7 +48,8 @@ mod tests {
                     fn_def.name.clone(),
                     Reference {
                         raw: "main".to_string(),
-                        resolved: Some(Rc::new("0_main".to_string())),
+                        module_resolved: Some(Rc::new("0_main".to_string())),
+                        global_resolved: None
                     }
                 );
 
@@ -55,7 +57,8 @@ mod tests {
                     fn_def.args[0].name.clone(),
                     Reference {
                         raw: "a".to_string(),
-                        resolved: Some(Rc::new("1_a".to_string())),
+                        module_resolved: Some(Rc::new("1_a".to_string())),
+                        global_resolved: None
                     }
                 );
 
@@ -63,7 +66,8 @@ mod tests {
                     fn_def.args[1].name.clone(),
                     Reference {
                         raw: "b".to_string(),
-                        resolved: Some(Rc::new("0_b".to_string())),
+                        module_resolved: Some(Rc::new("0_b".to_string())),
+                        global_resolved: None
                     }
                 );
 
@@ -75,7 +79,8 @@ mod tests {
                                     name_path.name.clone(),
                                     Reference {
                                         raw: "a".to_string(),
-                                        resolved: Some(Rc::new("1_a".to_string())),
+                                        module_resolved: Some(Rc::new("1_a".to_string())),
+                                        global_resolved: None
                                     }
                                 );
                             }
@@ -93,7 +98,8 @@ mod tests {
                             var_decl.var_def.name.clone(),
                             Reference {
                                 raw: "a".to_string(),
-                                resolved: Some(Rc::new("2_a".to_string())),
+                                module_resolved: Some(Rc::new("2_a".to_string())),
+                                global_resolved: None
                             }
                         );
                         match var_decl.expr.as_ref().unwrap().as_ref() {
@@ -102,7 +108,8 @@ mod tests {
                                     name_path.name.clone(),
                                     Reference {
                                         raw: "a".to_string(),
-                                        resolved: Some(Rc::new("1_a".to_string())),
+                                        module_resolved: Some(Rc::new("1_a".to_string())),
+                                        global_resolved: None
                                     }
                                 );
                             }
@@ -142,7 +149,8 @@ mod tests {
                     var_decl.var_def.type_,
                     Type::Struct(Reference {
                         raw: "A".to_string(),
-                        resolved: Some(Rc::new("0_A".to_string())),
+                        module_resolved: Some(Rc::new("0_A".to_string())),
+                        global_resolved: None
                     })
                 );
 
@@ -150,7 +158,8 @@ mod tests {
                     var_decl.var_def.name.clone(),
                     Reference {
                         raw: "a".to_string(),
-                        resolved: Some(Rc::new("0_a".to_string())),
+                        module_resolved: Some(Rc::new("0_a".to_string())),
+                        global_resolved: None
                     }
                 );
             }
@@ -164,7 +173,8 @@ mod tests {
                     var_decl.var_def.type_,
                     Type::Struct(Reference {
                         raw: "A".to_string(),
-                        resolved: Some(Rc::new("0_A".to_string())),
+                        module_resolved: Some(Rc::new("0_A".to_string())),
+                        global_resolved: None
                     })
                 );
 
@@ -172,7 +182,8 @@ mod tests {
                     var_decl.var_def.name.clone(),
                     Reference {
                         raw: "b".to_string(),
-                        resolved: Some(Rc::new("0_b".to_string())),
+                        module_resolved: Some(Rc::new("0_b".to_string())),
+                        global_resolved: None
                     }
                 );
             }
@@ -186,7 +197,8 @@ mod tests {
                     var_decl.var_def.type_,
                     Type::Struct(Reference {
                         raw: "A".to_string(),
-                        resolved: Some(Rc::new("0_A".to_string())),
+                        module_resolved: Some(Rc::new("0_A".to_string())),
+                        global_resolved: None
                     })
                 );
 
@@ -194,7 +206,8 @@ mod tests {
                     var_decl.var_def.name.clone(),
                     Reference {
                         raw: "c".to_string(),
-                        resolved: Some(Rc::new("0_c".to_string())),
+                        module_resolved: Some(Rc::new("0_c".to_string())),
+                        global_resolved: None
                     }
                 );
             }
@@ -209,7 +222,8 @@ mod tests {
                     struct_def.type_name.clone(),
                     Reference {
                         raw: "A".to_string(),
-                        resolved: Some(Rc::new("0_A".to_string())),
+                        module_resolved: Some(Rc::new("0_A".to_string())),
+                        global_resolved: None
                     }
                 );
             }
@@ -239,7 +253,8 @@ mod tests {
                     struct_def.type_name.clone(),
                     Reference {
                         raw: "A".to_string(),
-                        resolved: Some(Rc::new("0_A".to_string())),
+                        module_resolved: Some(Rc::new("0_A".to_string())),
+                        global_resolved: None
                     }
                 );
                 match &struct_def.map.get("b").unwrap() {
@@ -248,7 +263,8 @@ mod tests {
                             struct_name.clone(),
                             Reference {
                                 raw: "B".to_string(),
-                                resolved: Some(Rc::new("0_B".to_string())),
+                                module_resolved: Some(Rc::new("0_B".to_string())),
+                                global_resolved: None
                             }
                         );
                     }
@@ -268,7 +284,8 @@ mod tests {
                     struct_def.type_name.clone(),
                     Reference {
                         raw: "B".to_string(),
-                        resolved: Some(Rc::new("0_B".to_string())),
+                        module_resolved: Some(Rc::new("0_B".to_string())),
+                        global_resolved: None
                     }
                 );
                 match &struct_def.map.get("a").unwrap() {
@@ -277,7 +294,8 @@ mod tests {
                             struct_name.clone(),
                             Reference {
                                 raw: "A".to_string(),
-                                resolved: Some(Rc::new("0_A".to_string())),
+                                module_resolved: Some(Rc::new("0_A".to_string())),
+                                global_resolved: None
                             }
                         );
                     }
@@ -329,7 +347,8 @@ mod tests {
                     fn_def.name.clone(),
                     Reference {
                         raw: "main".to_string(),
-                        resolved: Some(Rc::new("0_main".to_string())),
+                        module_resolved: Some(Rc::new("0_main".to_string())),
+                        global_resolved: None
                     }
                 );
 
@@ -339,7 +358,8 @@ mod tests {
                             var_decl.var_def.type_,
                             Type::Struct(Reference {
                                 raw: "A".to_string(),
-                                resolved: Some(Rc::new("0_A".to_string())),
+                                module_resolved: Some(Rc::new("0_A".to_string())),
+                                global_resolved: None
                             })
                         );
 
@@ -347,7 +367,8 @@ mod tests {
                             var_decl.var_def.name.clone(),
                             Reference {
                                 raw: "a".to_string(),
-                                resolved: Some(Rc::new("0_a".to_string())),
+                                module_resolved: Some(Rc::new("0_a".to_string())),
+                                global_resolved: None
                             }
                         );
                     }
@@ -361,7 +382,8 @@ mod tests {
                             var_decl.var_def.type_,
                             Type::Struct(Reference {
                                 raw: "B".to_string(),
-                                resolved: Some(Rc::new("0_B".to_string())),
+                                module_resolved: Some(Rc::new("0_B".to_string())),
+                                global_resolved: None
                             })
                         );
 
@@ -369,7 +391,8 @@ mod tests {
                             var_decl.var_def.name.clone(),
                             Reference {
                                 raw: "b".to_string(),
-                                resolved: Some(Rc::new("0_b".to_string())),
+                                module_resolved: Some(Rc::new("0_b".to_string())),
+                                global_resolved: None
                             }
                         );
                     }
@@ -389,7 +412,8 @@ mod tests {
                     struct_def.type_name.clone(),
                     Reference {
                         raw: "A".to_string(),
-                        resolved: Some(Rc::new("0_A".to_string())),
+                        module_resolved: Some(Rc::new("0_A".to_string())),
+                        global_resolved: None
                     }
                 );
                 match &struct_def.map.get("b").unwrap() {
@@ -398,7 +422,8 @@ mod tests {
                             struct_name.clone(),
                             Reference {
                                 raw: "B".to_string(),
-                                resolved: Some(Rc::new("0_B".to_string())),
+                                module_resolved: Some(Rc::new("0_B".to_string())),
+                                global_resolved: None
                             }
                         );
                     }
@@ -418,7 +443,8 @@ mod tests {
                     struct_def.type_name.clone(),
                     Reference {
                         raw: "B".to_string(),
-                        resolved: Some(Rc::new("0_B".to_string())),
+                        module_resolved: Some(Rc::new("0_B".to_string())),
+                        global_resolved: None
                     }
                 );
                 match &struct_def.map.get("a").unwrap() {
@@ -427,7 +453,8 @@ mod tests {
                             struct_name.clone(),
                             Reference {
                                 raw: "A".to_string(),
-                                resolved: Some(Rc::new("0_A".to_string())),
+                                module_resolved: Some(Rc::new("0_A".to_string())),
+                                global_resolved: None
                             }
                         );
                     }
