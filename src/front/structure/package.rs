@@ -17,7 +17,7 @@ pub struct ModuleNode {
 }
 
 #[derive(Debug)]
-pub struct Program<T> {
+pub struct Packager<T> {
     file_system: T,
     pub root: Option<Path>,
     pub modules: HashMap<Path, ModuleNode>,
@@ -25,9 +25,9 @@ pub struct Program<T> {
     pub merged_modules: ModuleMerger,
 }
 
-impl<T: FileSystem> Program<T> {
-    pub fn new(file_system: T) -> Program<T> {
-        Program {
+impl<T: FileSystem> Packager<T> {
+    pub fn new(file_system: T) -> Packager<T> {
+        Packager {
             file_system,
             root: None,
             modules: HashMap::new(),
@@ -134,7 +134,7 @@ mod tests {
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
-        let mut program = Program::new(mock_file_system);
+        let mut program = Packager::new(mock_file_system);
         program.read_nodes();
 
         assert_eq!(program.modules.len(), 3);
@@ -172,7 +172,7 @@ mod tests {
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
-        let mut program = Program::new(mock_file_system);
+        let mut program = Packager::new(mock_file_system);
         program.read_nodes();
         program.parse_files(true);
         program.globalize_names();
@@ -240,7 +240,7 @@ mod tests {
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
-        let mut program = Program::new(mock_file_system);
+        let mut program = Packager::new(mock_file_system);
         program.read_nodes();
         program.parse_files(true);
         program.globalize_names();

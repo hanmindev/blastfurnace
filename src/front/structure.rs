@@ -1,1 +1,1 @@
-mod program;
+mod package;
