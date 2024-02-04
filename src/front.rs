@@ -1,3 +1,4 @@
+mod ast_retriever;
 mod file_system;
 mod lexical;
 mod mergers;
