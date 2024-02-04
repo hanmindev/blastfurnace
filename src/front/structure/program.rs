@@ -79,8 +79,8 @@ impl<T: FileSystem> Program<T> {
         }
     }
 
-    fn parse_files_rec(&mut self, module_path: Path, resolve_name: bool) {
-        if let Some(module_node) = self.modules.get_mut(&module_path) {
+    pub fn parse_files(&mut self, resolve_name: bool) {
+        for module_node in self.modules.values_mut() {
             let mut source = module_node.source.clone();
             source.push_str(".ing");
             if let Ok(byte_stream) = self.file_system.read_file(&source) {
@@ -97,11 +97,6 @@ impl<T: FileSystem> Program<T> {
                 panic!("File not found");
             }
         }
-    }
-
-    pub fn parse_files(&mut self, resolve_name: bool) {
-        let root = self.root.as_ref().unwrap().clone();
-        self.parse_files_rec(root, resolve_name);
     }
 }
 
