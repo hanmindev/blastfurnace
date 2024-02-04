@@ -1,8 +1,7 @@
 use crate::front::file_system::fs::FileSystem;
 use crate::front::lexical::lexer::Lexer;
 use crate::front::module_resolution::module_merger::ModuleMerger;
-use crate::front::name_resolution::name_resolver::Resolvable;
-use crate::front::name_resolution::scope_table::ScopeTable;
+use crate::front::name_resolution::name_resolver::resolve_module;
 use crate::front::syntax::ast_types::{GlobalResolvedName, Module};
 use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
@@ -94,8 +93,7 @@ impl<T: FileSystem> Program<T> {
                 let mut module = parser.parse_module().unwrap();
 
                 if resolve_name {
-                    let mut scope_table = ScopeTable::new();
-                    module.resolve_name(&mut scope_table).unwrap();
+                    resolve_module(&mut module);
                 }
                 module_node.module = Some(module);
             } else {

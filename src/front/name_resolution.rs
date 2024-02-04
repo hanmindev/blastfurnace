@@ -1,3 +1,4 @@
 mod lib;
 pub mod name_resolver;
-pub mod scope_table;
+mod resolvers;
+mod scope_table;

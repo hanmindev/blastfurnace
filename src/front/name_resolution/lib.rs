@@ -2,8 +2,8 @@
 mod tests {
     use crate::front::file_system::byte_stream::{ByteStream, StringReader};
     use crate::front::lexical::lexer::Lexer;
-    use crate::front::name_resolution::name_resolver::Resolvable;
-    use crate::front::name_resolution::name_resolver::ResolverError::Redefinition;
+    use crate::front::name_resolution::resolvers::Resolvable;
+    use crate::front::name_resolution::resolvers::ResolverError::Redefinition;
     use crate::front::name_resolution::scope_table::ScopeTable;
     use crate::front::syntax::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, StatementBlock, Type,
