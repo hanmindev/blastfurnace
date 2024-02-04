@@ -1,7 +1,6 @@
 use crate::front::file_system::fs::FileSystem;
 use crate::front::lexical::lexer::Lexer;
 use crate::front::module_resolution::module_merger::ModuleMerger;
-use crate::front::module_resolution::module_resolver::Resolvable as ModuleResolvable;
 use crate::front::name_resolution::name_resolver::Resolvable;
 use crate::front::name_resolution::scope_table::ScopeTable;
 use crate::front::syntax::ast_types::{GlobalResolvedName, Module};
@@ -106,13 +105,11 @@ impl<T: FileSystem> Program<T> {
     }
 
     fn globalize_names(&mut self) {
-        let mut merged_modules = &mut self.merged_modules;
+        let merged_modules = &mut self.merged_modules;
         for (path, mut module_node) in self.modules.drain() {
             let module = module_node.module.as_mut().unwrap(); // if unwrap fails there's something wrong with the code
             merged_modules.switch_module(&path);
-            module
-                .resolve_module(merged_modules)
-                .expect("Failed to resolve module");
+            merged_modules.merge_module(module);
         }
     }
 

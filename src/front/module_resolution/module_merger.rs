@@ -1,5 +1,6 @@
 use crate::front::module_resolution::definition_table::DefinitionTable;
-use crate::front::syntax::ast_types::{GlobalResolvedName, ResolvedName};
+use crate::front::module_resolution::module_resolver::Resolvable;
+use crate::front::syntax::ast_types::{GlobalResolvedName, Module, ResolvedName};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -55,5 +56,11 @@ impl ModuleMerger {
             self.register_global_name(Rc::clone(resolved_name), Rc::clone(&g), false);
             g
         };
+    }
+
+    pub fn merge_module(&mut self, module: &mut Module) {
+        module
+            .resolve_module(self)
+            .expect("Failed to resolve module");
     }
 }
