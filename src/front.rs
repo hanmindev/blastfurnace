@@ -4,5 +4,4 @@ mod lexical;
 mod mergers;
 mod module_resolution;
 mod name_resolution;
-mod semantic;
 pub mod syntax;
