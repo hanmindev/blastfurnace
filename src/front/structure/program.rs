@@ -177,9 +177,61 @@ mod tests {
 
         let mut program = Program::new(mock_file_system);
         program.read_nodes();
-        program.parse_files(false);
+        program.parse_files(true);
         program.globalize_names();
 
         assert_eq!(program.modules.len(), 0);
+
+        let name_map = &program.merged_modules.name_map;
+
+        assert_eq!(name_map.function_definitions.len(), 2);
+        assert_eq!(name_map.struct_definitions.len(), 0);
+        assert_eq!(name_map.global_var_definitions.len(), 0);
+
+        let gr = Rc::from(GlobalResolvedName {
+            module: "main".to_string(),
+            name: Rc::from("0_main".to_string()),
+        });
+
+        assert_eq!(
+            name_map.function_definitions.get(&gr),
+            Some(&FnDef {
+                name: Reference {
+                    raw: "main".to_string(),
+                    module_resolved: Some(Rc::from("0_main".to_string())),
+                    global_resolved: Some(gr)
+                },
+                return_type: Void,
+                body: Some(Block {
+                    definitions: vec![],
+                    statements: vec![]
+                }),
+                mods: Rc::new(vec![]),
+                args: vec![],
+            })
+        );
+
+        let gr = Rc::from(GlobalResolvedName {
+            module: "/test/example".to_string(),
+            name: Rc::from("0_a".to_string()),
+        });
+
+        assert_eq!(
+            name_map.function_definitions.get(&gr),
+            Some(&FnDef {
+                name: Reference {
+                    raw: "a".to_string(),
+                    module_resolved: Some(Rc::from("0_a".to_string())),
+                    global_resolved: Some(gr)
+                },
+                return_type: Void,
+                body: Some(Block {
+                    definitions: vec![],
+                    statements: vec![]
+                }),
+                mods: Rc::new(vec![]),
+                args: vec![],
+            })
+        );
     }
 }

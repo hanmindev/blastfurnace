@@ -538,6 +538,20 @@ impl<T: TokenStream> Parser<T> {
                 }
             }
 
+            // ignore modules for now
+            let _ = self.eat(&Token::Pub).is_ok();
+            if self.eat(&Token::Mod).is_ok() {
+                match self.eat(&Any)? {
+                    (Token::Ident(_), _) => {
+                        continue;
+                    }
+                    tok => Err(ParseError::Unexpected(
+                        tok,
+                        "Expected identifier for module name".to_string(),
+                    ))?,
+                }
+            }
+
             match self.curr_token {
                 Token::LBrace => statements.push(StatementBlock::Block(self.parse_block()?)),
                 _ => {
