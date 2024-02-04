@@ -54,10 +54,17 @@ impl Resolvable for Use {
                 .as_ref()
                 .unwrap()
                 .clone();
-            let mut module = "/".to_string();
-            module.push_str(&self.path.join("/"));
+
+            let module_name = if self.path[0] == "root" {
+                let mut s = "/".to_string();
+                s.push_str(&self.path[1..].join("/"));
+                s
+            } else {
+                self.path.join("/")
+            };
+
             let global_resolved_name = GlobalResolvedName {
-                module,
+                module: module_name,
                 name: Rc::from(format!("0_{original_name}")),
             };
             module_merger.register_global_name(local_name, Rc::from(global_resolved_name), false);

@@ -6,14 +6,16 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct ModuleMerger {
+    pub package_name: String,
     path: String,
     global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
     pub definition_table: DefinitionTable,
 }
 
 impl ModuleMerger {
-    pub fn new() -> ModuleMerger {
+    pub fn new(package_name: &str) -> ModuleMerger {
         ModuleMerger {
+            package_name: package_name.to_string(),
             path: String::new(),
             global_name_table: HashMap::new(),
             definition_table: DefinitionTable::new(),

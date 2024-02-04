@@ -18,6 +18,7 @@ pub struct ModuleNode {
 
 #[derive(Debug)]
 pub struct Packager<T> {
+    package_name: String,
     file_system: T,
     pub root: Option<Path>,
     pub modules: HashMap<Path, ModuleNode>,
@@ -26,12 +27,13 @@ pub struct Packager<T> {
 }
 
 impl<T: FileSystem> Packager<T> {
-    pub fn new(file_system: T) -> Packager<T> {
+    pub fn new(package_name: &str, file_system: T) -> Packager<T> {
         Packager {
+            package_name: package_name.to_string(),
             file_system,
             root: None,
             modules: HashMap::new(),
-            merged_modules: ModuleMerger::new(),
+            merged_modules: ModuleMerger::new(package_name),
         }
     }
 
@@ -76,7 +78,7 @@ impl<T: FileSystem> Packager<T> {
                 .remove("/main")
                 .expect("main module not found in submodules");
             value.submodules = root.submodules;
-            self.modules.insert("main".to_string(), value);
+            self.modules.insert("/".to_string(), value);
         } else {
             panic!("main module not found");
         }
@@ -134,12 +136,12 @@ mod tests {
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
-        let mut program = Packager::new(mock_file_system);
+        let mut program = Packager::new("pkg", mock_file_system);
         program.read_nodes();
 
         assert_eq!(program.modules.len(), 3);
         assert_eq!(
-            program.modules.get("main"),
+            program.modules.get("/"),
             Some(&ModuleNode {
                 source: "/main".to_string(),
                 submodules: HashMap::from([("/test".to_string(), None)]),
@@ -172,7 +174,7 @@ mod tests {
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
-        let mut program = Packager::new(mock_file_system);
+        let mut program = Packager::new("pkg", mock_file_system);
         program.read_nodes();
         program.parse_files(true);
         program.globalize_names();
@@ -186,7 +188,7 @@ mod tests {
         assert_eq!(name_map.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
-            module: "main".to_string(),
+            module: "/".to_string(),
             name: Rc::from("0_main".to_string()),
         });
 
@@ -235,12 +237,15 @@ mod tests {
     #[test]
     fn test_import_files() {
         let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "use test::example::a; fn main() { a(); }");
+        mock_file_system.insert_file(
+            "/main.ing",
+            "use root::test::example::a; fn main() { a(); }",
+        );
         mock_file_system.insert_file("/test.ing", "pub mod example;");
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
-        let mut program = Packager::new(mock_file_system);
+        let mut program = Packager::new("pkg", mock_file_system);
         program.read_nodes();
         program.parse_files(true);
         program.globalize_names();
@@ -254,7 +259,7 @@ mod tests {
         assert_eq!(name_map.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
-            module: "main".to_string(),
+            module: "/".to_string(),
             name: Rc::from("0_main".to_string()),
         });
 
