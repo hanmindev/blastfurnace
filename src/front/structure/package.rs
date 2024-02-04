@@ -1,5 +1,6 @@
 use crate::front::file_system::fs::FileSystem;
 use crate::front::lexical::lexer::Lexer;
+use crate::front::module_resolution::definition_table::DefinitionTable;
 use crate::front::module_resolution::module_merger::ModuleMerger;
 use crate::front::name_resolution::name_resolver::resolve_module;
 use crate::front::syntax::ast_types::Module;
@@ -23,7 +24,7 @@ pub struct Packager<T> {
     pub root: Option<Path>,
     pub modules: HashMap<Path, ModuleNode>,
 
-    pub module_merger: Option<Box<ModuleMerger>>,
+    pub module_merger: Option<ModuleMerger>,
 }
 
 impl<T: FileSystem> Packager<T> {
@@ -33,7 +34,7 @@ impl<T: FileSystem> Packager<T> {
             file_system,
             root: None,
             modules: HashMap::new(),
-            module_merger: Option::from(Box::from(ModuleMerger::new(package_name))),
+            module_merger: Option::from(ModuleMerger::new(package_name)),
         }
     }
 
@@ -112,12 +113,12 @@ impl<T: FileSystem> Packager<T> {
         }
     }
 
-    pub fn merge_modules(&mut self) -> Box<ModuleMerger> {
+    pub fn merge_modules(&mut self) -> DefinitionTable {
         self.read_nodes();
         self.parse_files(true);
         self.globalize_names();
 
-        self.module_merger.take().unwrap()
+        return self.module_merger.take().unwrap().definition_table;
     }
 }
 

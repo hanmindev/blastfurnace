@@ -1,6 +1,8 @@
 use crate::front::module_resolution::definition_table::DefinitionTable;
 use crate::front::module_resolution::resolvers::Resolvable;
-use crate::front::syntax::ast_types::{GlobalResolvedName, Module, ResolvedName};
+use crate::front::syntax::ast_types::{
+    FnDef, GlobalResolvedName, Module, ResolvedName, StructDef, VarDecl,
+};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -64,5 +66,35 @@ impl ModuleMerger {
         module
             .resolve_module(self)
             .expect("Failed to resolve module");
+    }
+
+    pub fn insert_fn_definition(
+        &mut self,
+        global_resolved_name: Rc<GlobalResolvedName>,
+        definition: FnDef,
+    ) {
+        self.definition_table
+            .function_definitions
+            .insert(global_resolved_name, definition);
+    }
+
+    pub fn insert_struct_definition(
+        &mut self,
+        global_resolved_name: Rc<GlobalResolvedName>,
+        definition: StructDef,
+    ) {
+        self.definition_table
+            .struct_definitions
+            .insert(global_resolved_name, definition);
+    }
+
+    pub fn insert_global_var_definition(
+        &mut self,
+        global_resolved_name: Rc<GlobalResolvedName>,
+        definition: VarDecl,
+    ) {
+        self.definition_table
+            .global_var_definitions
+            .insert(global_resolved_name, definition);
     }
 }

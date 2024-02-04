@@ -184,14 +184,12 @@ fn resolve_definition(
                 .resolve_module(module_merger)?;
 
             module_merger
-                .definition_table
-                .function_definitions
-                .insert(fn_def.name.global_resolved.clone().unwrap(), fn_def);
+                .insert_fn_definition(fn_def.name.global_resolved.clone().unwrap(), fn_def);
         }
         Definition::StructDef(mut struct_def) => {
             struct_def.type_name.resolve_module(module_merger)?;
 
-            module_merger.definition_table.struct_definitions.insert(
+            module_merger.insert_struct_definition(
                 struct_def.type_name.global_resolved.clone().unwrap(),
                 struct_def,
             );
@@ -202,13 +200,10 @@ fn resolve_definition(
                 expr.resolve_module(module_merger)?;
             }
 
-            module_merger
-                .definition_table
-                .global_var_definitions
-                .insert(
-                    var_decl.var_def.name.global_resolved.clone().unwrap(),
-                    var_decl,
-                );
+            module_merger.insert_global_var_definition(
+                var_decl.var_def.name.global_resolved.clone().unwrap(),
+                var_decl,
+            );
         }
     }
     Ok(())
