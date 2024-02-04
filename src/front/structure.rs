@@ -1,2 +1,2 @@
-mod merged_module;
+pub mod merged_module;
 mod program;

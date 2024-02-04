@@ -37,11 +37,17 @@ impl Resolvable for Block {
 impl Resolvable for Module {
     fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         scope_table.scope_enter();
+        for use_ in &mut self.uses {
+            use_.resolve(scope_table)?;
+        }
+
+        scope_table.scope_enter();
         for definitions in &mut self.public_definitions {
             definitions.resolve(scope_table)?;
         }
 
         self.block.resolve(scope_table)?;
+        scope_table.scope_exit();
         scope_table.scope_exit();
         Ok(())
     }
@@ -63,8 +69,6 @@ impl Resolvable for Definition {
             Definition::VarDecl(statement) => statement.resolve(scope_table)?,
             Definition::StructDef(statement) => statement.resolve(scope_table)?,
             Definition::FnDef(statement) => statement.resolve(scope_table)?,
-            Definition::Use(statement) => statement.resolve(scope_table)?,
-            Definition::ModuleImport(_) => {}
         }
         Ok(())
     }
@@ -274,8 +278,7 @@ impl Resolvable for Use {
             let var_name = scope_table.scope_bind(&element.imported_name.raw, SymbolType::Var)?;
 
             if struct_name == fn_name && fn_name == var_name {
-                element.imported_name.module_resolved =
-                    Some(scope_table.scope_bind(&element.imported_name.raw, SymbolType::Struct)?);
+                element.imported_name.module_resolved = Some(struct_name);
             } else {
                 return Err(ResolverError::Redefinition(
                     element.imported_name.raw.clone(),

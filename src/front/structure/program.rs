@@ -3,7 +3,7 @@ use crate::front::lexical::lexer::Lexer;
 use crate::front::module_resolution::module_resolver::Resolvable as ModuleResolvable;
 use crate::front::name_resolution::resolver::Resolvable;
 use crate::front::name_resolution::scope_table::ScopeTable;
-use crate::front::structure::merged_module::MergedModule;
+use crate::front::structure::merged_module::ModuleMerger;
 use crate::front::syntax::ast_types::{Definition, GlobalResolvedName, Module};
 use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
@@ -25,7 +25,7 @@ pub struct Program<T> {
     pub root: Option<Path>,
     pub modules: HashMap<Path, ModuleNode>,
 
-    pub merged_modules: MergedModule,
+    pub merged_modules: ModuleMerger,
 }
 
 impl<T: FileSystem> Program<T> {
@@ -34,7 +34,7 @@ impl<T: FileSystem> Program<T> {
             file_system,
             root: None,
             modules: HashMap::new(),
-            merged_modules: MergedModule::new(),
+            merged_modules: ModuleMerger::new(),
         }
     }
 
@@ -106,12 +106,13 @@ impl<T: FileSystem> Program<T> {
     }
 
     fn globalize_names(&mut self) {
-        let merged_modules = &mut self.merged_modules;
+        let mut merged_modules = &mut self.merged_modules;
         for (path, mut module_node) in self.modules.drain() {
             let module = module_node.module.as_mut().unwrap(); // if unwrap fails there's something wrong with the code
             merged_modules.name_map.set_path(&path);
+            merged_modules.mp.clear();
             module
-                .resolve_module(&mut merged_modules.name_map)
+                .resolve_module(merged_modules)
                 .expect("Failed to resolve module");
         }
     }
@@ -126,7 +127,10 @@ mod tests {
     use super::*;
     use crate::front::file_system::fs::MockFileSystem;
     use crate::front::syntax::ast_types::Type::Void;
-    use crate::front::syntax::ast_types::{Block, Definition, FnDef, Reference};
+    use crate::front::syntax::ast_types::{
+        AtomicExpression, Block, Definition, Expression, FnCall, FnDef, Reference, Statement,
+        StatementBlock,
+    };
     use std::rc::Rc;
 
     #[test]
@@ -205,6 +209,86 @@ mod tests {
                 body: Some(Block {
                     definitions: vec![],
                     statements: vec![]
+                }),
+                mods: Rc::new(vec![]),
+                args: vec![],
+            })
+        );
+
+        let gr = Rc::from(GlobalResolvedName {
+            module: "/test/example".to_string(),
+            name: Rc::from("0_a".to_string()),
+        });
+
+        assert_eq!(
+            name_map.function_definitions.get(&gr),
+            Some(&FnDef {
+                name: Reference {
+                    raw: "a".to_string(),
+                    module_resolved: Some(Rc::from("0_a".to_string())),
+                    global_resolved: Some(gr)
+                },
+                return_type: Void,
+                body: Some(Block {
+                    definitions: vec![],
+                    statements: vec![]
+                }),
+                mods: Rc::new(vec![]),
+                args: vec![],
+            })
+        );
+    }
+
+    #[test]
+    fn test_import_files() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file("/main.ing", "use test::example::a; fn main() { a(); }");
+        mock_file_system.insert_file("/test.ing", "pub mod example;");
+        mock_file_system.insert_dir("/test/");
+        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+
+        let mut program = Program::new(mock_file_system);
+        program.read_nodes();
+        program.parse_files(true);
+        program.globalize_names();
+
+        assert_eq!(program.modules.len(), 0);
+
+        let name_map = &program.merged_modules.name_map;
+
+        assert_eq!(name_map.function_definitions.len(), 2);
+        assert_eq!(name_map.struct_definitions.len(), 0);
+        assert_eq!(name_map.global_var_definitions.len(), 0);
+
+        let gr = Rc::from(GlobalResolvedName {
+            module: "main".to_string(),
+            name: Rc::from("0_main".to_string()),
+        });
+
+        assert_eq!(
+            name_map.function_definitions.get(&gr),
+            Some(&FnDef {
+                name: Reference {
+                    raw: "main".to_string(),
+                    module_resolved: Some(Rc::from("0_main".to_string())),
+                    global_resolved: Some(gr)
+                },
+                return_type: Void,
+                body: Some(Block {
+                    definitions: vec![],
+                    statements: vec![StatementBlock::Statement(Statement::Expression(Box::new(
+                        Expression::AtomicExpression(AtomicExpression::FnCall(Box::new(FnCall {
+                            name: Reference {
+                                raw: "a".to_string(),
+                                module_resolved: Some(Rc::from("0_a".to_string())),
+                                global_resolved: Some(Rc::from(GlobalResolvedName {
+                                    module: "/test/example".to_string(),
+                                    name: Rc::from("0_a".to_string()),
+                                })),
+                            },
+                            args: vec![],
+                        }))),
+                    )))]
                 }),
                 mods: Rc::new(vec![]),
                 args: vec![],

@@ -131,16 +131,18 @@ impl<T: TokenStream> Parser<T> {
                     });
                     self.eat(&Token::LParen)?;
 
-                    loop {
-                        fn_call.args.push(*self.parse_expression()?);
-                        match self.eat(&Token::Comma) {
-                            Ok(_) => {}
-                            Err(_) => {
-                                break;
+                    if self.eat(&Token::RParen).is_err() {
+                        loop {
+                            fn_call.args.push(*self.parse_expression()?);
+                            match self.eat(&Token::Comma) {
+                                Ok(_) => {}
+                                Err(_) => {
+                                    break;
+                                }
                             }
                         }
+                        self.eat(&Token::RParen)?; // eat RParen
                     }
-                    self.eat(&Token::RParen)?; // eat RParen
 
                     // function call
                     Ok(Expression::AtomicExpression(AtomicExpression::FnCall(
@@ -467,17 +469,17 @@ impl<T: TokenStream> Parser<T> {
             }
         }
 
-        match self.curr_token {
-            Token::Mod => Ok(Definition::ModuleImport(self.parse_module_import()?)),
-            Token::Use => Ok(Definition::Use(self.parse_use_import()?)),
-            _ => Err(ParseError::Unexpected(
-                self.curr_token_info(),
-                "Expected definition".to_string(),
-            )),
-        }
+        Err(ParseError::Unexpected(
+            self.curr_token_info(),
+            "Expected definition".to_string(),
+        ))
     }
 
     fn parse_module_no_brace(&mut self, global: bool) -> ParseResult<Module> {
+        let mut mods = Vec::new();
+        let mut uses = Vec::new();
+
+        let mut definitions = Vec::new();
         let mut struct_var_definitions = Vec::new();
         let mut fn_definitions = Vec::new();
 
@@ -538,22 +540,15 @@ impl<T: TokenStream> Parser<T> {
                 }
             }
 
-            // ignore modules for now
-            let _ = self.eat(&Token::Pub).is_ok();
-            if self.eat(&Token::Mod).is_ok() {
-                match self.eat(&Any)? {
-                    (Token::Ident(_), _) => {
-                        continue;
-                    }
-                    tok => Err(ParseError::Unexpected(
-                        tok,
-                        "Expected identifier for module name".to_string(),
-                    ))?,
-                }
+            if pub_ && matches!(self.peek(1), Token::Mod) {
+                mods.push(self.parse_module_import()?);
+                continue;
             }
 
             match self.curr_token {
                 Token::LBrace => statements.push(StatementBlock::Block(self.parse_block()?)),
+                Token::Mod => mods.push(self.parse_module_import()?),
+                Token::Use => uses.push(self.parse_use_import()?),
                 _ => {
                     if global {
                         Err(ParseError::Unexpected(
@@ -573,13 +568,17 @@ impl<T: TokenStream> Parser<T> {
             }
         }
 
-        struct_var_definitions.append(&mut fn_definitions);
+        definitions.append(&mut struct_var_definitions);
+        definitions.append(&mut fn_definitions);
+
         pub_struct_var_definitions.append(&mut pub_fn_definitions);
 
         Ok(Module {
+            uses,
+            mods,
             public_definitions: pub_struct_var_definitions,
             block: Block {
-                definitions: struct_var_definitions,
+                definitions,
                 statements,
             },
         })
@@ -865,10 +864,12 @@ impl<T: TokenStream> Parser<T> {
     }
     fn parse_module_import(&mut self) -> ParseResult<ModuleImport> {
         let public = self.eat(&Token::Pub).is_ok();
+        self.eat(&Token::Mod)?;
 
         let tok = self.eat(&Any)?;
 
         if let (Token::Ident(s), _) = tok {
+            self.eat(&Token::Semicolon)?;
             Ok(ModuleImport { public, name: s })
         } else {
             Err(ParseError::Unexpected(

@@ -202,9 +202,6 @@ pub enum StatementBlock {
 
 #[derive(Debug, PartialEq)]
 pub enum Definition {
-    ModuleImport(ModuleImport),
-    Use(Use),
-
     VarDecl(VarDecl),
     StructDef(StructDef),
     FnDef(FnDef),
@@ -218,6 +215,8 @@ pub struct Block {
 
 #[derive(Debug, PartialEq)]
 pub struct Module {
+    pub mods: Vec<ModuleImport>,
+    pub uses: Vec<Use>,
     pub public_definitions: Vec<Definition>,
     pub block: Block,
 }
