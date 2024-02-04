@@ -5,6 +5,8 @@ use crate::front::syntax::parser::TokenStream;
 pub struct Lexer {
     reader: ByteStream,
     curr: char,
+    index: u64,
+    return_index: u64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -13,13 +15,22 @@ pub enum TokenError {
     MultipleDecimals,
 }
 
+pub type TokenInfo = (Token, u64);
+
 impl Lexer {
     pub fn new(reader: ByteStream) -> Lexer {
-        let mut lexer = Lexer { reader, curr: '\0' };
+        let mut lexer = Lexer {
+            reader,
+            curr: '\0',
+            index: 0,
+            return_index: 0,
+        };
         lexer.eat();
+        lexer.index = 0;
         lexer
     }
     fn read_char(&mut self) -> char {
+        self.index += 1;
         self.reader.next()
     }
 
@@ -29,9 +40,14 @@ impl Lexer {
         prev
     }
 
-    fn get_token(&mut self) -> Result<Token, TokenError> {
+    fn get_token(&mut self) -> Result<TokenInfo, TokenError> {
+        return Ok((self.parse_token()?, self.return_index));
+    }
+
+    fn parse_token(&mut self) -> Result<Token, TokenError> {
         // check for EOF
         if self.curr == '\0' {
+            self.return_index = self.index;
             return Ok(Token::Eof);
         }
 
@@ -66,6 +82,7 @@ impl Lexer {
                 }
             }
         }
+        self.return_index = self.index;
 
         // read string
         if self.curr == '"' {
@@ -236,7 +253,7 @@ impl Lexer {
 }
 
 impl TokenStream for Lexer {
-    fn next(&mut self) -> Result<Token, TokenError> {
+    fn next(&mut self) -> Result<TokenInfo, TokenError> {
         self.get_token()
     }
 }
@@ -253,16 +270,16 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::Fn);
-        assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
-        assert_eq!(lexer.next().unwrap(), Token::LParen);
-        assert_eq!(lexer.next().unwrap(), Token::RParen);
-        assert_eq!(lexer.next().unwrap(), Token::LBrace);
-        assert_eq!(lexer.next().unwrap(), Token::Return);
-        assert_eq!(lexer.next().unwrap(), Token::Int(0));
-        assert_eq!(lexer.next().unwrap(), Token::Semicolon);
-        assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::Eof);
+        assert_eq!(lexer.next().unwrap(), (Token::Fn, 0));
+        assert_eq!(lexer.next().unwrap(), (Token::Ident("main".to_string()), 3));
+        assert_eq!(lexer.next().unwrap(), (Token::LParen, 7));
+        assert_eq!(lexer.next().unwrap(), (Token::RParen, 8));
+        assert_eq!(lexer.next().unwrap(), (Token::LBrace, 10));
+        assert_eq!(lexer.next().unwrap(), (Token::Return, 12));
+        assert_eq!(lexer.next().unwrap(), (Token::Int(0), 19));
+        assert_eq!(lexer.next().unwrap(), (Token::Semicolon, 20));
+        assert_eq!(lexer.next().unwrap(), (Token::RBrace, 22));
+        assert_eq!(lexer.next().unwrap(), (Token::Eof, 23));
     }
 
     #[test]
@@ -272,9 +289,9 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::Int(643214));
-        assert_eq!(lexer.next().unwrap(), Token::Decimal(3243.24321));
-        assert_eq!(lexer.next().unwrap(), Token::Decimal(0.432432));
+        assert_eq!(lexer.next().unwrap().0, Token::Int(643214));
+        assert_eq!(lexer.next().unwrap().0, Token::Decimal(3243.24321));
+        assert_eq!(lexer.next().unwrap().0, Token::Decimal(0.432432));
         assert_eq!(lexer.next().err().unwrap(), TokenError::MultipleDecimals);
     }
 
@@ -285,16 +302,16 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::Fn);
-        assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
-        assert_eq!(lexer.next().unwrap(), Token::LParen);
-        assert_eq!(lexer.next().unwrap(), Token::RParen);
-        assert_eq!(lexer.next().unwrap(), Token::LBrace);
-        assert_eq!(lexer.next().unwrap(), Token::Return);
-        assert_eq!(lexer.next().unwrap(), Token::Int(1));
-        assert_eq!(lexer.next().unwrap(), Token::Semicolon);
-        assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::Eof);
+        assert_eq!(lexer.next().unwrap().0, Token::Fn);
+        assert_eq!(lexer.next().unwrap().0, Token::Ident("main".to_string()));
+        assert_eq!(lexer.next().unwrap().0, Token::LParen);
+        assert_eq!(lexer.next().unwrap().0, Token::RParen);
+        assert_eq!(lexer.next().unwrap().0, Token::LBrace);
+        assert_eq!(lexer.next().unwrap().0, Token::Return);
+        assert_eq!(lexer.next().unwrap().0, Token::Int(1));
+        assert_eq!(lexer.next().unwrap().0, Token::Semicolon);
+        assert_eq!(lexer.next().unwrap().0, Token::RBrace);
+        assert_eq!(lexer.next().unwrap().0, Token::Eof);
     }
 
     #[test]
@@ -304,16 +321,16 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::Fn);
-        assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
-        assert_eq!(lexer.next().unwrap(), Token::LParen);
-        assert_eq!(lexer.next().unwrap(), Token::RParen);
-        assert_eq!(lexer.next().unwrap(), Token::LBrace);
-        assert_eq!(lexer.next().unwrap(), Token::Return);
-        assert_eq!(lexer.next().unwrap(), Token::Int(0));
-        assert_eq!(lexer.next().unwrap(), Token::Semicolon);
-        assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::Eof);
+        assert_eq!(lexer.next().unwrap().0, Token::Fn);
+        assert_eq!(lexer.next().unwrap().0, Token::Ident("main".to_string()));
+        assert_eq!(lexer.next().unwrap().0, Token::LParen);
+        assert_eq!(lexer.next().unwrap().0, Token::RParen);
+        assert_eq!(lexer.next().unwrap().0, Token::LBrace);
+        assert_eq!(lexer.next().unwrap().0, Token::Return);
+        assert_eq!(lexer.next().unwrap().0, Token::Int(0));
+        assert_eq!(lexer.next().unwrap().0, Token::Semicolon);
+        assert_eq!(lexer.next().unwrap().0, Token::RBrace);
+        assert_eq!(lexer.next().unwrap().0, Token::Eof);
     }
 
     #[test]
@@ -323,26 +340,26 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::Fn);
-        assert_eq!(lexer.next().unwrap(), Token::Ident("main".to_string()));
-        assert_eq!(lexer.next().unwrap(), Token::LParen);
-        assert_eq!(lexer.next().unwrap(), Token::RParen);
-        assert_eq!(lexer.next().unwrap(), Token::LBrace);
-        assert_eq!(lexer.next().unwrap(), Token::Return);
-        assert_eq!(lexer.next().unwrap(), Token::Int(0));
-        assert_eq!(lexer.next().unwrap(), Token::Plus);
-        assert_eq!(lexer.next().unwrap(), Token::Int(1));
-        assert_eq!(lexer.next().unwrap(), Token::Minus);
-        assert_eq!(lexer.next().unwrap(), Token::Int(2));
-        assert_eq!(lexer.next().unwrap(), Token::Star);
-        assert_eq!(lexer.next().unwrap(), Token::Int(3));
-        assert_eq!(lexer.next().unwrap(), Token::Slash);
-        assert_eq!(lexer.next().unwrap(), Token::Int(4));
-        assert_eq!(lexer.next().unwrap(), Token::Percent);
-        assert_eq!(lexer.next().unwrap(), Token::Int(5));
-        assert_eq!(lexer.next().unwrap(), Token::Semicolon);
-        assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::Eof);
+        assert_eq!(lexer.next().unwrap().0, Token::Fn);
+        assert_eq!(lexer.next().unwrap().0, Token::Ident("main".to_string()));
+        assert_eq!(lexer.next().unwrap().0, Token::LParen);
+        assert_eq!(lexer.next().unwrap().0, Token::RParen);
+        assert_eq!(lexer.next().unwrap().0, Token::LBrace);
+        assert_eq!(lexer.next().unwrap().0, Token::Return);
+        assert_eq!(lexer.next().unwrap().0, Token::Int(0));
+        assert_eq!(lexer.next().unwrap().0, Token::Plus);
+        assert_eq!(lexer.next().unwrap().0, Token::Int(1));
+        assert_eq!(lexer.next().unwrap().0, Token::Minus);
+        assert_eq!(lexer.next().unwrap().0, Token::Int(2));
+        assert_eq!(lexer.next().unwrap().0, Token::Star);
+        assert_eq!(lexer.next().unwrap().0, Token::Int(3));
+        assert_eq!(lexer.next().unwrap().0, Token::Slash);
+        assert_eq!(lexer.next().unwrap().0, Token::Int(4));
+        assert_eq!(lexer.next().unwrap().0, Token::Percent);
+        assert_eq!(lexer.next().unwrap().0, Token::Int(5));
+        assert_eq!(lexer.next().unwrap().0, Token::Semicolon);
+        assert_eq!(lexer.next().unwrap().0, Token::RBrace);
+        assert_eq!(lexer.next().unwrap().0, Token::Eof);
     }
 
     #[test]
@@ -352,25 +369,25 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::Assign);
-        assert_eq!(lexer.next().unwrap(), Token::Comma);
-        assert_eq!(lexer.next().unwrap(), Token::Semicolon);
-        assert_eq!(lexer.next().unwrap(), Token::Colon);
-        assert_eq!(lexer.next().unwrap(), Token::LParen);
-        assert_eq!(lexer.next().unwrap(), Token::RParen);
-        assert_eq!(lexer.next().unwrap(), Token::LBrace);
-        assert_eq!(lexer.next().unwrap(), Token::RBrace);
-        assert_eq!(lexer.next().unwrap(), Token::LBracket);
-        assert_eq!(lexer.next().unwrap(), Token::RBracket);
-        assert_eq!(lexer.next().unwrap(), Token::LAngle);
-        assert_eq!(lexer.next().unwrap(), Token::RAngle);
-        assert_eq!(lexer.next().unwrap(), Token::Plus);
-        assert_eq!(lexer.next().unwrap(), Token::Minus);
-        assert_eq!(lexer.next().unwrap(), Token::Star);
-        assert_eq!(lexer.next().unwrap(), Token::Slash);
-        assert_eq!(lexer.next().unwrap(), Token::Percent);
-        assert_eq!(lexer.next().unwrap(), Token::Exclamation);
-        assert_eq!(lexer.next().unwrap(), Token::Ampersand);
+        assert_eq!(lexer.next().unwrap().0, Token::Assign);
+        assert_eq!(lexer.next().unwrap().0, Token::Comma);
+        assert_eq!(lexer.next().unwrap().0, Token::Semicolon);
+        assert_eq!(lexer.next().unwrap().0, Token::Colon);
+        assert_eq!(lexer.next().unwrap().0, Token::LParen);
+        assert_eq!(lexer.next().unwrap().0, Token::RParen);
+        assert_eq!(lexer.next().unwrap().0, Token::LBrace);
+        assert_eq!(lexer.next().unwrap().0, Token::RBrace);
+        assert_eq!(lexer.next().unwrap().0, Token::LBracket);
+        assert_eq!(lexer.next().unwrap().0, Token::RBracket);
+        assert_eq!(lexer.next().unwrap().0, Token::LAngle);
+        assert_eq!(lexer.next().unwrap().0, Token::RAngle);
+        assert_eq!(lexer.next().unwrap().0, Token::Plus);
+        assert_eq!(lexer.next().unwrap().0, Token::Minus);
+        assert_eq!(lexer.next().unwrap().0, Token::Star);
+        assert_eq!(lexer.next().unwrap().0, Token::Slash);
+        assert_eq!(lexer.next().unwrap().0, Token::Percent);
+        assert_eq!(lexer.next().unwrap().0, Token::Exclamation);
+        assert_eq!(lexer.next().unwrap().0, Token::Ampersand);
     }
 
     #[test]
@@ -380,15 +397,15 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::Equal);
-        assert_eq!(lexer.next().unwrap(), Token::NotEqual);
-        assert_eq!(lexer.next().unwrap(), Token::Leq);
-        assert_eq!(lexer.next().unwrap(), Token::Geq);
-        assert_eq!(lexer.next().unwrap(), Token::PlusAssign);
-        assert_eq!(lexer.next().unwrap(), Token::MinusAssign);
-        assert_eq!(lexer.next().unwrap(), Token::StarAssign);
-        assert_eq!(lexer.next().unwrap(), Token::SlashAssign);
-        assert_eq!(lexer.next().unwrap(), Token::PercentAssign);
+        assert_eq!(lexer.next().unwrap().0, Token::Equal);
+        assert_eq!(lexer.next().unwrap().0, Token::NotEqual);
+        assert_eq!(lexer.next().unwrap().0, Token::Leq);
+        assert_eq!(lexer.next().unwrap().0, Token::Geq);
+        assert_eq!(lexer.next().unwrap().0, Token::PlusAssign);
+        assert_eq!(lexer.next().unwrap().0, Token::MinusAssign);
+        assert_eq!(lexer.next().unwrap().0, Token::StarAssign);
+        assert_eq!(lexer.next().unwrap().0, Token::SlashAssign);
+        assert_eq!(lexer.next().unwrap().0, Token::PercentAssign);
     }
 
     #[test]
@@ -398,10 +415,10 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::And);
-        assert_eq!(lexer.next().unwrap(), Token::Or);
-        assert_eq!(lexer.next().unwrap(), Token::PlusPlus);
-        assert_eq!(lexer.next().unwrap(), Token::MinusMinus);
+        assert_eq!(lexer.next().unwrap().0, Token::And);
+        assert_eq!(lexer.next().unwrap().0, Token::Or);
+        assert_eq!(lexer.next().unwrap().0, Token::PlusPlus);
+        assert_eq!(lexer.next().unwrap().0, Token::MinusMinus);
     }
 
     #[test]
@@ -411,30 +428,30 @@ mod tests {
             statement.to_string(),
         ))));
 
-        assert_eq!(lexer.next().unwrap(), Token::Const);
-        assert_eq!(lexer.next().unwrap(), Token::VoidType);
-        assert_eq!(lexer.next().unwrap(), Token::IntType);
-        assert_eq!(lexer.next().unwrap(), Token::FloatType);
-        assert_eq!(lexer.next().unwrap(), Token::DoubleType);
-        assert_eq!(lexer.next().unwrap(), Token::BoolType);
-        assert_eq!(lexer.next().unwrap(), Token::StringType);
-        assert_eq!(lexer.next().unwrap(), Token::StructType);
-        assert_eq!(lexer.next().unwrap(), Token::Impl);
-        assert_eq!(lexer.next().unwrap(), Token::Fn);
-        assert_eq!(lexer.next().unwrap(), Token::Rec);
-        assert_eq!(lexer.next().unwrap(), Token::Inline);
-        assert_eq!(lexer.next().unwrap(), Token::If);
-        assert_eq!(lexer.next().unwrap(), Token::Else);
-        assert_eq!(lexer.next().unwrap(), Token::While);
-        assert_eq!(lexer.next().unwrap(), Token::For);
-        assert_eq!(lexer.next().unwrap(), Token::Return);
-        assert_eq!(lexer.next().unwrap(), Token::Break);
-        assert_eq!(lexer.next().unwrap(), Token::Continue);
-        assert_eq!(lexer.next().unwrap(), Token::Bool(true));
-        assert_eq!(lexer.next().unwrap(), Token::Bool(false));
-        assert_eq!(lexer.next().unwrap(), Token::Use);
-        assert_eq!(lexer.next().unwrap(), Token::As);
-        assert_eq!(lexer.next().unwrap(), Token::Mod);
-        assert_eq!(lexer.next().unwrap(), Token::Pub);
+        assert_eq!(lexer.next().unwrap().0, Token::Const);
+        assert_eq!(lexer.next().unwrap().0, Token::VoidType);
+        assert_eq!(lexer.next().unwrap().0, Token::IntType);
+        assert_eq!(lexer.next().unwrap().0, Token::FloatType);
+        assert_eq!(lexer.next().unwrap().0, Token::DoubleType);
+        assert_eq!(lexer.next().unwrap().0, Token::BoolType);
+        assert_eq!(lexer.next().unwrap().0, Token::StringType);
+        assert_eq!(lexer.next().unwrap().0, Token::StructType);
+        assert_eq!(lexer.next().unwrap().0, Token::Impl);
+        assert_eq!(lexer.next().unwrap().0, Token::Fn);
+        assert_eq!(lexer.next().unwrap().0, Token::Rec);
+        assert_eq!(lexer.next().unwrap().0, Token::Inline);
+        assert_eq!(lexer.next().unwrap().0, Token::If);
+        assert_eq!(lexer.next().unwrap().0, Token::Else);
+        assert_eq!(lexer.next().unwrap().0, Token::While);
+        assert_eq!(lexer.next().unwrap().0, Token::For);
+        assert_eq!(lexer.next().unwrap().0, Token::Return);
+        assert_eq!(lexer.next().unwrap().0, Token::Break);
+        assert_eq!(lexer.next().unwrap().0, Token::Continue);
+        assert_eq!(lexer.next().unwrap().0, Token::Bool(true));
+        assert_eq!(lexer.next().unwrap().0, Token::Bool(false));
+        assert_eq!(lexer.next().unwrap().0, Token::Use);
+        assert_eq!(lexer.next().unwrap().0, Token::As);
+        assert_eq!(lexer.next().unwrap().0, Token::Mod);
+        assert_eq!(lexer.next().unwrap().0, Token::Pub);
     }
 }

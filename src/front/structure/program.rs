@@ -107,10 +107,9 @@ impl<T: FileSystem> Program<T> {
 
     fn globalize_names(&mut self) {
         let merged_modules = &mut self.merged_modules;
-
-        for (path, module_node) in self.modules.iter_mut() {
+        for (path, mut module_node) in self.modules.drain() {
             let module = module_node.module.as_mut().unwrap(); // if unwrap fails there's something wrong with the code
-            merged_modules.name_map.set_path(path);
+            merged_modules.name_map.set_path(&path);
             module
                 .resolve_module(&mut merged_modules.name_map)
                 .expect("Failed to resolve module");
@@ -178,27 +177,9 @@ mod tests {
 
         let mut program = Program::new(mock_file_system);
         program.read_nodes();
-        // program.parse_files(false);
+        program.parse_files(false);
+        program.globalize_names();
 
-        // assert_eq!(program.modules.len(), 3);
-        // assert_eq!(
-        //     program.modules.get("main").unwrap().module,
-        //     Some(Module {
-        //         block: Block {
-        //             definitions: vec![Definition::FnDef(FnDef {
-        //                 name: Reference::new("main".to_string()),
-        //                 args: vec![],
-        //                 return_type: Void,
-        //                 body: Some(Block {
-        //                     definitions: vec![],
-        //                     statements: vec![],
-        //                 }),
-        //                 mods: Rc::new(vec![]),
-        //             })],
-        //             statements: vec![],
-        //         },
-        //         public_definitions: vec![],
-        //     })
-        // );
+        assert_eq!(program.modules.len(), 0);
     }
 }

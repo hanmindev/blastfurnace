@@ -1,4 +1,4 @@
-use crate::front::lexical::lexer::TokenError;
+use crate::front::lexical::lexer::{TokenError, TokenInfo};
 use crate::front::lexical::token_types::Token;
 use crate::front::lexical::token_types::Token::Any;
 use crate::front::syntax::ast_types::{
@@ -14,25 +14,27 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub enum ParseError {
     Unknown,
-    Unexpected(Token, String),
+    Unexpected(TokenInfo, String),
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;
 
 pub trait TokenStream {
-    fn next(&mut self) -> Result<Token, TokenError>;
+    fn next(&mut self) -> Result<TokenInfo, TokenError>;
 }
 
 pub struct Parser<T: TokenStream> {
     lexer: T,
+    token_index: u64,
     curr_token: Token,
-    future_tokens: VecDeque<Token>,
+    future_tokens: VecDeque<TokenInfo>,
 }
 
 impl<T: TokenStream> Parser<T> {
     pub fn new(lexer: T) -> Parser<T> {
         let mut parser = Parser {
             lexer,
+            token_index: 0,
             curr_token: Token::Eof,
             future_tokens: VecDeque::new(),
         };
@@ -40,23 +42,28 @@ impl<T: TokenStream> Parser<T> {
         parser
     }
 
-    fn next(&mut self) -> Token {
+    fn curr_token_info(&self) -> TokenInfo {
+        (self.curr_token.clone(), self.token_index)
+    }
+
+    fn next(&mut self) -> TokenInfo {
         match self.future_tokens.pop_front() {
             None => self.lexer.next().unwrap(),
             Some(front) => front,
         }
     }
 
-    fn eat(&mut self, type_: &Token) -> ParseResult<Token> {
+    fn eat(&mut self, type_: &Token) -> ParseResult<TokenInfo> {
         // return old lexical, set new lexical, set one buffer of next lexical
         if mem::discriminant(&self.curr_token) == mem::discriminant(type_) || matches!(type_, Any) {
             let old_curr = self.curr_token.clone();
-            self.curr_token = self.next();
+            let old_index = self.token_index;
+            (self.curr_token, self.token_index) = self.next();
 
-            Ok(old_curr)
+            Ok((old_curr, old_index))
         } else {
             Err(ParseError::Unexpected(
-                self.curr_token.clone(),
+                (self.curr_token.clone(), self.token_index),
                 format!("Tried to eat {:?}, ate {:?}", type_, self.curr_token),
             ))
         }
@@ -72,7 +79,7 @@ impl<T: TokenStream> Parser<T> {
             self.future_tokens.push_back(next);
         }
 
-        &self.future_tokens[count as usize - 1]
+        &self.future_tokens[count as usize - 1].0
     }
 
     pub fn string_to_namepath(s: &str) -> NamePath {
@@ -101,22 +108,22 @@ impl<T: TokenStream> Parser<T> {
         }
 
         match self.eat(&Any)? {
-            Token::Null => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+            (Token::Null, _) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
                 LiteralValue::Null,
             ))),
-            Token::Bool(b) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+            (Token::Bool(b), _) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
                 LiteralValue::Bool(b),
             ))),
-            Token::Int(i) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+            (Token::Int(i), _) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
                 LiteralValue::Int(i),
             ))),
-            Token::Decimal(f) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+            (Token::Decimal(f), _) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
                 LiteralValue::Decimal(f),
             ))),
-            Token::String(s) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
+            (Token::String(s), _) => Ok(Expression::AtomicExpression(AtomicExpression::Literal(
                 LiteralValue::String(s),
             ))),
-            Token::Ident(s) => {
+            (Token::Ident(s), _) => {
                 if matches!(self.curr_token, Token::LParen) {
                     let mut fn_call = Box::from(FnCall {
                         name: Reference::new(s),
@@ -157,7 +164,7 @@ impl<T: TokenStream> Parser<T> {
                 }
             }
             tok => Err(ParseError::Unexpected(
-                tok.clone(),
+                tok,
                 "Expected type for atomic expression parsing".to_string(),
             )),
         }
@@ -347,21 +354,21 @@ impl<T: TokenStream> Parser<T> {
 
     fn parse_assignment(&mut self) -> ParseResult<Statement> {
         match &self.eat(&Any)? {
-            Token::Ident(var_name) => {
+            (Token::Ident(var_name), _) => {
                 let name_path = Parser::<T>::string_to_namepath(var_name);
 
                 let assign_op = match self.eat(&Any)? {
-                    Token::Assign => {
+                    (Token::Assign, _) => {
                         return Ok(Statement::VarAssign(VarAssign {
                             name_path,
                             expr: self.parse_expression()?,
                         }));
                     }
-                    Token::PlusAssign => BinOp::Add,
-                    Token::MinusAssign => BinOp::Sub,
-                    Token::StarAssign => BinOp::Mul,
-                    Token::SlashAssign => BinOp::Div,
-                    Token::PercentAssign => BinOp::Mod,
+                    (Token::PlusAssign, _) => BinOp::Add,
+                    (Token::MinusAssign, _) => BinOp::Sub,
+                    (Token::StarAssign, _) => BinOp::Mul,
+                    (Token::SlashAssign, _) => BinOp::Div,
+                    (Token::PercentAssign, _) => BinOp::Mod,
                     tok => {
                         return Err(ParseError::Unexpected(
                             tok.clone(),
@@ -464,7 +471,7 @@ impl<T: TokenStream> Parser<T> {
             Token::Mod => Ok(Definition::ModuleImport(self.parse_module_import()?)),
             Token::Use => Ok(Definition::Use(self.parse_use_import()?)),
             _ => Err(ParseError::Unexpected(
-                self.curr_token.clone(),
+                self.curr_token_info(),
                 "Expected definition".to_string(),
             )),
         }
@@ -486,10 +493,7 @@ impl<T: TokenStream> Parser<T> {
             }
 
             if !global && self.curr_token == Token::Pub {
-                return Err(ParseError::Unexpected(
-                    self.curr_token.clone(),
-                    "Cannot use pub in local scope".to_string(),
-                ));
+                panic!("pub in local scope")
             }
 
             let pub_ = self.curr_token == Token::Pub;
@@ -539,7 +543,7 @@ impl<T: TokenStream> Parser<T> {
                 _ => {
                     if global {
                         Err(ParseError::Unexpected(
-                            self.curr_token.clone(),
+                            self.curr_token_info(),
                             "Cannot be used in global scope".to_string(),
                         ))?
                     }
@@ -573,10 +577,7 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::RBrace)?;
 
         if !module.public_definitions.is_empty() {
-            Err(ParseError::Unexpected(
-                Token::Pub,
-                "Cannot use pub in local scope".to_string(),
-            ))?;
+            panic!("public definitions in block")
         }
 
         Ok(module.block)
@@ -626,7 +627,7 @@ impl<T: TokenStream> Parser<T> {
         }
 
         let var_name = match self.eat(&Any)? {
-            Token::Ident(s) => s,
+            (Token::Ident(s), _) => s,
             tok => Err(ParseError::Unexpected(
                 tok,
                 "Expected identifier for variable name".to_string(),
@@ -636,13 +637,13 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::Colon)?; // required for now because we don't have type inference
 
         let type_ = match self.eat(&Any)? {
-            Token::VoidType => Type::Void,
-            Token::IntType => Type::Int,
-            Token::FloatType => Type::Float,
-            Token::DoubleType => Type::Double,
-            Token::BoolType => Type::Bool,
-            Token::StringType => Type::String,
-            Token::Ident(s) => Type::Struct(Reference::new(s)),
+            (Token::VoidType, _) => Type::Void,
+            (Token::IntType, _) => Type::Int,
+            (Token::FloatType, _) => Type::Float,
+            (Token::DoubleType, _) => Type::Double,
+            (Token::BoolType, _) => Type::Bool,
+            (Token::StringType, _) => Type::String,
+            (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
             tok => Err(ParseError::Unexpected(
                 tok,
                 "Expected variable type annotation for variable declaration".to_string(),
@@ -679,11 +680,12 @@ impl<T: TokenStream> Parser<T> {
             rec = true;
         }
 
-        if self.eat(&Token::Inline).is_ok() {
+        let tok_r = self.eat(&Token::Inline);
+        if let Ok(tok) = tok_r {
             mods.push(FnMod::Inline);
             if rec {
                 Err(ParseError::Unexpected(
-                    Token::Inline,
+                    tok,
                     "Inline functions cannot be recursive".to_string(),
                 ))?;
             }
@@ -691,7 +693,7 @@ impl<T: TokenStream> Parser<T> {
 
         self.eat(&Token::Fn)?;
         let name = match self.eat(&Any)? {
-            Token::Ident(s) => s,
+            (Token::Ident(s), _) => s,
             tok => Err(ParseError::Unexpected(
                 tok,
                 "Expected identifier for function name".to_string(),
@@ -709,7 +711,7 @@ impl<T: TokenStream> Parser<T> {
                 }
 
                 let name = Reference::new(match self.eat(&Any)? {
-                    Token::Ident(s) => s,
+                    (Token::Ident(s), _) => s,
                     tok => {
                         return Err(ParseError::Unexpected(
                             tok,
@@ -721,13 +723,13 @@ impl<T: TokenStream> Parser<T> {
                 self.eat(&Token::Colon)?; // required for now because we don't have type inference
 
                 let type_ = match self.eat(&Any)? {
-                    Token::VoidType => Type::Void,
-                    Token::IntType => Type::Int,
-                    Token::FloatType => Type::Float,
-                    Token::DoubleType => Type::Double,
-                    Token::BoolType => Type::Bool,
-                    Token::StringType => Type::String,
-                    Token::Ident(s) => Type::Struct(Reference::new(s)),
+                    (Token::VoidType, _) => Type::Void,
+                    (Token::IntType, _) => Type::Int,
+                    (Token::FloatType, _) => Type::Float,
+                    (Token::DoubleType, _) => Type::Double,
+                    (Token::BoolType, _) => Type::Bool,
+                    (Token::StringType, _) => Type::String,
+                    (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
                     tok => {
                         return Err(ParseError::Unexpected(
                             tok,
@@ -752,13 +754,13 @@ impl<T: TokenStream> Parser<T> {
 
         let return_type = if self.eat(&Token::Arrow).is_ok() {
             match self.eat(&Any)? {
-                Token::VoidType => Type::Void,
-                Token::IntType => Type::Int,
-                Token::FloatType => Type::Float,
-                Token::DoubleType => Type::Double,
-                Token::BoolType => Type::Bool,
-                Token::StringType => Type::String,
-                Token::Ident(s) => Type::Struct(Reference::new(s)),
+                (Token::VoidType, _) => Type::Void,
+                (Token::IntType, _) => Type::Int,
+                (Token::FloatType, _) => Type::Float,
+                (Token::DoubleType, _) => Type::Double,
+                (Token::BoolType, _) => Type::Bool,
+                (Token::StringType, _) => Type::String,
+                (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
                 tok => {
                     return Err(ParseError::Unexpected(
                         tok,
@@ -791,7 +793,7 @@ impl<T: TokenStream> Parser<T> {
         self.eat(&Token::StructType)?;
 
         let struct_name = match self.eat(&Any)? {
-            Token::Ident(s) => s,
+            (Token::Ident(s), _) => s,
             tok => {
                 return Err(ParseError::Unexpected(
                     tok,
@@ -806,7 +808,7 @@ impl<T: TokenStream> Parser<T> {
 
         while !matches!(self.curr_token, Token::RBrace) {
             let name = match self.eat(&Any)? {
-                Token::Ident(s) => s,
+                (Token::Ident(s), _) => s,
                 tok => {
                     return Err(ParseError::Unexpected(
                         tok,
@@ -818,13 +820,13 @@ impl<T: TokenStream> Parser<T> {
             self.eat(&Token::Colon)?; // required for now because we don't have type inference
 
             let type_ = match self.eat(&Any)? {
-                Token::VoidType => Type::Void,
-                Token::IntType => Type::Int,
-                Token::FloatType => Type::Float,
-                Token::DoubleType => Type::Double,
-                Token::BoolType => Type::Bool,
-                Token::StringType => Type::String,
-                Token::Ident(s) => Type::Struct(Reference::new(s)),
+                (Token::VoidType, _) => Type::Void,
+                (Token::IntType, _) => Type::Int,
+                (Token::FloatType, _) => Type::Float,
+                (Token::DoubleType, _) => Type::Double,
+                (Token::BoolType, _) => Type::Bool,
+                (Token::StringType, _) => Type::String,
+                (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
                 tok => {
                     return Err(ParseError::Unexpected(
                         tok,
@@ -858,11 +860,13 @@ impl<T: TokenStream> Parser<T> {
     fn parse_module_import(&mut self) -> ParseResult<ModuleImport> {
         let public = self.eat(&Token::Pub).is_ok();
 
-        if let Token::Ident(s) = self.eat(&Any)? {
+        let tok = self.eat(&Any)?;
+
+        if let (Token::Ident(s), _) = tok {
             Ok(ModuleImport { public, name: s })
         } else {
             Err(ParseError::Unexpected(
-                self.curr_token.clone(),
+                tok,
                 "Expected identifier for module name".to_string(),
             ))
         }
@@ -876,26 +880,27 @@ impl<T: TokenStream> Parser<T> {
         };
 
         loop {
-            if let Token::Ident(s) = self.eat(&Any)? {
+            if let Token::Ident(s) = self.eat(&Any)?.0 {
                 match self.eat(&Any)? {
-                    Token::Colon => {
+                    (Token::Colon, _) => {
                         self.eat(&Token::Colon)?;
                         use_.path.push(s);
                     }
-                    Token::LBrace => {
+                    (Token::LBrace, _) => {
                         use_.path.push(s);
                         break;
                     }
-                    Token::Semicolon | Token::As => {
+                    (Token::Semicolon, _) | (Token::As, _) => {
                         use_.elements.push(UseElement {
                             origin_name: s.clone(),
                             imported_name: Reference::new((|| {
                                 if self.eat(&Token::As).is_ok() {
-                                    return if let Token::Ident(s) = self.eat(&Any)? {
+                                    let tok = self.eat(&Any)?;
+                                    return if let Token::Ident(s) = tok.0 {
                                         Ok(s)
                                     } else {
                                         Err(ParseError::Unexpected(
-                                            self.curr_token.clone(),
+                                            tok,
                                             "Expected identifier for imported name alias"
                                                 .to_string(),
                                         ))
