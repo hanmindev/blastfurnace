@@ -110,7 +110,7 @@ impl<T: FileSystem> Program<T> {
         for (path, mut module_node) in self.modules.drain() {
             let module = module_node.module.as_mut().unwrap(); // if unwrap fails there's something wrong with the code
             merged_modules.definition_table.set_path(&path);
-            merged_modules.mp.clear();
+            merged_modules.global_name_table.clear();
             module
                 .resolve_module(merged_modules)
                 .expect("Failed to resolve module");

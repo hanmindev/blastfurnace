@@ -5,14 +5,14 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct ModuleMerger {
-    pub mp: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
+    pub global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
     pub definition_table: DefinitionTable,
 }
 
 impl ModuleMerger {
     pub fn new() -> ModuleMerger {
         ModuleMerger {
-            mp: HashMap::new(),
+            global_name_table: HashMap::new(),
             definition_table: DefinitionTable::new(),
         }
     }

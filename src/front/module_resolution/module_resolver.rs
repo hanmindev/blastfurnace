@@ -61,7 +61,7 @@ impl Resolvable for Use {
                 name: Rc::from(format!("0_{original_name}")),
             };
             module_merger
-                .mp
+                .global_name_table
                 .insert(local_name, Rc::from(global_resolved_name));
             element.imported_name.resolve_module(module_merger)?;
         }
@@ -72,7 +72,10 @@ impl Resolvable for Use {
 
 impl Resolvable for Reference {
     fn resolve_module(&mut self, module_merger: &mut ModuleMerger) -> ResolveResult<()> {
-        if let Some(s) = module_merger.mp.get(self.module_resolved.as_ref().unwrap()) {
+        if let Some(s) = module_merger
+            .global_name_table
+            .get(self.module_resolved.as_ref().unwrap())
+        {
             self.global_resolved = Some(s.clone());
         } else {
             self.global_resolved = Some(Rc::from(GlobalResolvedName {
