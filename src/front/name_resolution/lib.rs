@@ -73,7 +73,7 @@ mod tests {
 
                 match &fn_def.body.as_ref().unwrap().statements[0] {
                     StatementBlock::Statement(Statement::Expression(bx)) => match bx.as_ref() {
-                        Expression::Binary(e0, b, e1) => match e0.as_ref() {
+                        Expression::Binary(e0, _, _) => match e0.as_ref() {
                             Expression::AtomicExpression(AtomicExpression::Variable(name_path)) => {
                                 assert_eq!(
                                     name_path.name.clone(),

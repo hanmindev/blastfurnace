@@ -1,4 +1,4 @@
-use crate::front::file_system::byte_stream::{ByteStream, ByteStreamable};
+use crate::front::file_system::byte_stream::ByteStream;
 use crate::front::lexical::token_types::Token;
 use crate::front::syntax::parser::TokenStream;
 

@@ -2,10 +2,9 @@ use crate::front::file_system::fs::FileSystem;
 use crate::front::lexical::lexer::Lexer;
 use crate::front::module_resolution::module_merger::ModuleMerger;
 use crate::front::name_resolution::name_resolver::resolve_module;
-use crate::front::syntax::ast_types::{GlobalResolvedName, Module};
+use crate::front::syntax::ast_types::Module;
 use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 type Source = String;
 type Path = String;
@@ -122,7 +121,8 @@ mod tests {
     use crate::front::file_system::fs::MockFileSystem;
     use crate::front::syntax::ast_types::Type::Void;
     use crate::front::syntax::ast_types::{
-        AtomicExpression, Block, Expression, FnCall, FnDef, Reference, Statement, StatementBlock,
+        AtomicExpression, Block, Expression, FnCall, FnDef, GlobalResolvedName, Reference,
+        Statement, StatementBlock,
     };
     use std::rc::Rc;
 
