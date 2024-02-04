@@ -2,8 +2,8 @@
 mod tests {
     use crate::front::file_system::byte_stream::{ByteStream, StringReader};
     use crate::front::lexical::lexer::Lexer;
-    use crate::front::name_resolution::resolver::Resolvable;
-    use crate::front::name_resolution::resolver::ResolverError::Redefinition;
+    use crate::front::name_resolution::name_resolver::Resolvable;
+    use crate::front::name_resolution::name_resolver::ResolverError::Redefinition;
     use crate::front::name_resolution::scope_table::ScopeTable;
     use crate::front::syntax::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, StatementBlock, Type,
@@ -24,7 +24,7 @@ mod tests {
 
         let mut module = parser.parse_module().unwrap();
 
-        module.resolve(&mut scope_table).unwrap();
+        module.resolve_name(&mut scope_table).unwrap();
 
         match &module.public_definitions[0] {
             Definition::VarDecl(var_decl) => {
@@ -141,7 +141,7 @@ mod tests {
 
         let mut module = parser.parse_module().unwrap();
 
-        module.resolve(&mut scope_table).unwrap();
+        module.resolve_name(&mut scope_table).unwrap();
 
         match &module.public_definitions[0] {
             Definition::VarDecl(var_decl) => {
@@ -245,7 +245,7 @@ mod tests {
 
         let mut block = parser.parse_module().unwrap().block;
 
-        block.resolve(&mut scope_table).unwrap();
+        block.resolve_name(&mut scope_table).unwrap();
 
         match &block.definitions[0] {
             Definition::StructDef(struct_def) => {
@@ -321,7 +321,7 @@ mod tests {
 
         let mut block = parser.parse_module().unwrap().block;
 
-        if let Err(error) = block.resolve(&mut scope_table) {
+        if let Err(error) = block.resolve_name(&mut scope_table) {
             assert_eq!(error, Redefinition("A".to_string()));
         } else {
             panic!("Expected error");
@@ -340,7 +340,7 @@ mod tests {
 
         let mut block = parser.parse_module().unwrap().block;
 
-        block.resolve(&mut scope_table).unwrap();
+        block.resolve_name(&mut scope_table).unwrap();
         match &block.definitions[2] {
             Definition::FnDef(fn_def) => {
                 assert_eq!(

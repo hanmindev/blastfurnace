@@ -6,7 +6,7 @@ use crate::front::syntax::ast_types::{
 };
 
 pub trait Resolvable {
-    fn resolve(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {
         Ok(())
     }
 }
@@ -20,14 +20,14 @@ pub enum ResolverError {
 pub type ResolveResult<T> = Result<T, ResolverError>;
 
 impl Resolvable for Block {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         scope_table.scope_enter();
         for definitions in &mut self.definitions {
-            definitions.resolve(scope_table)?;
+            definitions.resolve_name(scope_table)?;
         }
 
         for statement in &mut self.statements {
-            statement.resolve(scope_table)?;
+            statement.resolve_name(scope_table)?;
         }
         scope_table.scope_exit();
         Ok(())
@@ -35,18 +35,18 @@ impl Resolvable for Block {
 }
 
 impl Resolvable for Module {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         scope_table.scope_enter();
         for use_ in &mut self.uses {
-            use_.resolve(scope_table)?;
+            use_.resolve_name(scope_table)?;
         }
 
         scope_table.scope_enter();
         for definitions in &mut self.public_definitions {
-            definitions.resolve(scope_table)?;
+            definitions.resolve_name(scope_table)?;
         }
 
-        self.block.resolve(scope_table)?;
+        self.block.resolve_name(scope_table)?;
         scope_table.scope_exit();
         scope_table.scope_exit();
         Ok(())
@@ -54,36 +54,36 @@ impl Resolvable for Module {
 }
 
 impl Resolvable for StatementBlock {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
-            StatementBlock::Statement(statement) => statement.resolve(scope_table)?,
-            StatementBlock::Block(block) => block.resolve(scope_table)?,
+            StatementBlock::Statement(statement) => statement.resolve_name(scope_table)?,
+            StatementBlock::Block(block) => block.resolve_name(scope_table)?,
         }
         Ok(())
     }
 }
 
 impl Resolvable for Definition {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
-            Definition::VarDecl(statement) => statement.resolve(scope_table)?,
-            Definition::StructDef(statement) => statement.resolve(scope_table)?,
-            Definition::FnDef(statement) => statement.resolve(scope_table)?,
+            Definition::VarDecl(statement) => statement.resolve_name(scope_table)?,
+            Definition::StructDef(statement) => statement.resolve_name(scope_table)?,
+            Definition::FnDef(statement) => statement.resolve_name(scope_table)?,
         }
         Ok(())
     }
 }
 
 impl Resolvable for Statement {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
-            Statement::VarDecl(statement) => statement.resolve(scope_table)?,
-            Statement::VarAssign(statement) => statement.resolve(scope_table)?,
-            Statement::If(statement) => statement.resolve(scope_table)?,
-            Statement::While(statement) => statement.resolve(scope_table)?,
-            Statement::For(statement) => statement.resolve(scope_table)?,
-            Statement::Return(statement) => statement.resolve(scope_table)?,
-            Statement::Expression(statement) => statement.resolve(scope_table)?,
+            Statement::VarDecl(statement) => statement.resolve_name(scope_table)?,
+            Statement::VarAssign(statement) => statement.resolve_name(scope_table)?,
+            Statement::If(statement) => statement.resolve_name(scope_table)?,
+            Statement::While(statement) => statement.resolve_name(scope_table)?,
+            Statement::For(statement) => statement.resolve_name(scope_table)?,
+            Statement::Return(statement) => statement.resolve_name(scope_table)?,
+            Statement::Expression(statement) => statement.resolve_name(scope_table)?,
 
             _ => {}
         };
@@ -92,7 +92,7 @@ impl Resolvable for Statement {
 }
 
 impl Resolvable for VarDef {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         if let Type::Struct(struct_name) = &mut self.type_ {
             struct_name.module_resolved =
                 Some(scope_table.scope_lookup_force(&struct_name.raw, SymbolType::Struct));
@@ -104,27 +104,27 @@ impl Resolvable for VarDef {
 }
 
 impl Resolvable for VarDecl {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         if let Some(ref mut expr) = self.expr {
-            expr.resolve(scope_table)?
+            expr.resolve_name(scope_table)?
         }
-        self.var_def.resolve(scope_table)?;
+        self.var_def.resolve_name(scope_table)?;
 
         Ok(())
     }
 }
 
 impl Resolvable for VarAssign {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.name_path.resolve(scope_table)?;
-        self.expr.resolve(scope_table)?;
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        self.name_path.resolve_name(scope_table)?;
+        self.expr.resolve_name(scope_table)?;
 
         Ok(())
     }
 }
 
 impl Resolvable for StructDef {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         self.type_name.module_resolved =
             Some(scope_table.scope_bind(&self.type_name.raw, SymbolType::Struct)?);
 
@@ -139,16 +139,16 @@ impl Resolvable for StructDef {
 }
 
 impl Resolvable for FnDef {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         scope_table.scope_enter();
 
         self.name.module_resolved = Some(scope_table.scope_bind(&self.name.raw, SymbolType::Fn)?);
         for arg in &mut self.args {
-            arg.resolve(scope_table)?;
+            arg.resolve_name(scope_table)?;
         }
 
         if let Some(body) = &mut self.body {
-            body.resolve(scope_table)?;
+            body.resolve_name(scope_table)?;
         }
         scope_table.scope_exit();
 
@@ -157,17 +157,17 @@ impl Resolvable for FnDef {
 }
 
 impl Resolvable for Expression {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
             Expression::AtomicExpression(atomic) => {
-                atomic.resolve(scope_table)?;
+                atomic.resolve_name(scope_table)?;
             }
             Expression::Unary(_, expression) => {
-                expression.resolve(scope_table)?;
+                expression.resolve_name(scope_table)?;
             }
             Expression::Binary(e0, _, e1) => {
-                e0.resolve(scope_table)?;
-                e1.resolve(scope_table)?;
+                e0.resolve_name(scope_table)?;
+                e1.resolve_name(scope_table)?;
             }
         }
 
@@ -176,18 +176,18 @@ impl Resolvable for Expression {
 }
 
 impl Resolvable for AtomicExpression {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
             AtomicExpression::Literal(lit) => {
                 if let LiteralValue::Compound(compound) = lit {
-                    compound.resolve(scope_table)?;
+                    compound.resolve_name(scope_table)?;
                 }
             }
             AtomicExpression::Variable(var) => {
-                var.resolve(scope_table)?;
+                var.resolve_name(scope_table)?;
             }
             AtomicExpression::FnCall(fn_call) => {
-                fn_call.resolve(scope_table)?;
+                fn_call.resolve_name(scope_table)?;
             }
         }
         Ok(())
@@ -195,7 +195,7 @@ impl Resolvable for AtomicExpression {
 }
 
 impl Resolvable for NamePath {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match scope_table.scope_lookup(&self.name.raw, SymbolType::Var) {
             Some(name) => {
                 self.name.module_resolved = Some(name.clone());
@@ -207,11 +207,11 @@ impl Resolvable for NamePath {
 }
 
 impl Resolvable for Compound {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         for (_, value) in self.iter_mut() {
             match value {
-                CompoundValue::Expression(expr) => expr.resolve(scope_table)?,
-                CompoundValue::Compound(compound) => compound.resolve(scope_table)?,
+                CompoundValue::Expression(expr) => expr.resolve_name(scope_table)?,
+                CompoundValue::Compound(compound) => compound.resolve_name(scope_table)?,
             }
         }
         Ok(())
@@ -219,7 +219,7 @@ impl Resolvable for Compound {
 }
 
 impl Resolvable for FnCall {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match scope_table.scope_lookup(&self.name.raw, SymbolType::Fn) {
             Some(name) => {
                 self.name.module_resolved = Some(name.clone());
@@ -228,49 +228,49 @@ impl Resolvable for FnCall {
         }
 
         for arg in &mut self.args {
-            arg.resolve(scope_table)?;
+            arg.resolve_name(scope_table)?;
         }
         Ok(())
     }
 }
 
 impl Resolvable for If {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.cond.resolve(scope_table)?;
-        self.body.resolve(scope_table)?;
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        self.cond.resolve_name(scope_table)?;
+        self.body.resolve_name(scope_table)?;
         if let Some(ref mut else_body) = self.else_ {
-            else_body.resolve(scope_table)?;
+            else_body.resolve_name(scope_table)?;
         }
         Ok(())
     }
 }
 
 impl Resolvable for While {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        self.cond.resolve(scope_table)?;
-        self.body.resolve(scope_table)?;
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        self.cond.resolve_name(scope_table)?;
+        self.body.resolve_name(scope_table)?;
         Ok(())
     }
 }
 
 impl Resolvable for For {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         if let Some(ref mut init) = self.init {
-            init.resolve(scope_table)?;
+            init.resolve_name(scope_table)?;
         }
         if let Some(ref mut cond) = self.cond {
-            cond.resolve(scope_table)?;
+            cond.resolve_name(scope_table)?;
         }
         if let Some(ref mut step) = self.step {
-            step.resolve(scope_table)?;
+            step.resolve_name(scope_table)?;
         }
-        self.body.resolve(scope_table)?;
+        self.body.resolve_name(scope_table)?;
         Ok(())
     }
 }
 
 impl Resolvable for Use {
-    fn resolve(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         for element in &mut self.elements {
             let struct_name =
                 scope_table.scope_bind(&element.imported_name.raw, SymbolType::Struct)?;
