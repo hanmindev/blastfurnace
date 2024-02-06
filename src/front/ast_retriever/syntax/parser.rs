@@ -1,7 +1,7 @@
 use crate::front::ast_retriever::lexical::lexer::{TokenError, TokenInfo};
 use crate::front::ast_retriever::lexical::token_types::Token;
 use crate::front::ast_retriever::lexical::token_types::Token::Any;
-use crate::front::ast_retriever::syntax::ast_types::{
+use crate::front::ast_retriever::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
     FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement,
     StatementBlock, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod,

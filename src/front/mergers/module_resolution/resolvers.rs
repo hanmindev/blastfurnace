@@ -1,5 +1,5 @@
 use crate::front::mergers::module_resolution::module_merger::ModuleMerger;
-use crate::front::ast_retriever::syntax::ast_types::{
+use crate::front::ast_retriever::ast_types::{
     AtomicExpression, Block, Definition, Expression, GlobalResolvedName, If, Module, Reference,
     ResolvedName, Statement, StatementBlock, Use,
 };

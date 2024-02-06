@@ -1,13 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use crate::front::file_system::byte_stream::{ByteStream, StringReader};
     use crate::front::name_resolution::resolvers::Resolvable;
     use crate::front::name_resolution::resolvers::ResolverError::Redefinition;
     use crate::front::name_resolution::scope_table::ScopeTable;
-    use crate::front::ast_retriever::syntax::ast_types::{
+    use crate::front::ast_retriever::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, StatementBlock, Type,
     };
-    use crate::front::ast_retriever::syntax::parser::Parser;
     use std::rc::Rc;
     use crate::front::ast_retriever::string_to_module;
 

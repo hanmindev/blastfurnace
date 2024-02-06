@@ -34,8 +34,8 @@ impl<T> Packager<T> {
 mod tests {
     use super::*;
     use crate::front::file_system::mock_fs::MockFileSystem;
-    use crate::front::ast_retriever::syntax::ast_types::Type::Void;
-    use crate::front::ast_retriever::syntax::ast_types::{
+    use crate::front::ast_retriever::ast_types::Type::Void;
+    use crate::front::ast_retriever::ast_types::{
         AtomicExpression, Block, Expression, FnCall, FnDef, GlobalResolvedName, Reference,
         Statement, StatementBlock,
     };

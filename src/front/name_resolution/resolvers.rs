@@ -1,5 +1,5 @@
 use crate::front::name_resolution::scope_table::{ScopeTable, SymbolType};
-use crate::front::ast_retriever::syntax::ast_types::{
+use crate::front::ast_retriever::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, For,
     If, LiteralValue, Module, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign,
     VarDecl, VarDef, While,
