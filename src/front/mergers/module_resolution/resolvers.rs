@@ -1,9 +1,10 @@
 use crate::front::mergers::module_resolution::module_merger::ModuleMerger;
-use crate::front::ast_retriever::ast_types::{
-    AtomicExpression, Block, Definition, Expression, GlobalResolvedName, If, Module, Reference,
-    ResolvedName, Statement, StatementBlock, Use,
+use crate::front::ast_types::{
+    AtomicExpression, Block, Definition, Expression, GlobalResolvedName, If, Reference,
+    ResolvedName, Statement, StatementBlock,
 };
 use std::rc::Rc;
+use crate::front::internal_ast_types::{Module, Use};
 
 pub trait Resolvable {
     fn resolve_module(&mut self, _module_merger: &mut ModuleMerger) -> ResolveResult<()> {

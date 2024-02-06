@@ -3,7 +3,7 @@ mod tests {
     use crate::front::name_resolution::resolvers::Resolvable;
     use crate::front::name_resolution::resolvers::ResolverError::Redefinition;
     use crate::front::name_resolution::scope_table::ScopeTable;
-    use crate::front::ast_retriever::ast_types::{
+    use crate::front::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, StatementBlock, Type,
     };
     use std::rc::Rc;

@@ -1,15 +1,16 @@
 use crate::front::ast_retriever::lexical::lexer::{TokenError, TokenInfo};
 use crate::front::ast_retriever::lexical::token_types::Token;
 use crate::front::ast_retriever::lexical::token_types::Token::Any;
-use crate::front::ast_retriever::ast_types::{
+use crate::front::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
-    FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement,
-    StatementBlock, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod,
+    FnMod, For, If, LiteralValue, NamePath, Reference, Statement,
+    StatementBlock, StructDef, Type, UnOp, VarAssign, VarDecl, VarDef, VarMod,
     While,
 };
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
+use crate::front::internal_ast_types::{Module, ModuleImport, Use, UseElement};
 
 #[derive(Debug)]
 pub enum ParseError {

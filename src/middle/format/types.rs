@@ -1,4 +1,4 @@
-use crate::front::ast_retriever::ast_types::{FnDef, StructDef, VarDecl};
+use crate::front::ast_types::{FnDef, StructDef, VarDecl};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Hash)]

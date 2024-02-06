@@ -1,6 +1,6 @@
 use crate::front::name_resolution::resolvers::Resolvable;
 use crate::front::name_resolution::scope_table::ScopeTable;
-use crate::front::ast_retriever::ast_types::Module;
+use crate::front::internal_ast_types::Module;
 
 pub fn resolve_module(module: &mut Module) {
     let mut scope_table = ScopeTable::new();
