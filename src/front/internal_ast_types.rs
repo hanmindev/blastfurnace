@@ -1,5 +1,6 @@
+use crate::front::ast_types::{Statement};
 use crate::front::ast_types::Reference;
-use crate::front::ast_types::{Block, Definition};
+use crate::front::ast_types::{Definition};
 
 #[derive(Debug, PartialEq)]
 pub struct Module {
@@ -8,6 +9,19 @@ pub struct Module {
     pub public_definitions: Vec<Definition>,
     pub block: Block,
 }
+
+#[derive(Debug, PartialEq)]
+pub enum StatementBlock {
+    Statement(Statement),
+    Block(Block),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Block {
+    pub definitions: Vec<Definition>,
+    pub statements: Vec<StatementBlock>,
+}
+
 
 #[derive(Debug, PartialEq)]
 pub struct ModuleImport {
