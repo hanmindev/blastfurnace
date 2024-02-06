@@ -1,9 +1,10 @@
 use crate::front::ast_retriever::retriever::{ModuleNode, ModuleSource};
-use crate::front::ast_types::{FnDef, GlobalResolvedName, ResolvedName, StructDef, VarDecl};
+use crate::front::ast_types::{FnDef, ResolvedName, StructDef, VarDecl};
 use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
 use crate::front::mergers::package::module_resolution::resolvers::Resolvable;
 use std::collections::{HashMap, LinkedList};
 use std::rc::Rc;
+use crate::middle::format::types::GlobalName;
 
 #[derive(Debug)]
 pub enum ModuleMergeError {
@@ -16,7 +17,7 @@ pub type ModuleMergeResult<T> = Result<T, ModuleMergeError>;
 pub struct ModuleMerger {
     pub package_name: String,
     module_source: ModuleSource,
-    global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
+    global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalName>>,
     merged_module: Option<MergedModule>,
     visibility_rules: HashMap<ModuleSource, ModuleSource>, // to call public methods in module of path (key), module_path needs prefix (value)
 }
@@ -44,7 +45,7 @@ impl ModuleMerger {
     pub fn register_global_name(
         &mut self,
         local_name: Rc<ResolvedName>,
-        global_name: Rc<GlobalResolvedName>,
+        global_name: Rc<GlobalName>,
         should_be_0: bool,
     ) {
         if should_be_0 && !local_name.starts_with("0_") {
@@ -57,13 +58,13 @@ impl ModuleMerger {
     pub fn resolve_global_name(
         &mut self,
         resolved_name: &Rc<ResolvedName>,
-    ) -> Rc<GlobalResolvedName> {
+    ) -> Rc<GlobalName> {
         return if let Some(s) = self.global_name_table.get(resolved_name) {
             Rc::clone(s)
         } else {
-            let g = Rc::from(GlobalResolvedName {
+            let g = Rc::from(GlobalName {
                 module: self.get_path().clone(),
-                name: resolved_name.clone(),
+                name: (**resolved_name).clone(),
             });
             self.register_global_name(Rc::clone(resolved_name), Rc::clone(&g), false);
             g
@@ -138,7 +139,7 @@ impl ModuleMerger {
 
     pub fn insert_fn_definition(
         &mut self,
-        global_resolved_name: Rc<GlobalResolvedName>,
+        global_resolved_name: Rc<GlobalName>,
         definition: FnDef,
         is_public: bool,
     ) {
@@ -163,7 +164,7 @@ impl ModuleMerger {
 
     pub fn insert_struct_definition(
         &mut self,
-        global_resolved_name: Rc<GlobalResolvedName>,
+        global_resolved_name: Rc<GlobalName>,
         definition: StructDef,
         is_public: bool,
     ) {
@@ -187,7 +188,7 @@ impl ModuleMerger {
 
     pub fn insert_global_var_definition(
         &mut self,
-        global_resolved_name: Rc<GlobalResolvedName>,
+        global_resolved_name: Rc<GlobalName>,
         definition: VarDecl,
         is_public: bool,
     ) {
