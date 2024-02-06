@@ -6,7 +6,7 @@ mod module_resolution;
 
 #[derive(Debug)]
 pub struct Package {
-    merged_module: MergedModule
+    pub merged_module: MergedModule
 }
 
 #[derive(Debug)]

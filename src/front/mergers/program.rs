@@ -26,25 +26,91 @@ impl<R: FileSystem> ProgramMerger<R> {
     }
 
     pub fn export_program(&mut self) -> Program {
-        let mut p = Program {
+        let mut program = Program {
             public_functions: HashSet::new(),
             function_definitions: HashMap::new(),
             struct_definitions: HashMap::new(),
             global_var_definitions: HashMap::new(),
         };
 
-        // for (_, mut table) in self.packages.drain() {
-        //     for def in table.public_definitions.function_definitions.drain() {
-        //         p.function_definitions.insert(
-        //             GlobalName {
-        //                 module: def.0.as_ref().module.clone(),
-        //                 name: (*def.0.name).clone(),
-        //             },
-        //             def.1,
-        //         );
-        //     }
-        // }
+        for (_, mut table) in self.packages.drain() {
+            for def in table
+                .merged_module
+                .public_definitions
+                .function_definitions
+                .drain()
+            {
+                program.public_functions.insert(GlobalName {
+                    module: def.0.as_ref().module.clone(),
+                    name: (*def.0.name).clone(),
+                });
+            }
 
-        p
+            for def in table
+                .merged_module
+                .public_definitions
+                .function_definitions
+                .drain()
+                .chain(
+                    table
+                        .merged_module
+                        .private_definitions
+                        .function_definitions
+                        .drain(),
+                )
+            {
+                program.function_definitions.insert(
+                    GlobalName {
+                        module: def.0.as_ref().module.clone(),
+                        name: (*def.0.name).clone(),
+                    },
+                    def.1,
+                );
+            }
+            for def in table
+                .merged_module
+                .public_definitions
+                .struct_definitions
+                .drain()
+                .chain(
+                    table
+                        .merged_module
+                        .private_definitions
+                        .struct_definitions
+                        .drain(),
+                )
+            {
+                program.struct_definitions.insert(
+                    GlobalName {
+                        module: def.0.as_ref().module.clone(),
+                        name: (*def.0.name).clone(),
+                    },
+                    def.1,
+                );
+            }
+            for def in table
+                .merged_module
+                .public_definitions
+                .global_var_definitions
+                .drain()
+                .chain(
+                    table
+                        .merged_module
+                        .private_definitions
+                        .global_var_definitions
+                        .drain(),
+                )
+            {
+                program.global_var_definitions.insert(
+                    GlobalName {
+                        module: def.0.as_ref().module.clone(),
+                        name: (*def.0.name).clone(),
+                    },
+                    def.1,
+                );
+            }
+        }
+
+        program
     }
 }
