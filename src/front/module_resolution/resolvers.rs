@@ -1,4 +1,4 @@
-use crate::front::module_resolution::module_merger::ModuleMerger;
+use crate::front::module_resolution::ModuleMerger;
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Definition, Expression, GlobalResolvedName, If, Module, Reference,
     ResolvedName, Statement, StatementBlock, Use,
