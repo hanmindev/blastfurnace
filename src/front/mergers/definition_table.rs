@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::front::ast_types::{FnDef, StructDef, VarDecl};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct DefinitionTable<T> {

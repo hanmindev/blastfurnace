@@ -3,11 +3,11 @@ mod tests {
     use crate::front::ast_retriever::name_resolution::resolvers::Resolvable;
     use crate::front::ast_retriever::name_resolution::resolvers::ResolverError::Redefinition;
     use crate::front::ast_retriever::name_resolution::scope_table::ScopeTable;
+    use crate::front::ast_retriever::string_to_module;
     use crate::front::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, StatementBlock, Type,
     };
     use std::rc::Rc;
-    use crate::front::ast_retriever::string_to_module;
 
     #[test]
     fn simple_scope() {
@@ -123,7 +123,7 @@ mod tests {
     }
 
     #[test]
-    fn struct_defn_after() {
+    fn struct_def_after() {
         let mut scope_table = ScopeTable::new();
 
         let statement = "pub let a: A; pub let b: A; pub let c: A; pub struct A { }";
@@ -222,7 +222,7 @@ mod tests {
     }
 
     #[test]
-    fn struct_defn_rec() {
+    fn struct_def_rec() {
         let mut scope_table = ScopeTable::new();
 
         let statement = "struct A { b: B } struct B { a: A }";
@@ -293,7 +293,7 @@ mod tests {
         }
     }
     #[test]
-    fn struct_defn_dupe() {
+    fn struct_def_dupe() {
         let mut scope_table = ScopeTable::new();
 
         let statement = "struct A { b: int } struct A { a: int }";
@@ -307,7 +307,7 @@ mod tests {
     }
 
     #[test]
-    fn struct_defn_rec_scope() {
+    fn struct_def_rec_scope() {
         let mut scope_table = ScopeTable::new();
 
         let statement = "fn main() { let a: A; let b: B; } struct A { b: B } struct B { a: A }";

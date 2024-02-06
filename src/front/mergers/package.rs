@@ -1,12 +1,12 @@
-use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
+use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
 mod module_resolution;
 
 #[derive(Debug)]
 pub struct Package {
-    pub merged_module: MergedModule
+    pub merged_module: MergedModule,
 }
 
 #[derive(Debug)]
@@ -26,24 +26,22 @@ impl<T> Packager<T> {
     pub fn merge_modules(&mut self) -> Package {
         let mut module_merger = ModuleMerger::new(&self.package_name);
         let merged_module = module_merger
-            .merge_modules(self.retriever.take().unwrap().modules)//TODO: don't use unwrap
+            .merge_modules(self.retriever.take().unwrap().modules) //TODO: don't use unwrap
             .unwrap();
 
-        Package {
-            merged_module
-        }
+        Package { merged_module }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::ast_types::Type::Void;
     use crate::front::ast_types::{
         AtomicExpression, Block, Expression, FnCall, FnDef, GlobalResolvedName, Reference,
         Statement, StatementBlock,
     };
+    use crate::front::file_system::mock_fs::MockFileSystem;
     use std::rc::Rc;
 
     #[test]

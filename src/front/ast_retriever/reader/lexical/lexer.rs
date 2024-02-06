@@ -1,6 +1,6 @@
-use crate::front::file_system::byte_stream::ByteStream;
 use crate::front::ast_retriever::reader::lexical::token_types::Token;
 use crate::front::ast_retriever::reader::syntax::parser::TokenStream;
+use crate::front::file_system::byte_stream::ByteStream;
 
 pub struct Lexer {
     reader: ByteStream,

@@ -1,8 +1,8 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, For,
-    If, LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, VarAssign,
-    VarDecl, VarDef, While,
+    If, LiteralValue, NamePath, Statement, StatementBlock, StructDef, Type, VarAssign, VarDecl,
+    VarDef, While,
 };
 use crate::front::internal_ast_types::{Module, Use};
 

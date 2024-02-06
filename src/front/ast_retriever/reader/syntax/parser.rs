@@ -3,14 +3,13 @@ use crate::front::ast_retriever::reader::lexical::token_types::Token;
 use crate::front::ast_retriever::reader::lexical::token_types::Token::Any;
 use crate::front::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
-    FnMod, For, If, LiteralValue, NamePath, Reference, Statement,
-    StatementBlock, StructDef, Type, UnOp, VarAssign, VarDecl, VarDef, VarMod,
-    While,
+    FnMod, For, If, LiteralValue, NamePath, Reference, Statement, StatementBlock, StructDef, Type,
+    UnOp, VarAssign, VarDecl, VarDef, VarMod, While,
 };
+use crate::front::internal_ast_types::{Module, ModuleImport, Use, UseElement};
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
-use crate::front::internal_ast_types::{Module, ModuleImport, Use, UseElement};
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -936,8 +935,8 @@ impl<T: TokenStream> Parser<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::front::file_system::byte_stream::{ByteStream, StringReader};
     use crate::front::ast_retriever::reader::lexical::lexer::Lexer;
+    use crate::front::file_system::byte_stream::{ByteStream, StringReader};
 
     #[test]
     fn simple_test() {

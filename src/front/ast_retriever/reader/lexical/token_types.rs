@@ -53,7 +53,7 @@ pub enum Token {
 
     Arrow, // ->
 
-    // Key words
+    // Keywords
     Const,
 
     VoidType,

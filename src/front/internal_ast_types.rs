@@ -1,5 +1,5 @@
-use crate::front::ast_types::{Block, Definition};
 use crate::front::ast_types::Reference;
+use crate::front::ast_types::{Block, Definition};
 
 #[derive(Debug, PartialEq)]
 pub struct Module {

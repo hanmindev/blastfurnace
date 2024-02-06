@@ -1,9 +1,7 @@
 use crate::front::ast_retriever::retriever::{ModuleNode, ModuleSource};
+use crate::front::ast_types::{FnDef, GlobalResolvedName, ResolvedName, StructDef, VarDecl};
 use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
 use crate::front::mergers::package::module_resolution::resolvers::Resolvable;
-use crate::front::ast_types::{
-    FnDef, GlobalResolvedName, ResolvedName, StructDef, VarDecl,
-};
 use std::collections::{HashMap, LinkedList};
 use std::rc::Rc;
 
