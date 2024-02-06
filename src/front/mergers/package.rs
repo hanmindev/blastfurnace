@@ -1,14 +1,18 @@
+use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
-use crate::front::mergers::module_resolution::merged_module::MergedModule;
-use crate::front::mergers::module_resolution::module_merger::ModuleMerger;
+use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
+mod module_resolution;
+
+#[derive(Debug)]
+pub struct Package {
+    merged_module: MergedModule
+}
 
 #[derive(Debug)]
 pub struct Packager<T> {
     package_name: String,
     retriever: Option<FileRetriever<T>>,
-
-    pub module_merger: ModuleMerger,
 }
 
 impl<T> Packager<T> {
@@ -16,17 +20,18 @@ impl<T> Packager<T> {
         Packager {
             package_name: package_name.to_string(),
             retriever: Some(retriever),
-            module_merger: ModuleMerger::new(package_name),
         }
     }
 
-    pub fn merge_modules(&mut self) -> MergedModule {
-        return self
-            .module_merger
-            .merge_modules(self.retriever.take().unwrap().modules)
+    pub fn merge_modules(&mut self) -> Package {
+        let mut module_merger = ModuleMerger::new(&self.package_name);
+        let merged_module = module_merger
+            .merge_modules(self.retriever.take().unwrap().modules)//TODO: don't use unwrap
             .unwrap();
 
-        //TODO: don't use unwrap
+        Package {
+            merged_module
+        }
     }
 }
 
@@ -51,7 +56,7 @@ mod tests {
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
 
-        let definition_table = program.merge_modules().private_definitions;
+        let definition_table = program.merge_modules().merged_module.private_definitions;
 
         assert_eq!(definition_table.function_definitions.len(), 2);
         assert_eq!(definition_table.struct_definitions.len(), 0);
@@ -117,7 +122,7 @@ mod tests {
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
 
-        let definition_table = program.merge_modules().private_definitions;
+        let definition_table = program.merge_modules().merged_module.private_definitions;
 
         assert_eq!(definition_table.function_definitions.len(), 2);
         assert_eq!(definition_table.struct_definitions.len(), 0);
@@ -195,7 +200,7 @@ mod tests {
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
 
-        let definition_table = program.merge_modules().private_definitions;
+        let definition_table = program.merge_modules().merged_module.private_definitions;
 
         assert_eq!(definition_table.function_definitions.len(), 2);
         assert_eq!(definition_table.struct_definitions.len(), 0);

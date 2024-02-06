@@ -1,13 +1,12 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
-use crate::front::mergers::module_resolution::merged_module::MergedModule;
-use crate::front::mergers::package::Packager;
+use crate::front::mergers::package::{Package, Packager};
 use crate::middle::format::types::{GlobalName, Program};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
 pub struct ProgramMerger<R> {
-    packages: HashMap<String, MergedModule>,
+    packages: HashMap<String, Package>,
     file_system_type: PhantomData<R>,
 }
 
@@ -19,7 +18,7 @@ impl<R: FileSystem> ProgramMerger<R> {
         }
     }
 
-    pub fn read_package(&mut self, package_name: &str, file_system: R) -> &mut MergedModule {
+    pub fn read_package(&mut self, package_name: &str, file_system: R) -> &mut Package {
         let mut packager = Packager::new(package_name, FileRetriever::new(file_system));
         self.packages
             .insert(package_name.to_string(), packager.merge_modules());
@@ -34,15 +33,15 @@ impl<R: FileSystem> ProgramMerger<R> {
         };
 
         for (_, mut table) in self.packages.drain() {
-            for def in table.public_definitions.function_definitions.drain() {
-                p.function_definitions.insert(
-                    GlobalName {
-                        module: def.0.as_ref().module.clone(),
-                        name: (*def.0.name).clone(),
-                    },
-                    def.1,
-                );
-            }
+            // for def in table.public_definitions.function_definitions.drain() {
+            //     p.function_definitions.insert(
+            //         GlobalName {
+            //             module: def.0.as_ref().module.clone(),
+            //             name: (*def.0.name).clone(),
+            //         },
+            //         def.1,
+            //     );
+            // }
         }
 
         p
