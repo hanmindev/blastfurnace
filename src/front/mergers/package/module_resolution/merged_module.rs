@@ -1,11 +1,11 @@
 use crate::front::mergers::definition_table::DefinitionTable;
-use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
+use crate::front::ast_types::GlobalResolvedName;
 
 #[derive(Debug)]
 pub struct MergedModule {
-    pub public_definitions: DefinitionTable<Rc<GlobalName>>,
-    pub private_definitions: DefinitionTable<Rc<GlobalName>>,
+    pub public_definitions: DefinitionTable<Rc<GlobalResolvedName>>,
+    pub private_definitions: DefinitionTable<Rc<GlobalResolvedName>>,
 }
 
 impl MergedModule {

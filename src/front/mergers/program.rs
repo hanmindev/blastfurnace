@@ -1,9 +1,15 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
 use crate::front::mergers::package::{Package, Packager};
-use crate::middle::format::types::Program;
+use crate::middle::format::types::{GlobalName, Program};
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
+use std::rc::Rc;
+use crate::front::ast_types::GlobalResolvedName;
+
+fn global_name_updater(package_name: &str, global_resolved_name: Rc<GlobalResolvedName>) -> GlobalName {
+    format!("{}/{}/{}", package_name, global_resolved_name.module, global_resolved_name.name)
+}
 
 pub struct ProgramMerger<R> {
     root_package: String,
@@ -43,7 +49,7 @@ impl<R: FileSystem> ProgramMerger<R> {
                     .function_definitions
                     .drain()
                 {
-                    program.public_functions.insert(def.0);
+                    program.public_functions.insert(global_name_updater(&package_name, def.0));
                 }
             }
 
@@ -60,7 +66,7 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.function_definitions.insert(def.0, def.1);
+                program.function_definitions.insert(global_name_updater(&package_name, def.0), def.1);
             }
             for def in table
                 .merged_module
@@ -75,7 +81,7 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.struct_definitions.insert(def.0, def.1);
+                program.struct_definitions.insert(global_name_updater(&package_name, def.0), def.1);
             }
             for def in table
                 .merged_module
@@ -90,7 +96,7 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.global_var_definitions.insert(def.0, def.1);
+                program.global_var_definitions.insert(global_name_updater(&package_name, def.0), def.1);
             }
         }
 

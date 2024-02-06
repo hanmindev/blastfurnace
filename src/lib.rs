@@ -15,7 +15,7 @@ mod tests {
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
-        let mut program_merger = ProgramMerger::new();
+        let mut program_merger = ProgramMerger::new("pkg");
 
         program_merger.read_package("pkg", mock_file_system);
 

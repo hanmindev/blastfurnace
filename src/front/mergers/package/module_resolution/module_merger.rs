@@ -1,8 +1,7 @@
 use crate::front::ast_retriever::retriever::{ModuleNode, ModuleSource};
-use crate::front::ast_types::{FnDef, ResolvedName, StructDef, VarDecl};
+use crate::front::ast_types::{FnDef, GlobalResolvedName, ResolvedName, StructDef, VarDecl};
 use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
 use crate::front::mergers::package::module_resolution::resolvers::Resolvable;
-use crate::middle::format::types::GlobalName;
 use std::collections::{HashMap, LinkedList};
 use std::rc::Rc;
 
@@ -17,8 +16,8 @@ pub type ModuleMergeResult<T> = Result<T, ModuleMergeError>;
 pub struct ModuleMerger {
     pub package_name: String,
     module_source: ModuleSource,
-    global_name_table: HashMap<(String, String), Rc<GlobalName>>,
-    global_name_map: HashMap<Rc<ResolvedName>, Rc<GlobalName>>,
+    global_name_table: HashMap<(String, String), Rc<GlobalResolvedName>>,
+    global_name_map: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
     merged_module: Option<MergedModule>,
     visibility_rules: HashMap<ModuleSource, ModuleSource>, // to call public methods in module of path (key), module_path needs prefix (value)
 }
@@ -48,7 +47,7 @@ impl ModuleMerger {
         &mut self,
         module_name: String,
         name: String,
-    ) -> Rc<GlobalName> {
+    ) -> Rc<GlobalResolvedName> {
         if let Some(g) = self
             .global_name_table
             .get(&(module_name.clone(), name.clone()))
@@ -56,9 +55,9 @@ impl ModuleMerger {
             return Rc::clone(g);
         }
 
-        let g = Rc::from(GlobalName {
+        let g = Rc::from(GlobalResolvedName {
             module: Rc::from(module_name.clone()),
-            name: Rc::from(name.clone()),
+            name: name.clone(),
         });
 
         self.global_name_table
@@ -69,7 +68,7 @@ impl ModuleMerger {
     pub fn register_global_name(
         &mut self,
         local_name: Rc<ResolvedName>,
-        global_name: Rc<GlobalName>,
+        global_name: Rc<GlobalResolvedName>,
         should_be_0: bool,
     ) {
         if should_be_0 && !local_name.starts_with("0_") {
@@ -79,7 +78,7 @@ impl ModuleMerger {
         self.global_name_map.insert(local_name, global_name);
     }
 
-    pub fn resolve_global_name(&mut self, resolved_name: &Rc<ResolvedName>) -> Rc<GlobalName> {
+    pub fn resolve_global_name(&mut self, resolved_name: &Rc<ResolvedName>) -> Rc<GlobalResolvedName> {
         return if let Some(s) = self.global_name_map.get(resolved_name) {
             Rc::clone(s)
         } else {
@@ -158,7 +157,7 @@ impl ModuleMerger {
 
     pub fn insert_fn_definition(
         &mut self,
-        global_resolved_name: Rc<GlobalName>,
+        global_resolved_name: Rc<GlobalResolvedName>,
         definition: FnDef,
         is_public: bool,
     ) {
@@ -183,7 +182,7 @@ impl ModuleMerger {
 
     pub fn insert_struct_definition(
         &mut self,
-        global_resolved_name: Rc<GlobalName>,
+        global_resolved_name: Rc<GlobalResolvedName>,
         definition: StructDef,
         is_public: bool,
     ) {
@@ -207,7 +206,7 @@ impl ModuleMerger {
 
     pub fn insert_global_var_definition(
         &mut self,
-        global_resolved_name: Rc<GlobalName>,
+        global_resolved_name: Rc<GlobalResolvedName>,
         definition: VarDecl,
         is_public: bool,
     ) {
