@@ -3,6 +3,7 @@ use crate::front::file_system::fs::{FileSystem, FileSystemError, FileSystemResul
 use std::fs;
 use std::fs::File;
 use std::io::Read;
+use crate::front::ast_retriever::retriever::{FilePath};
 
 pub struct SystemFs {
     current_dir: String,
@@ -42,7 +43,7 @@ impl ByteStreamable for FileReader {
 }
 
 impl FileSystem for SystemFs {
-    fn new(root: String) -> SystemFs {
+    fn new(root: FilePath) -> SystemFs {
         SystemFs { current_dir: root }
     }
 
@@ -92,7 +93,7 @@ impl FileSystem for SystemFs {
         }
     }
 
-    fn return_current_dir(&self) -> String {
+    fn return_current_dir(&self) -> FilePath {
         self.current_dir.clone()
     }
 }

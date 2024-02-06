@@ -1,15 +1,16 @@
 use std::collections::{HashMap, HashSet};
+use crate::front::ast_retriever::retriever::{FilePath};
 use crate::front::file_system::byte_stream::{ByteStream, StringReader};
 use crate::front::file_system::fs::{FileSystem, FileSystemError, FileSystemResult};
 
 pub struct MockFileSystem {
-    current_dir: String,
-    files: HashMap<String, String>,
-    dirs: HashSet<String>,
+    current_dir: FilePath,
+    files: HashMap<FilePath, String>,
+    dirs: HashSet<FilePath>,
 }
 
 impl FileSystem for MockFileSystem {
-    fn new(root: String) -> MockFileSystem {
+    fn new(root: FilePath) -> MockFileSystem {
         MockFileSystem {
             current_dir: root,
             files: Default::default(),
@@ -75,7 +76,7 @@ impl FileSystem for MockFileSystem {
         }
     }
 
-    fn return_current_dir(&self) -> String {
+    fn return_current_dir(&self) -> FilePath {
         self.current_dir.clone()
     }
 }

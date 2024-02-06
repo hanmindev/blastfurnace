@@ -4,20 +4,19 @@ use crate::front::name_resolution::name_resolver::resolve_module;
 use crate::front::syntax::ast_types::Module;
 use crate::front::syntax::parser::Parser;
 use std::collections::HashMap;
-
-type Source = String;
-type Path = String;
+pub type FilePath = String;
+pub type ModuleSource = String;
 #[derive(Debug, PartialEq)]
 pub struct ModuleNode {
-    pub source: Source,
-    pub submodules: HashMap<Path, Option<bool>>,
+    pub file_path: FilePath,
+    pub submodules: HashMap<ModuleSource, Option<bool>>,
     pub module: Option<Module>,
 }
 #[derive(Debug, PartialEq)]
 pub struct FileRetriever<T> {
     file_system: T,
-    root: Option<Path>,
-    pub modules: HashMap<Path, ModuleNode>,
+    root: Option<ModuleSource>,
+    pub modules: HashMap<ModuleSource, ModuleNode>,
 }
 
 impl<T: FileSystem> FileRetriever<T> {
@@ -32,17 +31,17 @@ impl<T: FileSystem> FileRetriever<T> {
         f
     }
     fn read_nodes_rec(&mut self, parent_module: &mut ModuleNode) {
-        let modules = self.file_system.ls_files_with_extension("ing");
+        let modules= self.file_system.ls_files_with_extension("ing");
 
-        for full_file_name in modules {
-            let file_name = full_file_name.strip_suffix(".ing").unwrap().to_string();
+        for file_name_ext in modules {
+            let file_name = file_name_ext.strip_suffix(".ing").unwrap().to_string();
             let submodules = HashMap::new();
 
             let mut path = self.file_system.return_current_dir();
             path.push_str(&file_name);
 
             let mut module = ModuleNode {
-                source: path.clone(),
+                file_path: path.clone(),
                 submodules,
                 module: None,
             };
@@ -52,7 +51,7 @@ impl<T: FileSystem> FileRetriever<T> {
                 self.file_system.exit_dir();
             }
 
-            let mut module_path = if path == "/main" {
+            let mut module_source: ModuleSource = if path == "/main" {
                 "/root".to_string()
             } else {
                 let mut new_path = "/root".to_string();
@@ -60,14 +59,14 @@ impl<T: FileSystem> FileRetriever<T> {
                 new_path
             };
 
-            parent_module.submodules.insert(module_path.clone(), None);
-            self.modules.insert(module_path, module);
+            parent_module.submodules.insert(module_source.clone(), None);
+            self.modules.insert(module_source, module);
         }
     }
 
     fn read_nodes(&mut self) {
         let mut root = ModuleNode {
-            source: self.file_system.return_current_dir(),
+            file_path: self.file_system.return_current_dir(),
             submodules: HashMap::new(),
             module: None,
         };
@@ -88,7 +87,7 @@ impl<T: FileSystem> FileRetriever<T> {
 
     fn parse_files(&mut self) {
         for (mod_path, module_node) in self.modules.iter_mut() {
-            let mut file_source = module_node.source.clone();
+            let mut file_source = module_node.file_path.clone();
 
             // TODO: add option to read from cached object file
             file_source.push_str(".ing");
@@ -141,7 +140,7 @@ mod tests {
         assert_eq!(
             program.modules.get("/root"),
             Some(&ModuleNode {
-                source: "/main".to_string(),
+                file_path: "/main".to_string(),
                 submodules: HashMap::from([("/root/test".to_string(), None)]),
                 module: None,
             })
@@ -149,7 +148,7 @@ mod tests {
         assert_eq!(
             program.modules.get("/root/test"),
             Some(&ModuleNode {
-                source: "/test".to_string(),
+                file_path: "/test".to_string(),
                 submodules: HashMap::from([("/root/test/example".to_string(), None)]),
                 module: None,
             })
@@ -157,7 +156,7 @@ mod tests {
         assert_eq!(
             program.modules.get("/root/test/example"),
             Some(&ModuleNode {
-                source: "/test/example".to_string(),
+                file_path: "/test/example".to_string(),
                 submodules: HashMap::new(),
                 module: None,
             })
