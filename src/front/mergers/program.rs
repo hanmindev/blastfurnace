@@ -2,7 +2,7 @@ use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
 use crate::front::mergers::package::{Package, Packager};
 use crate::middle::format::types::{GlobalName, Program};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 
 pub struct ProgramMerger<R> {
@@ -27,22 +27,23 @@ impl<R: FileSystem> ProgramMerger<R> {
 
     pub fn export_program(&mut self) -> Program {
         let mut p = Program {
+            public_functions: HashSet::new(),
             function_definitions: HashMap::new(),
             struct_definitions: HashMap::new(),
             global_var_definitions: HashMap::new(),
         };
 
-        for (_, mut table) in self.packages.drain() {
-            // for def in table.public_definitions.function_definitions.drain() {
-            //     p.function_definitions.insert(
-            //         GlobalName {
-            //             module: def.0.as_ref().module.clone(),
-            //             name: (*def.0.name).clone(),
-            //         },
-            //         def.1,
-            //     );
-            // }
-        }
+        // for (_, mut table) in self.packages.drain() {
+        //     for def in table.public_definitions.function_definitions.drain() {
+        //         p.function_definitions.insert(
+        //             GlobalName {
+        //                 module: def.0.as_ref().module.clone(),
+        //                 name: (*def.0.name).clone(),
+        //             },
+        //             def.1,
+        //         );
+        //     }
+        // }
 
         p
     }
