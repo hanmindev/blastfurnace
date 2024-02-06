@@ -6,13 +6,15 @@ use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 
 pub struct ProgramMerger<R> {
+    root_package: String,
     packages: HashMap<String, Package>,
     file_system_type: PhantomData<R>,
 }
 
 impl<R: FileSystem> ProgramMerger<R> {
-    pub fn new() -> ProgramMerger<R> {
+    pub fn new(root: &str) -> ProgramMerger<R> {
         ProgramMerger {
+            root_package: root.to_string(),
             packages: HashMap::new(),
             file_system_type: PhantomData,
         }
@@ -33,14 +35,16 @@ impl<R: FileSystem> ProgramMerger<R> {
             global_var_definitions: HashMap::new(),
         };
 
-        for (_, mut table) in self.packages.drain() {
-            for def in table
-                .merged_module
-                .public_definitions
-                .function_definitions
-                .drain()
-            {
-                program.public_functions.insert(def.0);
+        for (package_name, mut table) in self.packages.drain() {
+            if package_name == self.root_package {
+                for def in table
+                    .merged_module
+                    .public_definitions
+                    .function_definitions
+                    .drain()
+                {
+                    program.public_functions.insert(def.0);
+                }
             }
 
             for def in table
