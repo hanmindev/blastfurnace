@@ -1,6 +1,6 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
-use crate::front::module_resolution::definition_table::{MergedModule};
+use crate::front::module_resolution::merged_module::{MergedModule};
 use crate::front::module_resolution::module_merger::ModuleMerger;
 
 #[derive(Debug)]

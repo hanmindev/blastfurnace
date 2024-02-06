@@ -1,4 +1,4 @@
-use crate::front::module_resolution::definition_table::{MergedModule};
+use crate::front::module_resolution::merged_module::{MergedModule};
 use crate::front::module_resolution::resolvers::Resolvable;
 use crate::front::syntax::ast_types::{
     FnDef, GlobalResolvedName, Module, ResolvedName, StructDef, VarDecl,
