@@ -37,9 +37,10 @@ impl<T> Packager<T> {
 mod tests {
     use super::*;
     use crate::front::ast_types::Type::Void;
-    use crate::front::ast_types::{AtomicExpression, Block, Expression, FnCall, FnDef, GlobalResolvedName, Reference, Statement, StatementBlock};
+    use crate::front::ast_types::{AtomicExpression, Expression, FnCall, FnDef, GlobalResolvedName, Reference, Statement};
     use crate::front::file_system::mock_fs::MockFileSystem;
     use std::rc::Rc;
+    use crate::front::internal_ast_types::{Block, StatementBlock};
 
     #[test]
     fn test_parse_files() {

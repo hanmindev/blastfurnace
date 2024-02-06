@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::front::internal_ast_types::Block;
 
 pub type RawName = String;
 pub type ResolvedName = String;
@@ -195,20 +196,8 @@ pub enum Statement {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum StatementBlock {
-    Statement(Statement),
-    Block(Block),
-}
-
-#[derive(Debug, PartialEq)]
 pub enum Definition {
     VarDecl(VarDecl),
     StructDef(StructDef),
     FnDef(FnDef),
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Block {
-    pub definitions: Vec<Definition>,
-    pub statements: Vec<StatementBlock>,
 }
