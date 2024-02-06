@@ -17,7 +17,8 @@ pub type ModuleMergeResult<T> = Result<T, ModuleMergeError>;
 pub struct ModuleMerger {
     pub package_name: String,
     module_source: ModuleSource,
-    global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalName>>,
+    global_name_table: HashMap<(String, String), Rc<GlobalName>>,
+    global_name_map: HashMap<Rc<ResolvedName>, Rc<GlobalName>>,
     merged_module: Option<MergedModule>,
     visibility_rules: HashMap<ModuleSource, ModuleSource>, // to call public methods in module of path (key), module_path needs prefix (value)
 }
@@ -27,7 +28,8 @@ impl ModuleMerger {
         ModuleMerger {
             package_name: package_name.to_string(),
             module_source: String::new(),
-            global_name_table: HashMap::new(),
+            global_name_table: Default::default(),
+            global_name_map: HashMap::new(),
             merged_module: None,
             visibility_rules: HashMap::new(),
         }
@@ -35,11 +37,25 @@ impl ModuleMerger {
 
     fn switch_module(&mut self, module_source: &str) {
         self.module_source = module_source.to_string();
-        self.global_name_table.clear()
+        self.global_name_map.clear()
     }
 
     pub fn get_path(&self) -> &String {
         &self.module_source
+    }
+
+    pub fn create_or_get_global_name(&mut self, module_name: String, name: String) -> Rc<GlobalName> {
+        if let Some(g) = self.global_name_table.get(&(module_name.clone(), name.clone())) {
+            return Rc::clone(g);
+        }
+
+        let g = Rc::from(GlobalName {
+            module: Rc::from(module_name.clone()),
+            name: Rc::from(name.clone()),
+        });
+
+        self.global_name_table.insert((module_name, name), Rc::clone(&g));
+        g
     }
 
     pub fn register_global_name(
@@ -52,20 +68,17 @@ impl ModuleMerger {
             panic!("Local name should start with 0_");
         }
 
-        self.global_name_table.insert(local_name, global_name);
+        self.global_name_map.insert(local_name, global_name);
     }
 
     pub fn resolve_global_name(
         &mut self,
         resolved_name: &Rc<ResolvedName>,
     ) -> Rc<GlobalName> {
-        return if let Some(s) = self.global_name_table.get(resolved_name) {
+        return if let Some(s) = self.global_name_map.get(resolved_name) {
             Rc::clone(s)
         } else {
-            let g = Rc::from(GlobalName {
-                module: self.get_path().clone(),
-                name: (**resolved_name).clone(),
-            });
+            let g = self.create_or_get_global_name(self.get_path().clone(), (**resolved_name).clone());
             self.register_global_name(Rc::clone(resolved_name), Rc::clone(&g), false);
             g
         };

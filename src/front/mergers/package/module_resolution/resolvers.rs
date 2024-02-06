@@ -1,11 +1,10 @@
 use crate::front::ast_types::{
-    AtomicExpression, Block, Definition, Expression, If, Reference,
-    ResolvedName, Statement, StatementBlock,
+    AtomicExpression, Block, Definition, Expression, If, Reference, ResolvedName, Statement,
+    StatementBlock,
 };
 use crate::front::internal_ast_types::{Module, Use};
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
 use std::rc::Rc;
-use crate::middle::format::types::GlobalName;
 
 pub trait Resolvable {
     fn resolve_module(&mut self, _module_merger: &mut ModuleMerger) -> ResolveResult<()> {
@@ -76,10 +75,9 @@ impl Resolvable for Use {
                 s
             };
 
-            let global_resolved_name = GlobalName {
-                module: module_name,
-                name: format!("0_{original_name}"),
-            };
+            let global_resolved_name =
+                module_merger.create_or_get_global_name(module_name, format!("0_{original_name}"));
+
             module_merger.register_global_name(local_name, Rc::from(global_resolved_name), false);
             element.imported_name.resolve_module(module_merger)?;
         }
