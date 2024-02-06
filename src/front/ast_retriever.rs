@@ -1,11 +1,10 @@
 use crate::front::file_system::byte_stream::{ByteStream, StringReader};
-use crate::front::ast_retriever::lexical::lexer::Lexer;
+use crate::front::ast_retriever::reader::lexical::lexer::Lexer;
 use crate::front::internal_ast_types::Module;
-use crate::front::ast_retriever::syntax::parser::{Parser, ParseResult};
+use crate::front::ast_retriever::reader::syntax::parser::{Parser, ParseResult};
 
 pub mod retriever;
-mod lexical;
-mod syntax;
+mod reader;
 
 pub fn string_to_module(statement: &str) -> ParseResult<Module> {
     let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(

@@ -1,6 +1,6 @@
-use crate::front::ast_retriever::lexical::lexer::{TokenError, TokenInfo};
-use crate::front::ast_retriever::lexical::token_types::Token;
-use crate::front::ast_retriever::lexical::token_types::Token::Any;
+use crate::front::ast_retriever::reader::lexical::lexer::{TokenError, TokenInfo};
+use crate::front::ast_retriever::reader::lexical::token_types::Token;
+use crate::front::ast_retriever::reader::lexical::token_types::Token::Any;
 use crate::front::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
     FnMod, For, If, LiteralValue, NamePath, Reference, Statement,
@@ -937,7 +937,7 @@ impl<T: TokenStream> Parser<T> {
 mod tests {
     use super::*;
     use crate::front::file_system::byte_stream::{ByteStream, StringReader};
-    use crate::front::ast_retriever::lexical::lexer::Lexer;
+    use crate::front::ast_retriever::reader::lexical::lexer::Lexer;
 
     #[test]
     fn simple_test() {
