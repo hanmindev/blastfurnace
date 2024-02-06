@@ -6,7 +6,7 @@ use crate::middle::format::types::{GlobalName, Program};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-struct ProgramMerger<R> {
+pub struct ProgramMerger<R> {
     packages: HashMap<String, DefinitionTable>,
     file_system_type: PhantomData<R>,
 }
