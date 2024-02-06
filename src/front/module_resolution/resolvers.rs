@@ -21,7 +21,7 @@ pub type ResolveResult<T> = Result<T, ResolverError>;
 impl Resolvable for Block {
     fn resolve_module(&mut self, module_merger: &mut ModuleMerger) -> ResolveResult<()> {
         while let Some(definition) = self.definitions.pop() {
-            resolve_definition(definition, module_merger)?;
+            resolve_definition(definition, module_merger, false)?;
         }
 
         for statement in &mut self.statements {
@@ -38,7 +38,7 @@ impl Resolvable for Module {
         }
 
         while let Some(definition) = self.public_definitions.pop() {
-            resolve_definition(definition, module_merger)?;
+            resolve_definition(definition, module_merger, true)?;
         }
 
         self.block.resolve_module(module_merger)?;
@@ -184,6 +184,7 @@ impl Resolvable for Expression {
 fn resolve_definition(
     definition: Definition,
     module_merger: &mut ModuleMerger,
+    is_public: bool,
 ) -> ResolveResult<()> {
     match definition {
         Definition::FnDef(mut fn_def) => {
@@ -195,14 +196,14 @@ fn resolve_definition(
                 .resolve_module(module_merger)?;
 
             module_merger
-                .insert_fn_definition(fn_def.name.global_resolved.clone().unwrap(), fn_def);
+                .insert_fn_definition(fn_def.name.global_resolved.clone().unwrap(), fn_def, is_public);
         }
         Definition::StructDef(mut struct_def) => {
             struct_def.type_name.resolve_module(module_merger)?;
 
             module_merger.insert_struct_definition(
                 struct_def.type_name.global_resolved.clone().unwrap(),
-                struct_def,
+                struct_def, is_public
             );
         }
         Definition::VarDecl(mut var_decl) => {
@@ -213,7 +214,7 @@ fn resolve_definition(
 
             module_merger.insert_global_var_definition(
                 var_decl.var_def.name.global_resolved.clone().unwrap(),
-                var_decl,
+                var_decl, is_public
             );
         }
     }

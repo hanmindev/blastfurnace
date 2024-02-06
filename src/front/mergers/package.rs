@@ -1,6 +1,6 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
-use crate::front::module_resolution::definition_table::DefinitionTable;
+use crate::front::module_resolution::definition_table::{MergedModule};
 use crate::front::module_resolution::module_merger::ModuleMerger;
 
 #[derive(Debug)]
@@ -25,10 +25,10 @@ impl<T> Packager<T> {
         module_merger.merge_modules(self.retriever.take().unwrap().modules);
     }
 
-    pub fn merge_modules(&mut self) -> DefinitionTable {
+    pub fn merge_modules(&mut self) -> MergedModule {
         self.globalize_names();
 
-        return self.module_merger.take().unwrap().definition_table;
+        return self.module_merger.take().unwrap().merged_module;
     }
 }
 
@@ -54,7 +54,7 @@ mod tests {
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
         program.globalize_names();
 
-        let name_map = &program.module_merger.unwrap().definition_table;
+        let name_map = &program.module_merger.unwrap().merged_module.private_definitions;
 
         assert_eq!(name_map.function_definitions.len(), 2);
         assert_eq!(name_map.struct_definitions.len(), 0);
@@ -121,7 +121,7 @@ mod tests {
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
         program.globalize_names();
 
-        let name_map = &program.module_merger.unwrap().definition_table;
+        let name_map = &program.module_merger.unwrap().merged_module.private_definitions;
 
         assert_eq!(name_map.function_definitions.len(), 2);
         assert_eq!(name_map.struct_definitions.len(), 0);
@@ -197,7 +197,7 @@ mod tests {
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
         program.globalize_names();
 
-        let name_map = &program.module_merger.unwrap().definition_table;
+        let name_map = &program.module_merger.unwrap().merged_module.private_definitions;
 
         assert_eq!(name_map.function_definitions.len(), 2);
         assert_eq!(name_map.struct_definitions.len(), 0);

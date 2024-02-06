@@ -1,4 +1,4 @@
-use crate::front::module_resolution::definition_table::DefinitionTable;
+use crate::front::module_resolution::definition_table::{MergedModule};
 use crate::front::module_resolution::resolvers::Resolvable;
 use crate::front::syntax::ast_types::{
     FnDef, GlobalResolvedName, Module, ResolvedName, StructDef, VarDecl,
@@ -19,7 +19,7 @@ pub struct ModuleMerger {
     pub package_name: String,
     module_source: ModuleSource,
     global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
-    pub definition_table: DefinitionTable,
+    pub merged_module: MergedModule,
     visibility_rules: HashMap<ModuleSource, ModuleSource>, // to call public methods in module of path (key), module_path needs prefix (value)
 }
 
@@ -29,7 +29,7 @@ impl ModuleMerger {
             package_name: package_name.to_string(),
             module_source: String::new(),
             global_name_table: HashMap::new(),
-            definition_table: DefinitionTable::new(),
+            merged_module: MergedModule::new(),
             visibility_rules: HashMap::new(),
         }
     }
@@ -125,29 +125,42 @@ impl ModuleMerger {
         &mut self,
         global_resolved_name: Rc<GlobalResolvedName>,
         definition: FnDef,
+        is_public: bool
     ) {
-        self.definition_table
-            .function_definitions
-            .insert(global_resolved_name, definition);
+        let mut definitions = if is_public && self.module_source == "/root" {
+            &mut self.merged_module.public_definitions.function_definitions
+        } else {
+            &mut self.merged_module.private_definitions.function_definitions
+        };
+
+        definitions.insert(global_resolved_name, definition);
     }
 
     pub fn insert_struct_definition(
         &mut self,
         global_resolved_name: Rc<GlobalResolvedName>,
         definition: StructDef,
+        is_public: bool
     ) {
-        self.definition_table
-            .struct_definitions
-            .insert(global_resolved_name, definition);
+        let mut definitions = if is_public && self.module_source == "/root" {
+            &mut self.merged_module.public_definitions.struct_definitions
+        } else {
+            &mut self.merged_module.private_definitions.struct_definitions
+        };
+        definitions.insert(global_resolved_name, definition);
     }
 
     pub fn insert_global_var_definition(
         &mut self,
         global_resolved_name: Rc<GlobalResolvedName>,
         definition: VarDecl,
+        is_public: bool
     ) {
-        self.definition_table
-            .global_var_definitions
-            .insert(global_resolved_name, definition);
+        let mut definitions = if is_public && self.module_source == "/root" {
+            &mut self.merged_module.public_definitions.global_var_definitions
+        } else {
+            &mut self.merged_module.private_definitions.global_var_definitions
+        };
+        definitions.insert(global_resolved_name, definition);
     }
 }
