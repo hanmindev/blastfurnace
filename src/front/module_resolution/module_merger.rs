@@ -8,6 +8,13 @@ use std::rc::Rc;
 use crate::front::ast_retriever::retriever::{ModuleNode, ModuleSource};
 
 #[derive(Debug)]
+pub enum ModuleMergeError {
+    ModuleNotAttached(ModuleSource, String),
+}
+
+pub type ModuleMergeResult<T> = Result<T, ModuleMergeError>;
+
+#[derive(Debug)]
 pub struct ModuleMerger {
     pub package_name: String,
     module_source: ModuleSource,
@@ -65,14 +72,14 @@ impl ModuleMerger {
         };
     }
 
-    fn rec_create_visibility_rules(&mut self, module_source: &str, modules: &HashMap<ModuleSource, ModuleNode>) -> LinkedList<ModuleSource> {
+    fn rec_create_visibility_rules(&mut self, module_source: &str, modules: &HashMap<ModuleSource, ModuleNode>) -> ModuleMergeResult<LinkedList<ModuleSource>> {
         let module_node = modules.get(module_source).unwrap();
 
         let mut visible_above: LinkedList<ModuleSource> = LinkedList::from([module_source.to_string()]);
         let mut visible_below: LinkedList<ModuleSource> = LinkedList::new();
 
         for (name, mut module) in &module_node.submodules {
-            let mut visible = self.rec_create_visibility_rules(&name, modules);
+            let mut visible = self.rec_create_visibility_rules(&name, modules)?;
             if let Some(mod_) = &mut module {
                 if *mod_ {
                     visible_above.append(&mut visible)
@@ -80,7 +87,7 @@ impl ModuleMerger {
                     visible_below.append(&mut visible)
                 }
             } else {
-                panic!("Module {name} was not imported!");
+                Err(ModuleMergeError::ModuleNotAttached(name.to_string(), "Module is not attached to any parent module!".to_string()))?;
             }
         }
 
@@ -88,7 +95,7 @@ impl ModuleMerger {
             self.visibility_rules.insert(name, module_source.to_string());
         }
 
-        return visible_above;
+        return Ok(visible_above);
     }
 
     pub fn can_call(&self, target_module_source: &str) -> bool {
@@ -101,8 +108,8 @@ impl ModuleMerger {
         return true;
     }
 
-    pub fn merge_modules(&mut self, mut modules: HashMap<ModuleSource, ModuleNode>) {
-        for name in self.rec_create_visibility_rules("/root", &mut modules) {
+    pub fn merge_modules(&mut self, mut modules: HashMap<ModuleSource, ModuleNode>) -> ModuleMergeResult<()> {
+        for name in self.rec_create_visibility_rules("/root", &mut modules)? {
             self.visibility_rules.insert(name, "/root".to_string());
         }
 
@@ -110,6 +117,8 @@ impl ModuleMerger {
             self.switch_module(&module_source);
             module.module.unwrap().resolve_module(self).expect("Expected Module, got None");
         }
+
+        Ok(())
     }
 
     pub fn insert_fn_definition(
