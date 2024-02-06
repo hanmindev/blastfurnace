@@ -4,8 +4,8 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct MergedModule {
-    pub public_definitions: DefinitionTable,
-    pub private_definitions: DefinitionTable,
+    pub public_definitions: DefinitionTable<Rc<GlobalResolvedName>>,
+    pub private_definitions: DefinitionTable<Rc<GlobalResolvedName>>,
 }
 
 impl MergedModule {
@@ -18,14 +18,14 @@ impl MergedModule {
 }
 
 #[derive(Debug)]
-pub struct DefinitionTable {
-    pub function_definitions: HashMap<Rc<GlobalResolvedName>, FnDef>,
-    pub struct_definitions: HashMap<Rc<GlobalResolvedName>, StructDef>,
-    pub global_var_definitions: HashMap<Rc<GlobalResolvedName>, VarDecl>,
+pub struct DefinitionTable<T> {
+    pub function_definitions: HashMap<T, FnDef>,
+    pub struct_definitions: HashMap<T, StructDef>,
+    pub global_var_definitions: HashMap<T, VarDecl>,
 }
 
-impl DefinitionTable {
-    pub fn new() -> DefinitionTable {
+impl<T> DefinitionTable<T> {
+    pub fn new() -> DefinitionTable<T> {
         DefinitionTable {
             function_definitions: Default::default(),
             struct_definitions: Default::default(),
