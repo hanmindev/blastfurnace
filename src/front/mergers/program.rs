@@ -4,6 +4,7 @@ use crate::front::mergers::package::{Package, Packager};
 use crate::middle::format::types::{GlobalName, Program};
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
+use std::rc::Rc;
 
 pub struct ProgramMerger<R> {
     packages: HashMap<String, Package>,
@@ -40,10 +41,10 @@ impl<R: FileSystem> ProgramMerger<R> {
                 .function_definitions
                 .drain()
             {
-                program.public_functions.insert(GlobalName {
+                program.public_functions.insert(Rc::from(GlobalName {
                     module: def.0.as_ref().module.clone(),
-                    name: (*def.0.name).clone(),
-                });
+                    name: def.0.name.clone(),
+                }));
             }
 
             for def in table
@@ -60,10 +61,10 @@ impl<R: FileSystem> ProgramMerger<R> {
                 )
             {
                 program.function_definitions.insert(
-                    GlobalName {
+                    Rc::from(GlobalName {
                         module: def.0.as_ref().module.clone(),
-                        name: (*def.0.name).clone(),
-                    },
+                        name: def.0.name.clone(),
+                    }),
                     def.1,
                 );
             }
@@ -81,10 +82,10 @@ impl<R: FileSystem> ProgramMerger<R> {
                 )
             {
                 program.struct_definitions.insert(
-                    GlobalName {
+                    Rc::from(GlobalName {
                         module: def.0.as_ref().module.clone(),
-                        name: (*def.0.name).clone(),
-                    },
+                        name: def.0.name.clone(),
+                    }),
                     def.1,
                 );
             }
@@ -102,10 +103,10 @@ impl<R: FileSystem> ProgramMerger<R> {
                 )
             {
                 program.global_var_definitions.insert(
-                    GlobalName {
+                    Rc::from(GlobalName {
                         module: def.0.as_ref().module.clone(),
-                        name: (*def.0.name).clone(),
-                    },
+                        name: def.0.name.clone(),
+                    }),
                     def.1,
                 );
             }

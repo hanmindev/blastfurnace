@@ -1,20 +1,15 @@
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::middle::format::types::GlobalName;
 
 pub type RawName = String;
 pub type ResolvedName = String;
-
-#[derive(Debug, PartialEq, Clone, Eq, Hash)]
-pub struct GlobalResolvedName {
-    pub module: String,
-    pub name: Rc<ResolvedName>,
-}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Reference {
     pub raw: RawName,
     pub module_resolved: Option<Rc<ResolvedName>>,
-    pub global_resolved: Option<Rc<GlobalResolvedName>>,
+    pub global_resolved: Option<Rc<GlobalName>>,
 }
 
 impl Reference {
