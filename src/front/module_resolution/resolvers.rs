@@ -12,7 +12,9 @@ pub trait Resolvable {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum ResolverError {}
+pub enum ResolverError {
+    ImportVisibilityError(String, String, String),
+}
 
 pub type ResolveResult<T> = Result<T, ResolverError>;
 
@@ -60,7 +62,16 @@ impl Resolvable for Use {
                 s.push_str(&self.path[1..].join("/"));
                 s
             } else {
-                self.path.join("/")
+                let s = self.path.join("/");
+
+                if !module_merger.can_call(&s) {
+                    return Err(ResolverError::ImportVisibilityError(
+                        s.clone(),
+                        module_merger.get_path().clone(),
+                        "Cannot call module from this path".to_string(),
+                    ));
+                }
+                s
             };
 
             let global_resolved_name = GlobalResolvedName {

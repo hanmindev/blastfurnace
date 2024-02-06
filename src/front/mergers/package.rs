@@ -21,11 +21,8 @@ impl<T> Packager<T> {
     }
 
     fn globalize_names(&mut self) {
-        let merged_modules = self.module_merger.as_mut().unwrap();
-        for (path, mut module_node) in self.retriever.take().unwrap().modules.drain() {
-            let module = module_node.module.as_mut().unwrap();
-            merged_modules.merge_module(&path, module);
-        }
+        let module_merger = self.module_merger.as_mut().unwrap();
+        module_merger.merge_modules(self.retriever.take().unwrap().modules);
     }
 
     pub fn merge_modules(&mut self) -> DefinitionTable {
@@ -49,7 +46,7 @@ mod tests {
     #[test]
     fn test_parse_files() {
         let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "fn main() {}");
+        mock_file_system.insert_file("/main.ing", "mod test; fn main() {}");
         mock_file_system.insert_file("/test.ing", "pub mod example;");
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
@@ -64,7 +61,7 @@ mod tests {
         assert_eq!(name_map.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
-            module: "/".to_string(),
+            module: "/root".to_string(),
             name: Rc::from("0_main".to_string()),
         });
 
@@ -87,7 +84,7 @@ mod tests {
         );
 
         let gr = Rc::from(GlobalResolvedName {
-            module: "/test/example".to_string(),
+            module: "/root/test/example".to_string(),
             name: Rc::from("0_a".to_string()),
         });
 
@@ -115,7 +112,7 @@ mod tests {
         let mut mock_file_system = MockFileSystem::new("/".to_string());
         mock_file_system.insert_file(
             "/main.ing",
-            "use root::test::example::a; fn main() { a(); }",
+            "mod test; use root::test::example::a; fn main() { a(); }",
         );
         mock_file_system.insert_file("/test.ing", "pub mod example;");
         mock_file_system.insert_dir("/test/");
@@ -131,7 +128,7 @@ mod tests {
         assert_eq!(name_map.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
-            module: "/".to_string(),
+            module: "/root".to_string(),
             name: Rc::from("0_main".to_string()),
         });
 
@@ -166,7 +163,7 @@ mod tests {
         );
 
         let gr = Rc::from(GlobalResolvedName {
-            module: "/test/example".to_string(),
+            module: "/root/test/example".to_string(),
             name: Rc::from("0_a".to_string()),
         });
 
@@ -192,7 +189,7 @@ mod tests {
     #[test]
     fn test_import_cross_package() {
         let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "use std::test::example::a; fn main() { a(); }");
+        mock_file_system.insert_file("/main.ing", "mod test; use std::test::example::a; fn main() { a(); }");
         mock_file_system.insert_file("/test.ing", "pub mod example;");
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
@@ -207,7 +204,7 @@ mod tests {
         assert_eq!(name_map.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
-            module: "/".to_string(),
+            module: "/root".to_string(),
             name: Rc::from("0_main".to_string()),
         });
 

@@ -18,3 +18,18 @@ impl DefinitionTable {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct MergedModule {
+    pub public_definitions: DefinitionTable,
+    pub private_definitions: DefinitionTable,
+}
+
+impl MergedModule {
+    pub fn new() -> MergedModule {
+        MergedModule {
+            public_definitions: DefinitionTable::new(),
+            private_definitions: DefinitionTable::new(),
+        }
+    }
+}

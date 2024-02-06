@@ -10,7 +10,7 @@ mod tests {
     #[test]
     fn test_compile_simple() {
         let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "fn main() {}");
+        mock_file_system.insert_file("/main.ing", "mod test; fn main() {}");
         mock_file_system.insert_file("/test.ing", "pub mod example;");
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");

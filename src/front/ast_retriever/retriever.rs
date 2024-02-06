@@ -52,8 +52,16 @@ impl<T: FileSystem> FileRetriever<T> {
                 self.file_system.exit_dir();
             }
 
-            parent_module.submodules.insert(path.clone(), None);
-            self.modules.insert(path, module);
+            let mut module_path = if path == "/main" {
+                "/root".to_string()
+            } else {
+                let mut new_path = "/root".to_string();
+                new_path.push_str(&path);
+                new_path
+            };
+
+            parent_module.submodules.insert(module_path.clone(), None);
+            self.modules.insert(module_path, module);
         }
     }
 
@@ -65,29 +73,43 @@ impl<T: FileSystem> FileRetriever<T> {
         };
 
         self.read_nodes_rec(&mut root);
-        self.root = Some("main".to_string());
-        if let Some(mut value) = self.modules.remove("/main") {
+        self.root = Some("/root".to_string());
+
+        if let Some(mut value) = self.modules.get_mut("/root") {
             assert_eq!(value.submodules.len(), 0);
             root.submodules
-                .remove("/main")
+                .remove("/root")
                 .expect("main module not found in submodules");
             value.submodules = root.submodules;
-            self.modules.insert("/".to_string(), value);
         } else {
             panic!("main module not found");
         }
     }
 
     fn parse_files(&mut self) {
-        for module_node in self.modules.values_mut() {
-            let mut source = module_node.source.clone();
+        for (mod_path, module_node) in self.modules.iter_mut() {
+            let mut file_source = module_node.source.clone();
 
             // TODO: add option to read from cached object file
-            source.push_str(".ing");
-            if let Ok(byte_stream) = self.file_system.read_file(&source) {
+            file_source.push_str(".ing");
+            if let Ok(byte_stream) = self.file_system.read_file(&file_source) {
                 let lexer = Lexer::new(byte_stream);
                 let mut parser = Parser::new(lexer);
                 let mut module = parser.parse_module().unwrap();
+
+                for import in &module.mods {
+                    let mut path = mod_path.clone();
+                    path.push_str("/");
+                    path.push_str(&import.name);
+
+                    if let Some(None) = module_node.submodules.remove(&path) {
+                        module_node.submodules.insert(path, Some(import.public));
+                    } else {
+                        panic!("Submodule not found, or already resolved"); // TODO: error instead of panic
+                    }
+
+
+                }
 
                 resolve_module(&mut module);
                 module_node.module = Some(module);
@@ -117,23 +139,23 @@ mod tests {
 
         assert_eq!(program.modules.len(), 3);
         assert_eq!(
-            program.modules.get("/"),
+            program.modules.get("/root"),
             Some(&ModuleNode {
                 source: "/main".to_string(),
-                submodules: HashMap::from([("/test".to_string(), None)]),
+                submodules: HashMap::from([("/root/test".to_string(), None)]),
                 module: None,
             })
         );
         assert_eq!(
-            program.modules.get("/test"),
+            program.modules.get("/root/test"),
             Some(&ModuleNode {
                 source: "/test".to_string(),
-                submodules: HashMap::from([("/test/example".to_string(), None)]),
+                submodules: HashMap::from([("/root/test/example".to_string(), None)]),
                 module: None,
             })
         );
         assert_eq!(
-            program.modules.get("/test/example"),
+            program.modules.get("/root/test/example"),
             Some(&ModuleNode {
                 source: "/test/example".to_string(),
                 submodules: HashMap::new(),
