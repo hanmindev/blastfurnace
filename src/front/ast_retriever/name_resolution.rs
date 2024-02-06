@@ -1,6 +1,6 @@
 use crate::front::ast_retriever::name_resolution::resolvers::Resolvable;
 use crate::front::ast_retriever::name_resolution::scope_table::ScopeTable;
-use crate::front::internal_ast_types::Module;
+use crate::front::ast_types::Module;
 
 mod lib;
 mod resolvers;

@@ -1,10 +1,5 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
-use crate::front::ast_types::{
-    AtomicExpression, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, For,
-    If, LiteralValue, NamePath, Statement, StructDef, Type, VarAssign, VarDecl,
-    VarDef, While,
-};
-use crate::front::internal_ast_types::{Block, Module, StatementBlock, Use};
+use crate::front::ast_types::{AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign, VarDecl, VarDef, While};
 
 pub trait Resolvable {
     fn resolve_name(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {

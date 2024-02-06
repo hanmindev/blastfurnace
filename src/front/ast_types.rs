@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::front::internal_ast_types::Block;
 
 pub type RawName = String;
 pub type ResolvedName = String;
@@ -200,4 +199,43 @@ pub enum Definition {
     VarDecl(VarDecl),
     StructDef(StructDef),
     FnDef(FnDef),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Module {
+    pub mods: Vec<ModuleImport>,
+    pub uses: Vec<Use>,
+    pub public_definitions: Vec<Definition>,
+    pub block: Block,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum StatementBlock {
+    Statement(Statement),
+    Block(Block),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Block {
+    pub definitions: Vec<Definition>,
+    pub statements: Vec<StatementBlock>,
+}
+
+
+#[derive(Debug, PartialEq)]
+pub struct ModuleImport {
+    pub public: bool,
+    pub name: String,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct UseElement {
+    pub origin_name: String,
+    pub imported_name: Reference,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Use {
+    pub path: Vec<String>,
+    pub elements: Vec<UseElement>,
 }

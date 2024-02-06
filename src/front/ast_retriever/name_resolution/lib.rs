@@ -8,7 +8,7 @@ mod tests {
         AtomicExpression, Definition, Expression, Reference, Statement, Type,
     };
     use std::rc::Rc;
-    use crate::front::internal_ast_types::StatementBlock;
+    use crate::front::ast_types::StatementBlock;
 
     #[test]
     fn simple_scope() {
