@@ -1,15 +1,15 @@
 #[cfg(test)]
 mod tests {
     use crate::front::file_system::byte_stream::{ByteStream, StringReader};
-    use crate::front::lexical::lexer::Lexer;
     use crate::front::name_resolution::resolvers::Resolvable;
     use crate::front::name_resolution::resolvers::ResolverError::Redefinition;
     use crate::front::name_resolution::scope_table::ScopeTable;
-    use crate::front::syntax::ast_types::{
+    use crate::front::ast_retriever::syntax::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, StatementBlock, Type,
     };
-    use crate::front::syntax::parser::Parser;
+    use crate::front::ast_retriever::syntax::parser::Parser;
     use std::rc::Rc;
+    use crate::front::ast_retriever::string_to_module;
 
     #[test]
     fn simple_scope() {
@@ -17,12 +17,7 @@ mod tests {
 
         let statement =
             "pub let a: int; pub fn main(a: int, b: int) -> int { a + 1; let a: int = a; return 0; }";
-        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
-            statement.to_string(),
-        ))));
-        let mut parser = Parser::new(lexer);
-
-        let mut module = parser.parse_module().unwrap();
+        let mut module = string_to_module(statement).unwrap();
 
         module.resolve_name(&mut scope_table).unwrap();
 
@@ -134,12 +129,7 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "pub let a: A; pub let b: A; pub let c: A; pub struct A { }";
-        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
-            statement.to_string(),
-        ))));
-        let mut parser = Parser::new(lexer);
-
-        let mut module = parser.parse_module().unwrap();
+        let mut module = string_to_module(statement).unwrap();
 
         module.resolve_name(&mut scope_table).unwrap();
 
@@ -238,12 +228,7 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "struct A { b: B } struct B { a: A }";
-        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
-            statement.to_string(),
-        ))));
-        let mut parser = Parser::new(lexer);
-
-        let mut block = parser.parse_module().unwrap().block;
+        let mut block = string_to_module(statement).unwrap().block;
 
         block.resolve_name(&mut scope_table).unwrap();
 
@@ -314,12 +299,7 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "struct A { b: int } struct A { a: int }";
-        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
-            statement.to_string(),
-        ))));
-        let mut parser = Parser::new(lexer);
-
-        let mut block = parser.parse_module().unwrap().block;
+        let mut block = string_to_module(statement).unwrap().block;
 
         if let Err(error) = block.resolve_name(&mut scope_table) {
             assert_eq!(error, Redefinition("A".to_string()));
@@ -333,12 +313,7 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "fn main() { let a: A; let b: B; } struct A { b: B } struct B { a: A }";
-        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
-            statement.to_string(),
-        ))));
-        let mut parser = Parser::new(lexer);
-
-        let mut block = parser.parse_module().unwrap().block;
+        let mut block = string_to_module(statement).unwrap().block;
 
         block.resolve_name(&mut scope_table).unwrap();
         match &block.definitions[2] {

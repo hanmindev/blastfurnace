@@ -1,8 +1,8 @@
 use crate::front::file_system::fs::FileSystem;
-use crate::front::lexical::lexer::Lexer;
+use crate::front::ast_retriever::lexical::lexer::Lexer;
 use crate::front::name_resolution::name_resolver::resolve_module;
-use crate::front::syntax::ast_types::Module;
-use crate::front::syntax::parser::Parser;
+use crate::front::ast_retriever::syntax::ast_types::Module;
+use crate::front::ast_retriever::syntax::parser::Parser;
 use std::collections::HashMap;
 pub type FilePath = String;
 pub type ModuleSource = String;

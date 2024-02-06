@@ -1,4 +1,4 @@
-use crate::front::syntax::ast_types::{FnDef, GlobalResolvedName, StructDef, VarDecl};
+use crate::front::ast_retriever::syntax::ast_types::{FnDef, GlobalResolvedName, StructDef, VarDecl};
 use std::collections::HashMap;
 use std::rc::Rc;
 
