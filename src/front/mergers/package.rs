@@ -62,8 +62,8 @@ mod tests {
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalName {
-            module: "/root".to_string(),
-            name: "0_main".to_string(),
+            module: Rc::from("/root"),
+            name: Rc::from("0_main"),
         });
 
         assert_eq!(
@@ -85,8 +85,8 @@ mod tests {
         );
 
         let gr = Rc::from(GlobalName {
-            module: "/root/test/example".to_string(),
-            name: "0_a".to_string(),
+            module: Rc::from("/root/test/example"),
+            name: Rc::from("0_a"),
         });
 
         assert_eq!(
@@ -128,8 +128,8 @@ mod tests {
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalName {
-            module: "/root".to_string(),
-            name: "0_main".to_string(),
+            module: Rc::from("/root"),
+            name: Rc::from("0_main"),
         });
 
         assert_eq!(
@@ -149,8 +149,8 @@ mod tests {
                                 raw: "a".to_string(),
                                 module_resolved: Some(Rc::from("0_a".to_string())),
                                 global_resolved: Some(Rc::from(GlobalName {
-                                    module: "/test/example".to_string(),
-                                    name: "0_a".to_string(),
+                                    module: Rc::from("/test/example"),
+                                    name: Rc::from("0_a"),
                                 })),
                             },
                             args: vec![],
@@ -163,8 +163,8 @@ mod tests {
         );
 
         let gr = Rc::from(GlobalName {
-            module: "/root/test/example".to_string(),
-            name: "0_a".to_string(),
+            module: Rc::from("/root/test/example"),
+            name: Rc::from("0_a"),
         });
 
         assert_eq!(
@@ -206,8 +206,8 @@ mod tests {
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalName {
-            module: "/root".to_string(),
-            name: "0_main".to_string(),
+            module: Rc::from("/root"),
+            name: Rc::from("0_main"),
         });
 
         assert_eq!(
@@ -226,8 +226,8 @@ mod tests {
                         raw: "a".to_string(),
                         module_resolved: Some(Rc::from("0_a".to_string())),
                         global_resolved: Some(Rc::from(GlobalName {
-                            module: "std/test/example".to_string(),
-                            name: "0_a".to_string(),
+                            module: Rc::from("std/test/example"),
+                            name: Rc::from("0_a"),
                         })),
                     },
                     args: vec![],
