@@ -2,9 +2,9 @@ use crate::front::ast_retriever::retriever::{ModuleNode, ModuleSource};
 use crate::front::ast_types::{FnDef, ResolvedName, StructDef, VarDecl};
 use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
 use crate::front::mergers::package::module_resolution::resolvers::Resolvable;
+use crate::middle::format::types::GlobalName;
 use std::collections::{HashMap, LinkedList};
 use std::rc::Rc;
-use crate::middle::format::types::GlobalName;
 
 #[derive(Debug)]
 pub enum ModuleMergeError {
@@ -44,8 +44,15 @@ impl ModuleMerger {
         &self.module_source
     }
 
-    pub fn create_or_get_global_name(&mut self, module_name: String, name: String) -> Rc<GlobalName> {
-        if let Some(g) = self.global_name_table.get(&(module_name.clone(), name.clone())) {
+    pub fn create_or_get_global_name(
+        &mut self,
+        module_name: String,
+        name: String,
+    ) -> Rc<GlobalName> {
+        if let Some(g) = self
+            .global_name_table
+            .get(&(module_name.clone(), name.clone()))
+        {
             return Rc::clone(g);
         }
 
@@ -54,7 +61,8 @@ impl ModuleMerger {
             name: Rc::from(name.clone()),
         });
 
-        self.global_name_table.insert((module_name, name), Rc::clone(&g));
+        self.global_name_table
+            .insert((module_name, name), Rc::clone(&g));
         g
     }
 
@@ -71,14 +79,12 @@ impl ModuleMerger {
         self.global_name_map.insert(local_name, global_name);
     }
 
-    pub fn resolve_global_name(
-        &mut self,
-        resolved_name: &Rc<ResolvedName>,
-    ) -> Rc<GlobalName> {
+    pub fn resolve_global_name(&mut self, resolved_name: &Rc<ResolvedName>) -> Rc<GlobalName> {
         return if let Some(s) = self.global_name_map.get(resolved_name) {
             Rc::clone(s)
         } else {
-            let g = self.create_or_get_global_name(self.get_path().clone(), (**resolved_name).clone());
+            let g =
+                self.create_or_get_global_name(self.get_path().clone(), (**resolved_name).clone());
             self.register_global_name(Rc::clone(resolved_name), Rc::clone(&g), false);
             g
         };

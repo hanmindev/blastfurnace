@@ -38,12 +38,11 @@ mod tests {
     use super::*;
     use crate::front::ast_types::Type::Void;
     use crate::front::ast_types::{
-        AtomicExpression, Block, Expression, FnCall, FnDef, Reference,
-        Statement, StatementBlock,
+        AtomicExpression, Block, Expression, FnCall, FnDef, Reference, Statement, StatementBlock,
     };
     use crate::front::file_system::mock_fs::MockFileSystem;
-    use std::rc::Rc;
     use crate::middle::format::types::GlobalName;
+    use std::rc::Rc;
 
     #[test]
     fn test_parse_files() {
