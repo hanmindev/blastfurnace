@@ -1,4 +1,4 @@
-use crate::front::module_resolution::module_merger::ModuleMerger;
+use crate::front::mergers::module_resolution::module_merger::ModuleMerger;
 use crate::front::syntax::ast_types::{
     AtomicExpression, Block, Definition, Expression, GlobalResolvedName, If, Module, Reference,
     ResolvedName, Statement, StatementBlock, Use,
@@ -195,15 +195,19 @@ fn resolve_definition(
                 .unwrap()
                 .resolve_module(module_merger)?;
 
-            module_merger
-                .insert_fn_definition(fn_def.name.global_resolved.clone().unwrap(), fn_def, is_public);
+            module_merger.insert_fn_definition(
+                fn_def.name.global_resolved.clone().unwrap(),
+                fn_def,
+                is_public,
+            );
         }
         Definition::StructDef(mut struct_def) => {
             struct_def.type_name.resolve_module(module_merger)?;
 
             module_merger.insert_struct_definition(
                 struct_def.type_name.global_resolved.clone().unwrap(),
-                struct_def, is_public
+                struct_def,
+                is_public,
             );
         }
         Definition::VarDecl(mut var_decl) => {
@@ -214,7 +218,8 @@ fn resolve_definition(
 
             module_merger.insert_global_var_definition(
                 var_decl.var_def.name.global_resolved.clone().unwrap(),
-                var_decl, is_public
+                var_decl,
+                is_public,
             );
         }
     }

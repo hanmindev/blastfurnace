@@ -1,9 +1,9 @@
+use crate::front::ast_retriever::retriever::FilePath;
 use crate::front::file_system::byte_stream::{ByteStream, ByteStreamable};
 use crate::front::file_system::fs::{FileSystem, FileSystemError, FileSystemResult};
 use std::fs;
 use std::fs::File;
 use std::io::Read;
-use crate::front::ast_retriever::retriever::{FilePath};
 
 pub struct SystemFs {
     current_dir: String,

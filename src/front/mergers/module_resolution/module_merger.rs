@@ -1,11 +1,11 @@
-use crate::front::module_resolution::merged_module::{MergedModule};
-use crate::front::module_resolution::resolvers::Resolvable;
+use crate::front::ast_retriever::retriever::{ModuleNode, ModuleSource};
+use crate::front::mergers::module_resolution::merged_module::MergedModule;
+use crate::front::mergers::module_resolution::resolvers::Resolvable;
 use crate::front::syntax::ast_types::{
     FnDef, GlobalResolvedName, Module, ResolvedName, StructDef, VarDecl,
 };
 use std::collections::{HashMap, LinkedList};
 use std::rc::Rc;
-use crate::front::ast_retriever::retriever::{ModuleNode, ModuleSource};
 
 #[derive(Debug)]
 pub enum ModuleMergeError {
@@ -72,10 +72,15 @@ impl ModuleMerger {
         };
     }
 
-    fn rec_create_visibility_rules(&mut self, module_source: &str, modules: &HashMap<ModuleSource, ModuleNode>) -> ModuleMergeResult<LinkedList<ModuleSource>> {
+    fn rec_create_visibility_rules(
+        &mut self,
+        module_source: &str,
+        modules: &HashMap<ModuleSource, ModuleNode>,
+    ) -> ModuleMergeResult<LinkedList<ModuleSource>> {
         let module_node = modules.get(module_source).unwrap();
 
-        let mut visible_above: LinkedList<ModuleSource> = LinkedList::from([module_source.to_string()]);
+        let mut visible_above: LinkedList<ModuleSource> =
+            LinkedList::from([module_source.to_string()]);
         let mut visible_below: LinkedList<ModuleSource> = LinkedList::new();
 
         for (name, mut module) in &module_node.submodules {
@@ -87,12 +92,16 @@ impl ModuleMerger {
                     visible_below.append(&mut visible)
                 }
             } else {
-                Err(ModuleMergeError::ModuleNotAttached(name.to_string(), "Module is not attached to any parent module!".to_string()))?;
+                Err(ModuleMergeError::ModuleNotAttached(
+                    name.to_string(),
+                    "Module is not attached to any parent module!".to_string(),
+                ))?;
             }
         }
 
         for name in visible_below {
-            self.visibility_rules.insert(name, module_source.to_string());
+            self.visibility_rules
+                .insert(name, module_source.to_string());
         }
 
         return Ok(visible_above);
@@ -108,7 +117,10 @@ impl ModuleMerger {
         return true;
     }
 
-    pub fn merge_modules(&mut self, mut modules: HashMap<ModuleSource, ModuleNode>) -> ModuleMergeResult<MergedModule> {
+    pub fn merge_modules(
+        &mut self,
+        mut modules: HashMap<ModuleSource, ModuleNode>,
+    ) -> ModuleMergeResult<MergedModule> {
         for name in self.rec_create_visibility_rules("/root", &mut modules)? {
             self.visibility_rules.insert(name, "/root".to_string());
         }
@@ -116,7 +128,11 @@ impl ModuleMerger {
 
         for (module_source, mut module) in modules {
             self.switch_module(&module_source);
-            module.module.unwrap().resolve_module(self).expect("Expected Module, got None");
+            module
+                .module
+                .unwrap()
+                .resolve_module(self)
+                .expect("Expected Module, got None");
         }
 
         Ok(self.merged_module.take().unwrap())
@@ -126,12 +142,22 @@ impl ModuleMerger {
         &mut self,
         global_resolved_name: Rc<GlobalResolvedName>,
         definition: FnDef,
-        is_public: bool
+        is_public: bool,
     ) {
         let mut definitions = if is_public && self.module_source == "/root" {
-            &mut self.merged_module.as_mut().unwrap().public_definitions.function_definitions
+            &mut self
+                .merged_module
+                .as_mut()
+                .unwrap()
+                .public_definitions
+                .function_definitions
         } else {
-            &mut self.merged_module.as_mut().unwrap().private_definitions.function_definitions
+            &mut self
+                .merged_module
+                .as_mut()
+                .unwrap()
+                .private_definitions
+                .function_definitions
         };
 
         definitions.insert(global_resolved_name, definition);
@@ -141,12 +167,22 @@ impl ModuleMerger {
         &mut self,
         global_resolved_name: Rc<GlobalResolvedName>,
         definition: StructDef,
-        is_public: bool
+        is_public: bool,
     ) {
         let mut definitions = if is_public && self.module_source == "/root" {
-            &mut self.merged_module.as_mut().unwrap().public_definitions.struct_definitions
+            &mut self
+                .merged_module
+                .as_mut()
+                .unwrap()
+                .public_definitions
+                .struct_definitions
         } else {
-            &mut self.merged_module.as_mut().unwrap().private_definitions.struct_definitions
+            &mut self
+                .merged_module
+                .as_mut()
+                .unwrap()
+                .private_definitions
+                .struct_definitions
         };
         definitions.insert(global_resolved_name, definition);
     }
@@ -155,12 +191,22 @@ impl ModuleMerger {
         &mut self,
         global_resolved_name: Rc<GlobalResolvedName>,
         definition: VarDecl,
-        is_public: bool
+        is_public: bool,
     ) {
         let mut definitions = if is_public && self.module_source == "/root" {
-            &mut self.merged_module.as_mut().unwrap().public_definitions.global_var_definitions
+            &mut self
+                .merged_module
+                .as_mut()
+                .unwrap()
+                .public_definitions
+                .global_var_definitions
         } else {
-            &mut self.merged_module.as_mut().unwrap().private_definitions.global_var_definitions
+            &mut self
+                .merged_module
+                .as_mut()
+                .unwrap()
+                .private_definitions
+                .global_var_definitions
         };
         definitions.insert(global_resolved_name, definition);
     }

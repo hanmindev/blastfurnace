@@ -1,6 +1,6 @@
+use crate::front::ast_retriever::retriever::FilePath;
 use crate::front::file_system::byte_stream::{ByteStream, StringReader};
 use std::collections::{HashMap, HashSet};
-use crate::front::ast_retriever::retriever::{FilePath};
 
 pub enum FileSystemError {
     FileNotFound,

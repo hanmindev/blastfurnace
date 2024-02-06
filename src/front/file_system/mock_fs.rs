@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
-use crate::front::ast_retriever::retriever::{FilePath};
+use crate::front::ast_retriever::retriever::FilePath;
 use crate::front::file_system::byte_stream::{ByteStream, StringReader};
 use crate::front::file_system::fs::{FileSystem, FileSystemError, FileSystemResult};
+use std::collections::{HashMap, HashSet};
 
 pub struct MockFileSystem {
     current_dir: FilePath,

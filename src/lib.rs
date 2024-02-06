@@ -3,8 +3,8 @@ pub mod middle;
 
 #[cfg(test)]
 mod tests {
-    use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::file_system::fs::FileSystem;
+    use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
 
     #[test]
@@ -20,7 +20,5 @@ mod tests {
         program_merger.read_package("pkg", mock_file_system);
 
         let program = program_merger.export_program();
-
-
     }
 }

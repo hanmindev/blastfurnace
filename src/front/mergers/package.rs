@@ -1,7 +1,7 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
-use crate::front::module_resolution::merged_module::{MergedModule};
-use crate::front::module_resolution::module_merger::ModuleMerger;
+use crate::front::mergers::module_resolution::merged_module::MergedModule;
+use crate::front::mergers::module_resolution::module_merger::ModuleMerger;
 
 #[derive(Debug)]
 pub struct Packager<T> {
@@ -21,7 +21,10 @@ impl<T> Packager<T> {
     }
 
     pub fn merge_modules(&mut self) -> MergedModule {
-        return self.module_merger.merge_modules(self.retriever.take().unwrap().modules).unwrap();
+        return self
+            .module_merger
+            .merge_modules(self.retriever.take().unwrap().modules)
+            .unwrap();
 
         //TODO: don't use unwrap
     }
@@ -182,7 +185,10 @@ mod tests {
     #[test]
     fn test_import_cross_package() {
         let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "mod test; use std::test::example::a; fn main() { a(); }");
+        mock_file_system.insert_file(
+            "/main.ing",
+            "mod test; use std::test::example::a; fn main() { a(); }",
+        );
         mock_file_system.insert_file("/test.ing", "pub mod example;");
         mock_file_system.insert_dir("/test/");
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");

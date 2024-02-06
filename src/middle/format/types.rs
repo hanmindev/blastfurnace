@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::front::syntax::ast_types::{FnDef, StructDef, VarDecl};
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct GlobalName {

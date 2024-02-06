@@ -31,7 +31,7 @@ impl<T: FileSystem> FileRetriever<T> {
         f
     }
     fn read_nodes_rec(&mut self, parent_module: &mut ModuleNode) {
-        let modules= self.file_system.ls_files_with_extension("ing");
+        let modules = self.file_system.ls_files_with_extension("ing");
 
         for file_name_ext in modules {
             let file_name = file_name_ext.strip_suffix(".ing").unwrap().to_string();
@@ -106,8 +106,6 @@ impl<T: FileSystem> FileRetriever<T> {
                     } else {
                         panic!("Submodule not found, or already resolved"); // TODO: error instead of panic
                     }
-
-
                 }
 
                 resolve_module(&mut module);
