@@ -1,6 +1,6 @@
 use crate::front::file_system::fs::FileSystem;
 use crate::front::ast_retriever::reader::lexical::lexer::Lexer;
-use crate::front::name_resolution::name_resolver::resolve_module;
+use crate::front::ast_retriever::name_resolution::resolve_module;
 use crate::front::internal_ast_types::Module;
 use crate::front::ast_retriever::reader::syntax::parser::Parser;
 use std::collections::HashMap;

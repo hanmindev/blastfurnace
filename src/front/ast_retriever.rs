@@ -5,6 +5,7 @@ use crate::front::ast_retriever::reader::syntax::parser::{Parser, ParseResult};
 
 pub mod retriever;
 mod reader;
+mod name_resolution;
 
 pub fn string_to_module(statement: &str) -> ParseResult<Module> {
     let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(

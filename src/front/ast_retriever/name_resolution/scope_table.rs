@@ -1,5 +1,5 @@
-use crate::front::name_resolution::resolvers::ResolveResult;
-use crate::front::name_resolution::resolvers::ResolverError::Redefinition;
+use crate::front::ast_retriever::name_resolution::resolvers::ResolveResult;
+use crate::front::ast_retriever::name_resolution::resolvers::ResolverError::Redefinition;
 use crate::front::ast_types::{RawName, ResolvedName};
 use std::collections::HashMap;
 use std::rc::Rc;
