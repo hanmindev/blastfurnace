@@ -1,6 +1,6 @@
+use crate::middle::format::types::GlobalName;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::middle::format::types::GlobalName;
 
 pub type RawName = String;
 pub type ResolvedName = String;
