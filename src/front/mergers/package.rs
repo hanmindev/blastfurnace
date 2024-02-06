@@ -8,7 +8,7 @@ pub struct Packager<T> {
     package_name: String,
     retriever: Option<FileRetriever<T>>,
 
-    pub module_merger: Option<ModuleMerger>,
+    pub module_merger: ModuleMerger,
 }
 
 impl<T> Packager<T> {
@@ -16,19 +16,14 @@ impl<T> Packager<T> {
         Packager {
             package_name: package_name.to_string(),
             retriever: Some(retriever),
-            module_merger: Option::from(ModuleMerger::new(package_name)),
+            module_merger: ModuleMerger::new(package_name),
         }
     }
 
-    fn globalize_names(&mut self) {
-        let module_merger = self.module_merger.as_mut().unwrap();
-        module_merger.merge_modules(self.retriever.take().unwrap().modules);
-    }
-
     pub fn merge_modules(&mut self) -> MergedModule {
-        self.globalize_names();
+        return self.module_merger.merge_modules(self.retriever.take().unwrap().modules).unwrap();
 
-        return self.module_merger.take().unwrap().merged_module;
+        //TODO: don't use unwrap
     }
 }
 
@@ -52,13 +47,12 @@ mod tests {
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
-        program.globalize_names();
 
-        let name_map = &program.module_merger.unwrap().merged_module.private_definitions;
+        let definition_table = program.merge_modules().private_definitions;
 
-        assert_eq!(name_map.function_definitions.len(), 2);
-        assert_eq!(name_map.struct_definitions.len(), 0);
-        assert_eq!(name_map.global_var_definitions.len(), 0);
+        assert_eq!(definition_table.function_definitions.len(), 2);
+        assert_eq!(definition_table.struct_definitions.len(), 0);
+        assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
             module: "/root".to_string(),
@@ -66,7 +60,7 @@ mod tests {
         });
 
         assert_eq!(
-            name_map.function_definitions.get(&gr),
+            definition_table.function_definitions.get(&gr),
             Some(&FnDef {
                 name: Reference {
                     raw: "main".to_string(),
@@ -89,7 +83,7 @@ mod tests {
         });
 
         assert_eq!(
-            name_map.function_definitions.get(&gr),
+            definition_table.function_definitions.get(&gr),
             Some(&FnDef {
                 name: Reference {
                     raw: "a".to_string(),
@@ -119,13 +113,12 @@ mod tests {
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
-        program.globalize_names();
 
-        let name_map = &program.module_merger.unwrap().merged_module.private_definitions;
+        let definition_table = program.merge_modules().private_definitions;
 
-        assert_eq!(name_map.function_definitions.len(), 2);
-        assert_eq!(name_map.struct_definitions.len(), 0);
-        assert_eq!(name_map.global_var_definitions.len(), 0);
+        assert_eq!(definition_table.function_definitions.len(), 2);
+        assert_eq!(definition_table.struct_definitions.len(), 0);
+        assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
             module: "/root".to_string(),
@@ -133,7 +126,7 @@ mod tests {
         });
 
         assert_eq!(
-            name_map.function_definitions.get(&gr),
+            definition_table.function_definitions.get(&gr),
             Some(&FnDef {
                 name: Reference {
                     raw: "main".to_string(),
@@ -168,7 +161,7 @@ mod tests {
         });
 
         assert_eq!(
-            name_map.function_definitions.get(&gr),
+            definition_table.function_definitions.get(&gr),
             Some(&FnDef {
                 name: Reference {
                     raw: "a".to_string(),
@@ -195,13 +188,12 @@ mod tests {
         mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
-        program.globalize_names();
 
-        let name_map = &program.module_merger.unwrap().merged_module.private_definitions;
+        let definition_table = program.merge_modules().private_definitions;
 
-        assert_eq!(name_map.function_definitions.len(), 2);
-        assert_eq!(name_map.struct_definitions.len(), 0);
-        assert_eq!(name_map.global_var_definitions.len(), 0);
+        assert_eq!(definition_table.function_definitions.len(), 2);
+        assert_eq!(definition_table.struct_definitions.len(), 0);
+        assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
             module: "/root".to_string(),
@@ -209,7 +201,7 @@ mod tests {
         });
 
         assert_eq!(
-            name_map
+            definition_table
                 .function_definitions
                 .get(&gr)
                 .as_ref()

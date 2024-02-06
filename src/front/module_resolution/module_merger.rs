@@ -19,7 +19,7 @@ pub struct ModuleMerger {
     pub package_name: String,
     module_source: ModuleSource,
     global_name_table: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
-    pub merged_module: MergedModule,
+    merged_module: Option<MergedModule>,
     visibility_rules: HashMap<ModuleSource, ModuleSource>, // to call public methods in module of path (key), module_path needs prefix (value)
 }
 
@@ -29,7 +29,7 @@ impl ModuleMerger {
             package_name: package_name.to_string(),
             module_source: String::new(),
             global_name_table: HashMap::new(),
-            merged_module: MergedModule::new(),
+            merged_module: None,
             visibility_rules: HashMap::new(),
         }
     }
@@ -108,17 +108,18 @@ impl ModuleMerger {
         return true;
     }
 
-    pub fn merge_modules(&mut self, mut modules: HashMap<ModuleSource, ModuleNode>) -> ModuleMergeResult<()> {
+    pub fn merge_modules(&mut self, mut modules: HashMap<ModuleSource, ModuleNode>) -> ModuleMergeResult<MergedModule> {
         for name in self.rec_create_visibility_rules("/root", &mut modules)? {
             self.visibility_rules.insert(name, "/root".to_string());
         }
+        self.merged_module = Some(MergedModule::new());
 
         for (module_source, mut module) in modules {
             self.switch_module(&module_source);
             module.module.unwrap().resolve_module(self).expect("Expected Module, got None");
         }
 
-        Ok(())
+        Ok(self.merged_module.take().unwrap())
     }
 
     pub fn insert_fn_definition(
@@ -128,9 +129,9 @@ impl ModuleMerger {
         is_public: bool
     ) {
         let mut definitions = if is_public && self.module_source == "/root" {
-            &mut self.merged_module.public_definitions.function_definitions
+            &mut self.merged_module.as_mut().unwrap().public_definitions.function_definitions
         } else {
-            &mut self.merged_module.private_definitions.function_definitions
+            &mut self.merged_module.as_mut().unwrap().private_definitions.function_definitions
         };
 
         definitions.insert(global_resolved_name, definition);
@@ -143,9 +144,9 @@ impl ModuleMerger {
         is_public: bool
     ) {
         let mut definitions = if is_public && self.module_source == "/root" {
-            &mut self.merged_module.public_definitions.struct_definitions
+            &mut self.merged_module.as_mut().unwrap().public_definitions.struct_definitions
         } else {
-            &mut self.merged_module.private_definitions.struct_definitions
+            &mut self.merged_module.as_mut().unwrap().private_definitions.struct_definitions
         };
         definitions.insert(global_resolved_name, definition);
     }
@@ -157,9 +158,9 @@ impl ModuleMerger {
         is_public: bool
     ) {
         let mut definitions = if is_public && self.module_source == "/root" {
-            &mut self.merged_module.public_definitions.global_var_definitions
+            &mut self.merged_module.as_mut().unwrap().public_definitions.global_var_definitions
         } else {
-            &mut self.merged_module.private_definitions.global_var_definitions
+            &mut self.merged_module.as_mut().unwrap().private_definitions.global_var_definitions
         };
         definitions.insert(global_resolved_name, definition);
     }
