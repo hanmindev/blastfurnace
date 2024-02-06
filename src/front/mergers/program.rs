@@ -44,7 +44,7 @@ impl<R: FileSystem> ProgramMerger<R> {
                     .function_definitions
                     .drain()
                 {
-                    program.public_functions.insert(global_name_updater(&package_name, &def.0, "fn"));
+                    program.public_functions.insert(global_name_updater(&package_name, &def.0));
                 }
             }
 
@@ -61,7 +61,7 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.function_definitions.insert(global_name_updater(&package_name, &def.0, "fn"), convert_fn(&package_name, &def.1));
+                program.function_definitions.insert(global_name_updater(&package_name, &def.0), convert_fn(&package_name, &def.1));
             }
             for def in table
                 .merged_module
@@ -76,7 +76,7 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.struct_definitions.insert(global_name_updater(&package_name, &def.0, "struct"), convert_struct(&package_name, &def.1));
+                program.struct_definitions.insert(global_name_updater(&package_name, &def.0), convert_struct(&package_name, &def.1));
             }
             for def in table
                 .merged_module
@@ -91,7 +91,7 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.global_var_definitions.insert(global_name_updater(&package_name, &def.0, "var"), convert_global_var(&package_name, &def.1));
+                program.global_var_definitions.insert(global_name_updater(&package_name, &def.0), convert_global_var(&package_name, &def.1));
             }
         }
 

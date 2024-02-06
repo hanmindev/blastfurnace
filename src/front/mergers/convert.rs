@@ -17,11 +17,10 @@ use std::rc::Rc;
 pub fn global_name_updater(
     package_name: &str,
     global_resolved_name: &Rc<GlobalResolvedName>,
-    id_type: &str, // fn, var, struct
 ) -> GlobalName {
     format!(
-        "{}/{}/{}/{}",
-        package_name, global_resolved_name.module, global_resolved_name.name, id_type
+        "{}/{}/{}",
+        package_name, global_resolved_name.module, global_resolved_name.name
     )
 }
 
@@ -45,7 +44,7 @@ fn convert_compound(package_name: &str, ast_node: &Compound) -> IrCompound {
 
 fn convert_fn_call(package_name: &str, ast_node: &FnCall) -> IrFnCall {
     return IrFnCall {
-        name: convert_reference(package_name, &ast_node.name, "fn"),
+        name: convert_reference(package_name, &ast_node.name),
         args: ast_node
             .args
             .iter()
@@ -98,7 +97,7 @@ fn convert_expr(package_name: &str, ast_node: &Expression) -> IrExpression {
                     IrLiteralValue::Compound(convert_compound(package_name, val))
                 }
             }),
-            AtomicExpression::Variable(var) => IrAtomicExpression::Variable(convert_name_path(package_name, var, "var")),
+            AtomicExpression::Variable(var) => IrAtomicExpression::Variable(convert_name_path(package_name, var)),
             AtomicExpression::FnCall(fn_call) => IrAtomicExpression::FnCall(Box::from(convert_fn_call(package_name, fn_call))),
         }),
         Expression::Unary(unop, expr) => {
@@ -123,7 +122,7 @@ fn convert_var_def(package_name: &str, ast_node: &VarDef) -> IrVarDef {
                 })
                 .collect(),
         ),
-        name: convert_reference(package_name, &ast_node.name, "var"),
+        name: convert_reference(package_name, &ast_node.name),
         type_: convert_type(package_name, &ast_node.type_),
     }
 }
@@ -138,16 +137,16 @@ fn convert_var_decl(package_name: &str, ast_node: &VarDecl) -> IrVarDecl {
     }
 }
 
-fn convert_name_path(package_name: &str, ast_node: &NamePath, id_type: &str) -> IrNamePath {
+fn convert_name_path(package_name: &str, ast_node: &NamePath) -> IrNamePath {
     IrNamePath {
-        name: global_name_updater(package_name, ast_node.name.global_resolved.as_ref().unwrap(), id_type),
+        name: global_name_updater(package_name, ast_node.name.global_resolved.as_ref().unwrap()),
         path: ast_node.path.clone(),
     }
 }
 
 fn convert_var_assign(package_name: &str, ast_node: &VarAssign) -> IrVarAssign {
     IrVarAssign {
-        name_path: convert_name_path(package_name, &ast_node.name_path, "var"),
+        name_path: convert_name_path(package_name, &ast_node.name_path),
         expr: Box::from(convert_expr(package_name, &ast_node.expr)),
     }
 }
@@ -221,8 +220,8 @@ fn convert_block(package_name: &str, ast_node: &Block) -> IrBlock {
     }
 }
 
-fn convert_reference(package_name: &str, ast_node: &Reference, id_type: &str) -> String {
-    return global_name_updater(package_name, ast_node.global_resolved.as_ref().unwrap(), id_type);
+fn convert_reference(package_name: &str, ast_node: &Reference) -> String {
+    return global_name_updater(package_name, ast_node.global_resolved.as_ref().unwrap());
 }
 
 fn convert_type(package_name: &str, ast_node: &Type) -> IrType {
@@ -233,14 +232,14 @@ fn convert_type(package_name: &str, ast_node: &Type) -> IrType {
         Type::Double => IrType::Double,
         Type::Bool => IrType::Bool,
         Type::String => IrType::String,
-        Type::Struct(x) => IrType::Struct(convert_reference(package_name, x, "struct")),
+        Type::Struct(x) => IrType::Struct(convert_reference(package_name, x)),
     }
 }
 
 pub fn convert_fn(package_name: &str, ast_node: &FnDef) -> IrFnDef {
     IrFnDef {
         body: convert_block(package_name, ast_node.body.as_ref().unwrap()),
-        name: convert_reference(package_name, &ast_node.name, "function"),
+        name: convert_reference(package_name, &ast_node.name),
         mods: Rc::from(ast_node
             .mods
             .iter()
@@ -261,7 +260,7 @@ pub fn convert_fn(package_name: &str, ast_node: &FnDef) -> IrFnDef {
 pub fn convert_struct(package_name: &str, ast_node: &StructDef) -> IrStructDef {
     IrStructDef {
         mods: Rc::from(vec![]),
-        type_name: convert_reference(package_name, &ast_node.type_name, "struct"),
+        type_name: convert_reference(package_name, &ast_node.type_name),
         map: ast_node
             .map
             .iter()
