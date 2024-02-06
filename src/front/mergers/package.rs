@@ -37,11 +37,8 @@ impl<T> Packager<T> {
 mod tests {
     use super::*;
     use crate::front::ast_types::Type::Void;
-    use crate::front::ast_types::{
-        AtomicExpression, Block, Expression, FnCall, FnDef, Reference, Statement, StatementBlock,
-    };
+    use crate::front::ast_types::{AtomicExpression, Block, Expression, FnCall, FnDef, GlobalResolvedName, Reference, Statement, StatementBlock};
     use crate::front::file_system::mock_fs::MockFileSystem;
-    use crate::middle::format::types::GlobalName;
     use std::rc::Rc;
 
     #[test]
@@ -60,9 +57,9 @@ mod tests {
         assert_eq!(definition_table.struct_definitions.len(), 0);
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
-        let gr = Rc::from(GlobalName {
+        let gr = Rc::from(GlobalResolvedName {
             module: Rc::from("/root"),
-            name: Rc::from("0_main"),
+            name: "0_main".to_string(),
         });
 
         assert_eq!(
@@ -83,9 +80,9 @@ mod tests {
             })
         );
 
-        let gr = Rc::from(GlobalName {
+        let gr = Rc::from(GlobalResolvedName {
             module: Rc::from("/root/test/example"),
-            name: Rc::from("0_a"),
+            name: "0_a".to_string(),
         });
 
         assert_eq!(
@@ -126,9 +123,9 @@ mod tests {
         assert_eq!(definition_table.struct_definitions.len(), 0);
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
-        let gr = Rc::from(GlobalName {
+        let gr = Rc::from(GlobalResolvedName {
             module: Rc::from("/root"),
-            name: Rc::from("0_main"),
+            name: "0_main".to_string(),
         });
 
         assert_eq!(
@@ -147,9 +144,9 @@ mod tests {
                             name: Reference {
                                 raw: "a".to_string(),
                                 module_resolved: Some(Rc::from("0_a".to_string())),
-                                global_resolved: Some(Rc::from(GlobalName {
+                                global_resolved: Some(Rc::from(GlobalResolvedName {
                                     module: Rc::from("/test/example"),
-                                    name: Rc::from("0_a"),
+                                    name: "0_a".to_string(),
                                 })),
                             },
                             args: vec![],
@@ -161,9 +158,9 @@ mod tests {
             })
         );
 
-        let gr = Rc::from(GlobalName {
+        let gr = Rc::from(GlobalResolvedName {
             module: Rc::from("/root/test/example"),
-            name: Rc::from("0_a"),
+            name: "0_a".to_string(),
         });
 
         assert_eq!(
@@ -204,9 +201,9 @@ mod tests {
         assert_eq!(definition_table.struct_definitions.len(), 0);
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
-        let gr = Rc::from(GlobalName {
+        let gr = Rc::from(GlobalResolvedName {
             module: Rc::from("/root"),
-            name: Rc::from("0_main"),
+            name: "0_main".to_string(),
         });
 
         assert_eq!(
@@ -224,9 +221,9 @@ mod tests {
                     name: Reference {
                         raw: "a".to_string(),
                         module_resolved: Some(Rc::from("0_a".to_string())),
-                        global_resolved: Some(Rc::from(GlobalName {
+                        global_resolved: Some(Rc::from(GlobalResolvedName {
                             module: Rc::from("std/test/example"),
-                            name: Rc::from("0_a"),
+                            name: "0_a".to_string(),
                         })),
                     },
                     args: vec![],
