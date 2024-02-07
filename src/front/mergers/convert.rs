@@ -19,7 +19,7 @@ pub fn global_name_updater(
     global_resolved_name: &Rc<GlobalResolvedName>,
 ) -> GlobalName {
     format!(
-        "{}/{}/{}",
+        "{}{}/{}",
         package_name, global_resolved_name.module, global_resolved_name.name
     )
 }
