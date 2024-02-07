@@ -27,6 +27,5 @@ mod tests {
         let program = program_merger.export_program();
 
         assert_eq!(program.public_functions.len(), 1);
-        println!("{:?}", program.public_functions);
     }
 }
