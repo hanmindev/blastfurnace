@@ -6,7 +6,7 @@ use crate::front::ast_types::{
 use crate::middle::format::ir_types::{IrAtomicExpression, IrBinOp, IrLiteralValue, IrNamePath};
 use crate::middle::format::ir_types::{
     IrBlock, IrCompound, IrCompoundValue, IrExpression, IrFnCall, IrFnDef, IrFnMod, IrFor, IrIf,
-    IrStatement, IrStatementBlock, IrStructDef, IrType, IrUnOp, IrVarAssign, IrVarDecl, IrVarDef,
+    IrStatement, IrStructDef, IrType, IrUnOp, IrVarAssign, IrVarDecl, IrVarDef,
     IrVarMod, IrWhile,
 };
 use crate::middle::format::types::GlobalName;
@@ -194,7 +194,7 @@ fn convert_for(package_name: &str, ast_node: &For) -> IrFor {
 }
 
 fn convert_statement(package_name: &str, ast_node: &Statement) -> IrStatement {
-    match ast_node {
+    return match ast_node {
         Statement::VarDecl(x) => IrStatement::VarDecl(convert_var_decl(package_name, x)),
         Statement::VarAssign(x) => IrStatement::VarAssign(convert_var_assign(package_name, x)),
         Statement::If(x) => IrStatement::If(convert_if(package_name, x)),
@@ -206,16 +206,16 @@ fn convert_statement(package_name: &str, ast_node: &Statement) -> IrStatement {
         Statement::Expression(x) => {
             IrStatement::Expression(Box::from(convert_expr(package_name, x)))
         }
-    }
+    };
 }
 
-fn convert_statement_block(package_name: &str, ast_node: &StatementBlock) -> IrStatementBlock {
-    match ast_node {
-        StatementBlock::Statement(x) => {
-            IrStatementBlock::Statement(convert_statement(package_name, x))
+fn convert_statement_block(package_name: &str, ast_node: &StatementBlock) -> IrStatement {
+    return match ast_node {
+        StatementBlock::Block(x) => {
+            IrStatement::Block(convert_block(package_name, x))
         }
-        StatementBlock::Block(x) => IrStatementBlock::Block(convert_block(package_name, x)),
-    }
+        StatementBlock::Statement(statement) => convert_statement(package_name, statement),
+    };
 }
 
 fn convert_block(package_name: &str, ast_node: &Block) -> IrBlock {
