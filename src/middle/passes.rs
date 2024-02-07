@@ -1,4 +1,4 @@
-mod delete_unused;
+pub mod delete_unused;
 use crate::middle::format::types::Program;
 
 pub trait Pass {

@@ -6,6 +6,8 @@ mod tests {
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
+    use crate::middle::passes::delete_unused::DeleteUnused;
+    use crate::middle::passes::optimize;
 
     #[test]
     fn test_compile_simple() {
@@ -19,6 +21,8 @@ mod tests {
 
         program_merger.read_package("pkg", mock_file_system);
 
-        let program = program_merger.export_program();
+        let mut program = program_merger.export_program();
+
+        optimize(&mut program, &mut vec![Box::new(DeleteUnused {})]);
     }
 }

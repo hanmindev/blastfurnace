@@ -1,2 +1,2 @@
 pub mod format;
-mod passes;
+pub mod passes;
