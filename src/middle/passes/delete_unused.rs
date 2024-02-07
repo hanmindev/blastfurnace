@@ -1,7 +1,6 @@
 use crate::middle::format::ir_types::{IrAtomicExpression, IrLiteralValue, IrVarDecl};
 use crate::middle::format::ir_types::{
     IrBlock, IrCompound, IrCompoundValue, IrExpression, IrFnDef, IrIf, IrStatement,
-    IrStatementBlock,
 };
 use crate::middle::format::types::{GlobalName, Program};
 use crate::middle::passes::Pass;
@@ -103,15 +102,6 @@ impl CheckUsed for IrVarDecl {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
         if let Some(expr) = &self.expr {
             expr.add_used(used, program);
-        }
-    }
-}
-
-impl CheckUsed for IrStatementBlock {
-    fn add_used(&self, used: &mut Used, program: &mut Program) {
-        match self {
-            IrStatementBlock::Statement(x) => x.add_used(used, program),
-            IrStatementBlock::Block(x) => x.add_used(used, program),
         }
     }
 }

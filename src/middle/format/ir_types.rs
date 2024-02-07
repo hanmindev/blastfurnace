@@ -170,15 +170,10 @@ pub enum IrStatement {
     Break,
     Continue,
     Expression(Box<IrExpression>),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum IrStatementBlock {
-    Statement(IrStatement),
     Block(IrBlock),
 }
 
 #[derive(Debug, PartialEq)]
 pub struct IrBlock {
-    pub statements: Vec<IrStatementBlock>,
+    pub statements: Vec<IrStatement>,
 }
