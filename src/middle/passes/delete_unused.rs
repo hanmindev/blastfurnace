@@ -1,4 +1,4 @@
-use crate::middle::format::ir_types::{IrAtomicExpression, IrLiteralValue};
+use crate::middle::format::ir_types::{IrAtomicExpression, IrLiteralValue, IrVarDecl};
 use crate::middle::format::ir_types::{
     IrBlock, IrCompound, IrCompoundValue, IrExpression, IrFnDef, IrIf, IrStatement,
     IrStatementBlock,
@@ -93,7 +93,16 @@ impl CheckUsed for IrStatement {
                 x.add_used(used, program);
             }
             IrStatement::Expression(x) => x.add_used(used, program),
+            IrStatement::VarDecl(x) => x.add_used(used, program),
             _ => {}
+        }
+    }
+}
+
+impl CheckUsed for IrVarDecl {
+    fn add_used(&self, used: &mut Used, program: &mut Program) {
+        if let Some(expr) = &self.expr {
+            expr.add_used(used, program);
         }
     }
 }
@@ -148,7 +157,7 @@ impl Pass for DeleteUnused {
 
         program.function_definitions.retain(|x, _| used.functions.contains(x));
         program.struct_definitions.retain(|x, _| used.structs.contains(x));
-        program.global_var_definitions.retain(|x, _| used.variables.contains(x));
+        // program.global_var_definitions.retain(|x, _| used.variables.contains(x));
     }
 }
 
