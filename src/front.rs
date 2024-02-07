@@ -3,11 +3,10 @@ mod ast_types;
 pub mod file_system;
 pub mod mergers;
 
-
 #[cfg(test)]
 mod tests {
-    use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::file_system::fs::FileSystem;
+    use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
 
     #[test]

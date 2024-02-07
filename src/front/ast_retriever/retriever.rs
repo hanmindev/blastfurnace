@@ -1,8 +1,8 @@
 use crate::front::ast_retriever::name_resolution::resolve_module;
 use crate::front::ast_retriever::reader::lexical::lexer::Lexer;
 use crate::front::ast_retriever::reader::syntax::parser::Parser;
-use crate::front::file_system::fs::FileSystem;
 use crate::front::ast_types::Module;
+use crate::front::file_system::fs::FileSystem;
 use std::collections::HashMap;
 pub type FilePath = String;
 pub type ModuleSource = String;
@@ -51,7 +51,7 @@ impl<T: FileSystem> FileRetriever<T> {
                 self.file_system.exit_dir();
             }
 
-            let mut module_source: ModuleSource = if path == "/main" {
+            let module_source: ModuleSource = if path == "/main" {
                 "/root".to_string()
             } else {
                 let mut new_path = "/root".to_string();
@@ -74,7 +74,7 @@ impl<T: FileSystem> FileRetriever<T> {
         self.read_nodes_rec(&mut root);
         self.root = Some("/root".to_string());
 
-        if let Some(mut value) = self.modules.get_mut("/root") {
+        if let Some(value) = self.modules.get_mut("/root") {
             assert_eq!(value.submodules.len(), 0);
             root.submodules
                 .remove("/root")

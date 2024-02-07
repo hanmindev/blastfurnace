@@ -5,7 +5,6 @@ type StructName = String;
 type VarName = String;
 type FunctionName = String;
 
-
 #[derive(Debug, PartialEq)]
 pub enum IrType {
     Void,

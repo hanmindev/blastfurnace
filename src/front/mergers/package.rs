@@ -1,7 +1,7 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
-use crate::front::file_system::fs::FileSystem;
 use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
+
 mod module_resolution;
 
 #[derive(Debug)]
@@ -37,7 +37,11 @@ impl<T> Packager<T> {
 mod tests {
     use super::*;
     use crate::front::ast_types::Type::Void;
-    use crate::front::ast_types::{AtomicExpression, Block, Expression, FnCall, FnDef, GlobalResolvedName, Reference, Statement, StatementBlock};
+    use crate::front::ast_types::{
+        AtomicExpression, Block, Expression, FnCall, FnDef, GlobalResolvedName, Reference,
+        Statement, StatementBlock,
+    };
+    use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use std::rc::Rc;
 
@@ -68,12 +72,12 @@ mod tests {
                 name: Reference {
                     raw: "main".to_string(),
                     module_resolved: Some(Rc::from("0_main".to_string())),
-                    global_resolved: Some(gr)
+                    global_resolved: Some(gr),
                 },
                 return_type: Void,
                 body: Some(Block {
                     definitions: vec![],
-                    statements: vec![]
+                    statements: vec![],
                 }),
                 mods: Rc::new(vec![]),
                 args: vec![],
@@ -91,12 +95,12 @@ mod tests {
                 name: Reference {
                     raw: "a".to_string(),
                     module_resolved: Some(Rc::from("0_a".to_string())),
-                    global_resolved: Some(gr)
+                    global_resolved: Some(gr),
                 },
                 return_type: Void,
                 body: Some(Block {
                     definitions: vec![],
-                    statements: vec![]
+                    statements: vec![],
                 }),
                 mods: Rc::new(vec![]),
                 args: vec![],
@@ -134,7 +138,7 @@ mod tests {
                 name: Reference {
                     raw: "main".to_string(),
                     module_resolved: Some(Rc::from("0_main".to_string())),
-                    global_resolved: Some(gr)
+                    global_resolved: Some(gr),
                 },
                 return_type: Void,
                 body: Some(Block {
@@ -151,7 +155,7 @@ mod tests {
                             },
                             args: vec![],
                         }))),
-                    )))]
+                    )))],
                 }),
                 mods: Rc::new(vec![]),
                 args: vec![],
@@ -169,12 +173,12 @@ mod tests {
                 name: Reference {
                     raw: "a".to_string(),
                     module_resolved: Some(Rc::from("0_a".to_string())),
-                    global_resolved: Some(gr)
+                    global_resolved: Some(gr),
                 },
                 return_type: Void,
                 body: Some(Block {
                     definitions: vec![],
-                    statements: vec![]
+                    statements: vec![],
                 }),
                 mods: Rc::new(vec![]),
                 args: vec![],

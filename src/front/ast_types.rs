@@ -221,7 +221,6 @@ pub struct Block {
     pub statements: Vec<StatementBlock>,
 }
 
-
 #[derive(Debug, PartialEq)]
 pub struct ModuleImport {
     pub public: bool,
