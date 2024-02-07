@@ -3,13 +3,11 @@ use crate::front::ast_types::{
     GlobalResolvedName, If, LiteralValue, NamePath, Reference, Statement, StatementBlock,
     StructDef, Type, UnOp, VarAssign, VarDecl, VarDef, VarMod, While,
 };
+use crate::middle::format::ir_types::{IrAtomicExpression, IrBinOp, IrLiteralValue, IrNamePath};
 use crate::middle::format::ir_types::{
     IrBlock, IrCompound, IrCompoundValue, IrExpression, IrFnCall, IrFnDef, IrFnMod, IrFor, IrIf,
-    IrStatement, IrStatementBlock, IrStructDef, IrType, IrUnOp, IrVarAssign,
-    IrVarDecl, IrVarDef, IrVarMod, IrWhile,
-};
-use crate::middle::format::ir_types::{
-    IrAtomicExpression, IrBinOp, IrLiteralValue, IrNamePath,
+    IrStatement, IrStatementBlock, IrStructDef, IrType, IrUnOp, IrVarAssign, IrVarDecl, IrVarDef,
+    IrVarMod, IrWhile,
 };
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
@@ -97,12 +95,17 @@ fn convert_expr(package_name: &str, ast_node: &Expression) -> IrExpression {
                     IrLiteralValue::Compound(convert_compound(package_name, val))
                 }
             }),
-            AtomicExpression::Variable(var) => IrAtomicExpression::Variable(convert_name_path(package_name, var)),
-            AtomicExpression::FnCall(fn_call) => IrAtomicExpression::FnCall(Box::from(convert_fn_call(package_name, fn_call))),
+            AtomicExpression::Variable(var) => {
+                IrAtomicExpression::Variable(convert_name_path(package_name, var))
+            }
+            AtomicExpression::FnCall(fn_call) => {
+                IrAtomicExpression::FnCall(Box::from(convert_fn_call(package_name, fn_call)))
+            }
         }),
-        Expression::Unary(unop, expr) => {
-            IrExpression::Unary(convert_unary_op(unop), Box::from(convert_expr(package_name, expr)))
-        }
+        Expression::Unary(unop, expr) => IrExpression::Unary(
+            convert_unary_op(unop),
+            Box::from(convert_expr(package_name, expr)),
+        ),
         Expression::Binary(e0, binop, e1) => IrExpression::Binary(
             Box::from(convert_expr(package_name, e0)),
             convert_binary_op(binop),
@@ -139,7 +142,10 @@ fn convert_var_decl(package_name: &str, ast_node: &VarDecl) -> IrVarDecl {
 
 fn convert_name_path(package_name: &str, ast_node: &NamePath) -> IrNamePath {
     IrNamePath {
-        name: global_name_updater(package_name, ast_node.name.global_resolved.as_ref().unwrap()),
+        name: global_name_updater(
+            package_name,
+            ast_node.name.global_resolved.as_ref().unwrap(),
+        ),
         path: ast_node.path.clone(),
     }
 }
@@ -197,7 +203,9 @@ fn convert_statement(package_name: &str, ast_node: &Statement) -> IrStatement {
         Statement::Return(x) => IrStatement::Return(Box::from(convert_expr(package_name, x))),
         Statement::Break => IrStatement::Break,
         Statement::Continue => IrStatement::Continue,
-        Statement::Expression(x) => IrStatement::Expression(Box::from(convert_expr(package_name, x))),
+        Statement::Expression(x) => {
+            IrStatement::Expression(Box::from(convert_expr(package_name, x)))
+        }
     }
 }
 
@@ -240,14 +248,16 @@ pub fn convert_fn(package_name: &str, ast_node: &FnDef) -> IrFnDef {
     IrFnDef {
         body: convert_block(package_name, ast_node.body.as_ref().unwrap()),
         name: convert_reference(package_name, &ast_node.name),
-        mods: Rc::from(ast_node
-            .mods
-            .iter()
-            .map(|x| match x {
-                FnMod::Rec => IrFnMod::Rec,
-                FnMod::Inline => IrFnMod::Inline,
-            })
-            .collect::<Vec<IrFnMod>>()),
+        mods: Rc::from(
+            ast_node
+                .mods
+                .iter()
+                .map(|x| match x {
+                    FnMod::Rec => IrFnMod::Rec,
+                    FnMod::Inline => IrFnMod::Inline,
+                })
+                .collect::<Vec<IrFnMod>>(),
+        ),
         args: ast_node
             .args
             .iter()

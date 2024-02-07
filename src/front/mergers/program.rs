@@ -1,10 +1,12 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
+use crate::front::mergers::convert::{
+    convert_fn, convert_global_var, convert_struct, global_name_updater,
+};
 use crate::front::mergers::package::{Package, Packager};
-use crate::middle::format::types::{Program};
+use crate::middle::format::types::Program;
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
-use crate::front::mergers::convert::{convert_fn, convert_global_var, convert_struct, global_name_updater};
 
 pub struct ProgramMerger<R> {
     root_package: String,
@@ -38,12 +40,10 @@ impl<R: FileSystem> ProgramMerger<R> {
 
         for (package_name, mut table) in self.packages.drain() {
             if package_name == self.root_package {
-                for def in &table
-                    .merged_module
-                    .public_definitions
-                    .function_definitions
-                {
-                    program.public_functions.insert(global_name_updater(&package_name, &def.0));
+                for def in &table.merged_module.public_definitions.function_definitions {
+                    program
+                        .public_functions
+                        .insert(global_name_updater(&package_name, &def.0));
                 }
             }
 
@@ -60,7 +60,10 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.function_definitions.insert(global_name_updater(&package_name, &def.0), convert_fn(&package_name, &def.1));
+                program.function_definitions.insert(
+                    global_name_updater(&package_name, &def.0),
+                    convert_fn(&package_name, &def.1),
+                );
             }
             for def in table
                 .merged_module
@@ -75,7 +78,10 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.struct_definitions.insert(global_name_updater(&package_name, &def.0), convert_struct(&package_name, &def.1));
+                program.struct_definitions.insert(
+                    global_name_updater(&package_name, &def.0),
+                    convert_struct(&package_name, &def.1),
+                );
             }
             for def in table
                 .merged_module
@@ -90,7 +96,10 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.global_var_definitions.insert(global_name_updater(&package_name, &def.0), convert_global_var(&package_name, &def.1));
+                program.global_var_definitions.insert(
+                    global_name_updater(&package_name, &def.0),
+                    convert_global_var(&package_name, &def.1),
+                );
             }
         }
 

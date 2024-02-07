@@ -4,11 +4,11 @@ mod tests {
     use crate::front::ast_retriever::name_resolution::resolvers::ResolverError::Redefinition;
     use crate::front::ast_retriever::name_resolution::scope_table::ScopeTable;
     use crate::front::ast_retriever::string_to_module;
+    use crate::front::ast_types::StatementBlock;
     use crate::front::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, Type,
     };
     use std::rc::Rc;
-    use crate::front::ast_types::StatementBlock;
 
     #[test]
     fn simple_scope() {

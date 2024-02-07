@@ -78,7 +78,10 @@ impl ModuleMerger {
         self.global_name_map.insert(local_name, global_name);
     }
 
-    pub fn resolve_global_name(&mut self, resolved_name: &Rc<ResolvedName>) -> Rc<GlobalResolvedName> {
+    pub fn resolve_global_name(
+        &mut self,
+        resolved_name: &Rc<ResolvedName>,
+    ) -> Rc<GlobalResolvedName> {
         return if let Some(s) = self.global_name_map.get(resolved_name) {
             Rc::clone(s)
         } else {
@@ -143,7 +146,7 @@ impl ModuleMerger {
         }
         self.merged_module = Some(MergedModule::new());
 
-        for (module_source, mut module) in modules {
+        for (module_source, module) in modules {
             self.switch_module(&module_source);
             module
                 .module
@@ -161,7 +164,7 @@ impl ModuleMerger {
         definition: FnDef,
         is_public: bool,
     ) {
-        let mut definitions = if is_public && self.module_source == "/root" {
+        let definitions = if is_public && self.module_source == "/root" {
             &mut self
                 .merged_module
                 .as_mut()
@@ -186,7 +189,7 @@ impl ModuleMerger {
         definition: StructDef,
         is_public: bool,
     ) {
-        let mut definitions = if is_public && self.module_source == "/root" {
+        let definitions = if is_public && self.module_source == "/root" {
             &mut self
                 .merged_module
                 .as_mut()
@@ -210,7 +213,7 @@ impl ModuleMerger {
         definition: VarDecl,
         is_public: bool,
     ) {
-        let mut definitions = if is_public && self.module_source == "/root" {
+        let definitions = if is_public && self.module_source == "/root" {
             &mut self
                 .merged_module
                 .as_mut()

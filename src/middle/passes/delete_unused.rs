@@ -155,8 +155,12 @@ impl Pass for DeleteUnused {
             }
         }
 
-        program.function_definitions.retain(|x, _| used.functions.contains(x));
-        program.struct_definitions.retain(|x, _| used.structs.contains(x));
+        program
+            .function_definitions
+            .retain(|x, _| used.functions.contains(x));
+        program
+            .struct_definitions
+            .retain(|x, _| used.structs.contains(x));
         // program.global_var_definitions.retain(|x, _| used.variables.contains(x));
     }
 }
@@ -189,6 +193,11 @@ mod tests {
         optimize(&mut program, &mut vec![Box::new(DeleteUnused {})]);
 
         assert_eq!(program.function_definitions.len(), 1);
-        assert_eq!(program.function_definitions.contains_key("test/root/0_main"), true);
+        assert_eq!(
+            program
+                .function_definitions
+                .contains_key("test/root/0_main"),
+            true
+        );
     }
 }

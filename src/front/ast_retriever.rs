@@ -1,7 +1,7 @@
 use crate::front::ast_retriever::reader::lexical::lexer::Lexer;
 use crate::front::ast_retriever::reader::syntax::parser::{ParseResult, Parser};
-use crate::front::file_system::byte_stream::{ByteStream, StringReader};
 use crate::front::ast_types::Module;
+use crate::front::file_system::byte_stream::{ByteStream, StringReader};
 
 mod name_resolution;
 mod reader;

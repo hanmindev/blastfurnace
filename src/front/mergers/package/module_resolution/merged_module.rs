@@ -1,6 +1,6 @@
+use crate::front::ast_types::GlobalResolvedName;
 use crate::front::mergers::definition_table::DefinitionTable;
 use std::rc::Rc;
-use crate::front::ast_types::GlobalResolvedName;
 
 #[derive(Debug)]
 pub struct MergedModule {

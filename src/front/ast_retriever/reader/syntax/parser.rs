@@ -1,7 +1,12 @@
 use crate::front::ast_retriever::reader::lexical::lexer::{TokenError, TokenInfo};
 use crate::front::ast_retriever::reader::lexical::token_types::Token;
 use crate::front::ast_retriever::reader::lexical::token_types::Token::Any;
-use crate::front::ast_types::{AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement, StatementBlock, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While};
+use crate::front::ast_types::{
+    AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef,
+    FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement,
+    StatementBlock, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod,
+    While,
+};
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
