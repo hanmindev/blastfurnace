@@ -38,11 +38,10 @@ impl<R: FileSystem> ProgramMerger<R> {
 
         for (package_name, mut table) in self.packages.drain() {
             if package_name == self.root_package {
-                for def in table
+                for def in &table
                     .merged_module
                     .public_definitions
                     .function_definitions
-                    .drain()
                 {
                     program.public_functions.insert(global_name_updater(&package_name, &def.0));
                 }
