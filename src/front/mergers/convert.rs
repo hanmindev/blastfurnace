@@ -1,15 +1,19 @@
 pub mod context;
 
-use crate::front::ast_types::{AtomicExpression, Block, Expression, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue, Reference, Statement, StatementBlock, VarAssign, VarDecl, While};
-use crate::middle::format::ir_types::{IrBlock, IrFnCall, IrFnDef, IrIf, IrStatement, IrScoreSet, Address, Cond, CheckVal, IrUnless, IrScoreOperation, IrScoreOperationType};
-use crate::middle::format::types::GlobalName;
-use std::rc::Rc;
+use crate::front::ast_types::{
+    AtomicExpression, Block, Expression, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue,
+    Reference, Statement, StatementBlock, VarAssign, VarDecl, While,
+};
 use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
+use crate::middle::format::ir_types::{
+    Address, CheckVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf, IrScoreOperation,
+    IrScoreOperationType, IrScoreSet, IrStatement, IrUnless,
+};
+use crate::middle::format::types::GlobalName;
+use std::rc::Rc;
 
-pub fn global_name_updater(
-    global_resolved_name: &Rc<GlobalResolvedName>,
-) -> GlobalName {
+pub fn global_name_updater(global_resolved_name: &Rc<GlobalResolvedName>) -> GlobalName {
     format!(
         "{}{}/{}",
         global_resolved_name.package, global_resolved_name.module, global_resolved_name.name
@@ -37,7 +41,12 @@ pub fn global_name_updater(
 fn convert_fn_call(context: &mut Context, ast_node: &FnCall) -> Vec<IrStatement> {
     let mut s: Vec<IrStatement> = vec![];
     for (i, arg) in ast_node.args.iter().enumerate() {
-        s.append(&mut convert_expr(context, arg, &context.get_parameter_variable(&ast_node.name.global_resolved.as_ref().unwrap(), i as u32)));
+        s.append(&mut convert_expr(
+            context,
+            arg,
+            &context
+                .get_parameter_variable(&ast_node.name.global_resolved.as_ref().unwrap(), i as u32),
+        ));
     }
     s.push(IrStatement::FnCall(IrFnCall {
         fn_name: convert_reference(&ast_node.name),
@@ -78,7 +87,11 @@ fn convert_fn_call(context: &mut Context, ast_node: &FnCall) -> Vec<IrStatement>
 // }
 //
 
-fn set_from_atomic(context: &mut Context, ast_node: &AtomicExpression, result_var_name: &Address) -> Vec<IrStatement> {
+fn set_from_atomic(
+    context: &mut Context,
+    ast_node: &AtomicExpression,
+    result_var_name: &Address,
+) -> Vec<IrStatement> {
     match ast_node {
         AtomicExpression::Literal(x) => {
             match x {
@@ -103,7 +116,7 @@ fn set_from_atomic(context: &mut Context, ast_node: &AtomicExpression, result_va
                 // LiteralValue::Decimal(_) => {}
                 // LiteralValue::String(_) => {}
                 // LiteralValue::Compound(_) => {}
-                _ => panic!("Not implemented") // TODO: implement storage types
+                _ => panic!("Not implemented"), // TODO: implement storage types
             }
         }
         AtomicExpression::Variable(x) => {
@@ -128,15 +141,25 @@ fn set_from_atomic(context: &mut Context, ast_node: &AtomicExpression, result_va
     }
 }
 
-fn rec_convert_expr(context: &mut Context, ast_node: &Expression, result_var_name: &Address, a: &Address, other: &Address) -> Vec<IrStatement> {
+fn rec_convert_expr(
+    context: &mut Context,
+    ast_node: &Expression,
+    result_var_name: &Address,
+    a: &Address,
+    other: &Address,
+) -> Vec<IrStatement> {
     return match ast_node {
         Expression::AtomicExpression(x) => set_from_atomic(context, x, result_var_name),
         Expression::Unary(_, _) => vec![],
-        Expression::Binary(_, _, _) => vec![]
+        Expression::Binary(_, _, _) => vec![],
     };
 }
 
-fn convert_expr(context: &mut Context, ast_node: &Expression, result_var_name: &Address) -> Vec<IrStatement> {
+fn convert_expr(
+    context: &mut Context,
+    ast_node: &Expression,
+    result_var_name: &Address,
+) -> Vec<IrStatement> {
     let a0 = context.create_variable();
     let a1 = context.create_variable();
 
@@ -145,14 +168,22 @@ fn convert_expr(context: &mut Context, ast_node: &Expression, result_var_name: &
 
 fn convert_var_decl(context: &mut Context, ast_node: &VarDecl) -> Vec<IrStatement> {
     if let Some(expr) = &ast_node.expr {
-        convert_expr(context, expr, &context.convert_var_name(&ast_node.var_def.name))
+        convert_expr(
+            context,
+            expr,
+            &context.convert_var_name(&ast_node.var_def.name),
+        )
     } else {
         vec![]
     }
 }
 
 fn convert_var_assign(context: &mut Context, ast_node: &VarAssign) -> Vec<IrStatement> {
-    convert_expr(context, &ast_node.expr, &context.convert_name_path(&ast_node.name_path))
+    convert_expr(
+        context,
+        &ast_node.expr,
+        &context.convert_name_path(&ast_node.name_path),
+    )
 }
 
 fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
@@ -200,7 +231,8 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
 
     let mut s = vec![];
 
-    if elses.len() > 0 {        // Set if_check to 1, only needed if there are elses.
+    if elses.len() > 0 {
+        // Set if_check to 1, only needed if there are elses.
         s.push(IrStatement::ScoreSet(IrScoreSet {
             var_name: if_variable.clone(),
             value: 1,
@@ -262,7 +294,6 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
     }
     s
 }
-
 
 fn convert_while(context: &mut Context, ast_node: &While) -> Vec<IrStatement> {
     let mut s: Vec<IrStatement> = vec![];
@@ -349,7 +380,7 @@ fn convert_statement(context: &mut Context, ast_node: &Statement) -> Vec<IrState
         Statement::If(x) => convert_if(context, x),
         Statement::While(x) => convert_while(context, x),
         Statement::For(x) => convert_for(context, x),
-        _ => panic!("Not implemented")
+        _ => panic!("Not implemented"),
     };
 }
 
@@ -379,7 +410,10 @@ fn convert_reference(ast_node: &Reference) -> String {
     return global_name_updater(ast_node.global_resolved.as_ref().unwrap());
 }
 
-pub fn convert_fn(ast_node: &FnDef, definition_table: &DefinitionTable<Rc<GlobalResolvedName>>) -> IrFnDef {
+pub fn convert_fn(
+    ast_node: &FnDef,
+    definition_table: &DefinitionTable<Rc<GlobalResolvedName>>,
+) -> IrFnDef {
     let fn_name = convert_reference(&ast_node.name);
     let mut ctx = Context::new(&fn_name, definition_table);
 
@@ -394,7 +428,7 @@ mod tests {
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
-    use crate::middle::format::ir_types::{IrStatement, AddressOrigin};
+    use crate::middle::format::ir_types::{AddressOrigin, IrStatement};
 
     #[test]
     fn test_convert_simple() {
@@ -409,9 +443,18 @@ mod tests {
 
         println!("{:?}", program);
 
-        match &program.function_definitions.get("pkg/root/0_main").unwrap().body.statements[0] {
+        match &program
+            .function_definitions
+            .get("pkg/root/0_main")
+            .unwrap()
+            .body
+            .statements[0]
+        {
             IrStatement::ScoreSet(x) => {
-                assert_eq!(x.var_name.name, AddressOrigin::User("pkg/root/0_a".to_string()));
+                assert_eq!(
+                    x.var_name.name,
+                    AddressOrigin::User("pkg/root/0_a".to_string())
+                );
                 assert_eq!(x.value, 1);
             }
             _ => {}

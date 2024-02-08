@@ -1,8 +1,8 @@
-use std::rc::Rc;
 use crate::front::ast_types::{GlobalResolvedName, NamePath, Reference};
 use crate::front::mergers::convert::global_name_updater;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{Address, AddressOrigin};
+use std::rc::Rc;
 
 pub struct Context<'a> {
     pub fn_name: String,
@@ -12,7 +12,10 @@ pub struct Context<'a> {
 }
 
 impl Context<'_> {
-    pub fn new<'a>(fn_name: &str, definition_table: &'a DefinitionTable<Rc<GlobalResolvedName>>) -> Context<'a> {
+    pub fn new<'a>(
+        fn_name: &str,
+        definition_table: &'a DefinitionTable<Rc<GlobalResolvedName>>,
+    ) -> Context<'a> {
         Context {
             fn_name: fn_name.to_string(),
             block_count: 0,
@@ -27,8 +30,16 @@ impl Context<'_> {
         block
     }
 
-    pub fn get_parameter_variable(&self, function_name: &Rc<GlobalResolvedName>, index: u32) -> Address {
-        let fn_ = self.definition_table.function_definitions.get(function_name).unwrap();
+    pub fn get_parameter_variable(
+        &self,
+        function_name: &Rc<GlobalResolvedName>,
+        index: u32,
+    ) -> Address {
+        let fn_ = self
+            .definition_table
+            .function_definitions
+            .get(function_name)
+            .unwrap();
         self.convert_var_name(&fn_.args[index as usize].name)
     }
 

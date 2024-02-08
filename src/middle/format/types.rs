@@ -1,4 +1,4 @@
-use crate::middle::format::ir_types::{IrFnDef};
+use crate::middle::format::ir_types::IrFnDef;
 use std::collections::{HashMap, HashSet};
 
 pub type GlobalName = String;

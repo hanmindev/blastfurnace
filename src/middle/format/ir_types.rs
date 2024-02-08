@@ -6,7 +6,6 @@ pub enum AddressOrigin {
     Return,
 }
 
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct Address {
     pub name: AddressOrigin,
