@@ -62,6 +62,7 @@ mod tests {
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
+            package: Rc::from("pkg"),
             module: Rc::from("/root"),
             name: "0_main".to_string(),
         });
@@ -85,6 +86,7 @@ mod tests {
         );
 
         let gr = Rc::from(GlobalResolvedName {
+            package: Rc::from("pkg"),
             module: Rc::from("/root/test/example"),
             name: "0_a".to_string(),
         });
@@ -128,6 +130,7 @@ mod tests {
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
+            package: Rc::from("pkg"),
             module: Rc::from("/root"),
             name: "0_main".to_string(),
         });
@@ -149,6 +152,7 @@ mod tests {
                                 raw: "a".to_string(),
                                 module_resolved: Some(Rc::from("0_a".to_string())),
                                 global_resolved: Some(Rc::from(GlobalResolvedName {
+                                    package: Rc::from("pkg"),
                                     module: Rc::from("/test/example"),
                                     name: "0_a".to_string(),
                                 })),
@@ -163,6 +167,7 @@ mod tests {
         );
 
         let gr = Rc::from(GlobalResolvedName {
+            package: Rc::from("pkg"),
             module: Rc::from("/root/test/example"),
             name: "0_a".to_string(),
         });
@@ -206,6 +211,7 @@ mod tests {
         assert_eq!(definition_table.global_var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
+            package: Rc::from("pkg"),
             module: Rc::from("/root"),
             name: "0_main".to_string(),
         });
@@ -226,6 +232,7 @@ mod tests {
                         raw: "a".to_string(),
                         module_resolved: Some(Rc::from("0_a".to_string())),
                         global_resolved: Some(Rc::from(GlobalResolvedName {
+                            package: Rc::from("pkg"),
                             module: Rc::from("std/test/example"),
                             name: "0_a".to_string(),
                         })),
