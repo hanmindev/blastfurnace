@@ -21,7 +21,7 @@ Middle-End:
 - [ ] Various Code Optimizations
 
 Back-End:
-- [ ] Code Generation into HMASM
+- [x] Code Generation into HMASM
 
 Linker:
 - [ ] Combine HMASM to .mcfunction files
@@ -43,14 +43,14 @@ Parses:
 - [ ] Macro system
 - [ ] Execute Context
 - [ ] Dynamic Access
-- [ ] Modules
+- [x] Modules
 
 Other Features:
 - [ ] Configurations
 - [ ] External Module System
- - [ ] Importing Modules
- - [ ] Exporting Modules
- - [ ] Module Resolution
+ - [x] Importing Modules
+ - [x] Exporting Modules
+ - [x] Module Resolution
 
 Setup Tool:
 - [ ] Setup tool to install BlastFurnace
