@@ -214,7 +214,6 @@ impl CodeGenerator for IrBlock {
 
 fn wrap_in_function(statements: Vec<String>, generated_code: &mut GeneratedCode, context: &mut Context) -> String {
     let block_name = context.new_block();
-    context.block_count += 1;
 
     generated_code.add_function(MFunction {
         name: block_name.clone(),
