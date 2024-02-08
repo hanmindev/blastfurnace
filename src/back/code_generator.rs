@@ -41,9 +41,14 @@ pub fn generate_code(program: &Program) -> GeneratedCode {
             block_count: 0,
         };
 
+        let mut body = vec![];
+        for statement in &def.statements {
+            body.extend(statement.generate(&mut generated_code, &mut context));
+        }
+
         let mcf = MFunction {
             name: name.clone(),
-            body: def.body.generate(&mut generated_code, &mut context),
+            body,
         };
 
         generated_code.add_function(mcf);

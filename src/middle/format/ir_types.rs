@@ -58,7 +58,7 @@ pub struct IrScoreOperation {
 pub struct IrFnDef {
     pub fn_name: FunctionName,
     pub block_count: usize,
-    pub body: IrBlock,
+    pub statements: Vec<IrStatement>,
 }
 
 #[derive(Debug, PartialEq)]
