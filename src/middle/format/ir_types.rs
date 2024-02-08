@@ -134,7 +134,12 @@ impl IrBlock {
 
 impl std::fmt::Display for IrBlock {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "fn {} block {} {{\n", self.get_fn_name(), self.fn_block_index)?;
+        write!(
+            f,
+            "fn {} block {} {{\n",
+            self.get_fn_name(),
+            self.fn_block_index
+        )?;
         for statement in &self.statements {
             write!(f, "    {:?}\n", statement)?;
         }
