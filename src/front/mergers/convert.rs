@@ -1,9 +1,15 @@
 pub mod context;
 
-use crate::front::ast_types::{AtomicExpression, BinOp, Block, Expression, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue, Reference, Statement, StatementBlock, UnOp, VarAssign, VarDecl, While};
+use crate::front::ast_types::{
+    AtomicExpression, BinOp, Block, Expression, FnCall, FnDef, For, GlobalResolvedName, If,
+    LiteralValue, Reference, Statement, StatementBlock, UnOp, VarAssign, VarDecl, While,
+};
 use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
-use crate::middle::format::ir_types::{Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf, IrScoreOperation, IrScoreOperationType, IrScoreSet, IrStatement, IrUnless};
+use crate::middle::format::ir_types::{
+    Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
+    IrScoreOperation, IrScoreOperationType, IrScoreSet, IrStatement, IrUnless,
+};
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
 
@@ -167,7 +173,9 @@ fn convert_expr(
                 // UnOp::PreDec => IrScoreOperationType::PreDec,
                 // UnOp::PostInc => IrScoreOperationType::PostInc,
                 // UnOp::PostDec => IrScoreOperationType::PostDec,
-                _ => { vec![] }
+                _ => {
+                    vec![]
+                }
             });
 
             s
@@ -471,7 +479,105 @@ mod tests {
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
-    use crate::middle::format::ir_types::{AddressOrigin, IrStatement};
+    use crate::middle::format::ir_types::{
+        Address, AddressOrigin, CompareOp, Cond, IrBlock, IrScoreOperationType, IrStatement,
+    };
+    use std::collections::HashMap;
+
+    fn test_calculation(block: &IrBlock, result_address: &Address) -> i32 {
+        let mut vars = HashMap::new();
+
+        fn run_statement(statement: &IrStatement, vars: &mut HashMap<Address, i32>) {
+            match statement {
+                IrStatement::ScoreSet(x) => {
+                    vars.insert(x.var_name.clone(), x.value);
+                }
+                IrStatement::ScoreAddI(x) => {
+                    vars.insert(x.var_name.clone(), vars.get(&x.var_name).unwrap() + x.value);
+                }
+                IrStatement::ScoreOperation(x) => {
+                    let left = vars.get(&x.left).unwrap_or(&0);
+                    let right = vars.get(&x.right).unwrap_or(&0);
+                    let result = match x.op {
+                        IrScoreOperationType::Add => left + right,
+                        IrScoreOperationType::Sub => left - right,
+                        IrScoreOperationType::Mul => left * right,
+                        IrScoreOperationType::Div => left / right,
+                        IrScoreOperationType::Mod => left % right,
+                        IrScoreOperationType::Eq => ((*left != 0) == (*right != 0)) as i32,
+                        IrScoreOperationType::Neq => ((*left != 0) != (*right != 0)) as i32,
+                        IrScoreOperationType::Lt => ((*left != 0) < (*right != 0)) as i32,
+                        IrScoreOperationType::Gt => ((*left != 0) > (*right != 0)) as i32,
+                        IrScoreOperationType::Leq => ((*left != 0) <= (*right != 0)) as i32,
+                        IrScoreOperationType::Geq => ((*left != 0) >= (*right != 0)) as i32,
+                        IrScoreOperationType::And => ((*left != 0) && (*right != 0)) as i32,
+                        IrScoreOperationType::Or => ((*left != 0) || (*right != 0)) as i32,
+                        IrScoreOperationType::Assign => *right,
+                    };
+                    vars.insert(x.left.clone(), result);
+                }
+                IrStatement::If(x) => match &x.cond {
+                    Cond::CheckVal(y) => {
+                        let a = *vars.get(&y.var_name).unwrap();
+                        if y.min <= a && a <= y.max {
+                            run_statement(&x.body, vars);
+                        }
+                    }
+                    Cond::CompareVal(y) => {
+                        let a = *vars.get(&y.var_0).unwrap();
+                        let b = *vars.get(&y.var_1).unwrap();
+                        if match y.op {
+                            CompareOp::Eq => a == b,
+                            CompareOp::Neq => a != b,
+                            CompareOp::Lt => a < b,
+                            CompareOp::Gt => a > b,
+                            CompareOp::Leq => a <= b,
+                            CompareOp::Geq => a >= b,
+                        } {
+                            run_statement(&x.body, vars);
+                        }
+                    }
+                },
+                IrStatement::Unless(x) => match &x.cond {
+                    Cond::CheckVal(y) => {
+                        let a = *vars.get(&y.var_name).unwrap();
+                        if y.min <= a && a <= y.max {
+                            run_statement(&x.body, vars);
+                        }
+                    }
+                    Cond::CompareVal(y) => {
+                        let a = *vars.get(&y.var_0).unwrap();
+                        let b = *vars.get(&y.var_1).unwrap();
+                        if match y.op {
+                            CompareOp::Eq => a == b,
+                            CompareOp::Neq => a != b,
+                            CompareOp::Lt => a < b,
+                            CompareOp::Gt => a > b,
+                            CompareOp::Leq => a <= b,
+                            CompareOp::Geq => a >= b,
+                        } {
+                            run_statement(&x.body, vars);
+                        }
+                    }
+                },
+                IrStatement::Return => {
+                    return;
+                }
+                IrStatement::Block(x) => {
+                    for statement in &x.statements {
+                        run_statement(&statement, vars);
+                    }
+                }
+                IrStatement::FnCall(_) => {} // TODO: not implemented
+            }
+        }
+
+        for statement in &block.statements {
+            run_statement(statement, &mut vars);
+        }
+
+        return *vars.get(result_address).unwrap();
+    }
 
     #[test]
     fn test_convert_simple() {
@@ -500,5 +606,32 @@ mod tests {
             }
             _ => {}
         }
+    }
+
+    #[test]
+    fn test_simple_expression() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file(
+            "/main.ing",
+            "pub fn main() { let a: int = 8; let b: int = 2 * a / 8 + 9; }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut program = program_merger.export_program();
+
+        assert_eq!(test_calculation(
+            &program
+                .function_definitions
+                .get("pkg/root/0_main")
+                .unwrap()
+                .body,
+            &Address {
+                name: AddressOrigin::User("pkg/root/0_b".to_string()),
+                offset: 0,
+            },
+        ), 11);
     }
 }
