@@ -49,3 +49,37 @@ pub fn generate_code(program: &Program) -> GeneratedCode {
     }
     generated_code
 }
+
+pub fn flatten_to_hmasm(generated_code: &GeneratedCode) -> String {
+    let mut hmasm = String::new();
+    for function in &generated_code.functions {
+        hmasm.push_str(&format!("{}:\n", function.name));
+        for line in &function.body {
+            hmasm.push_str(&format!("    {}\n", line));
+        }
+    }
+    hmasm
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::front::file_system::mock_fs::MockFileSystem;
+    use crate::front::mergers::program::ProgramMerger;
+    use crate::front::file_system::fs::FileSystem;
+    use crate::back::code_generator::{flatten_to_hmasm, generate_code};
+
+    #[test]
+    fn test_generate_code() {
+        let mut mock_fs = MockFileSystem::new("/".to_string());
+        mock_fs.insert_file("/main.ing", "pub fn main() { let a: int = 5; } pub fn test() { let b: int = 8; }");
+
+        let mut program_merger = ProgramMerger::new("test");
+        program_merger.read_package("test", mock_fs);
+
+        let program = program_merger.export_program();
+
+        let hmasm = flatten_to_hmasm(&generate_code(&program));
+
+        println!("{}", hmasm);
+    }
+}
