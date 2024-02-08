@@ -1,5 +1,6 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
+use crate::front::mergers::convert::context::ConstGenerator;
 use crate::front::mergers::convert::{convert_fn, global_name_updater};
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::front::mergers::package::{Package, Packager};
@@ -7,7 +8,6 @@ use crate::middle::format::types::Program;
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 use std::rc::Rc;
-use crate::front::mergers::convert::context::ConstGenerator;
 
 pub struct ProgramMerger<R> {
     root_package: String,

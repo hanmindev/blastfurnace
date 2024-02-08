@@ -7,7 +7,7 @@ use crate::front::ast_types::{
 use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{
-    Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
+    Address, CheckVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
     IrScoreOperation, IrScoreOperationType, IrScoreSet, IrStatement, IrUnless,
 };
 use crate::middle::format::types::GlobalName;
@@ -622,17 +622,20 @@ mod tests {
 
         let mut program = program_merger.export_program();
 
-        assert_eq!(test_calculation(
-            &program
-                .function_definitions
-                .get("pkg/root/0_main")
-                .unwrap()
-                .body,
-            &Address {
-                name: AddressOrigin::User("pkg/root/0_b".to_string()),
-                offset: 0,
-            },
-        ), 11);
+        assert_eq!(
+            test_calculation(
+                &program
+                    .function_definitions
+                    .get("pkg/root/0_main")
+                    .unwrap()
+                    .body,
+                &Address {
+                    name: AddressOrigin::User("pkg/root/0_b".to_string()),
+                    offset: 0,
+                },
+            ),
+            11
+        );
     }
 
     #[test]
@@ -649,16 +652,19 @@ mod tests {
 
         let mut program = program_merger.export_program();
 
-        assert_eq!(test_calculation(
-            &program
-                .function_definitions
-                .get("pkg/root/0_main")
-                .unwrap()
-                .body,
-            &Address {
-                name: AddressOrigin::User("pkg/root/0_a".to_string()),
-                offset: 0,
-            },
-        ), 25);
+        assert_eq!(
+            test_calculation(
+                &program
+                    .function_definitions
+                    .get("pkg/root/0_main")
+                    .unwrap()
+                    .body,
+                &Address {
+                    name: AddressOrigin::User("pkg/root/0_a".to_string()),
+                    offset: 0,
+                },
+            ),
+            25
+        );
     }
 }
