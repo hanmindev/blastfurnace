@@ -1,9 +1,9 @@
-use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashSet};
 use crate::front::ast_types::{GlobalResolvedName, NamePath, Reference};
 use crate::front::mergers::convert::global_name_updater;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{Address, AddressOrigin};
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashSet};
 use std::rc::Rc;
 
 struct VarGenerator {
@@ -59,7 +59,6 @@ impl ConstGenerator {
     }
 }
 
-
 pub struct Context<'a> {
     pub fn_name: String,
     block_count: u32,
@@ -72,7 +71,7 @@ impl Context<'_> {
     pub fn new<'a>(
         fn_name: &str,
         definition_table: &'a DefinitionTable<Rc<GlobalResolvedName>>,
-        const_generator: &'a mut ConstGenerator
+        const_generator: &'a mut ConstGenerator,
     ) -> Context<'a> {
         Context {
             fn_name: fn_name.to_string(),
