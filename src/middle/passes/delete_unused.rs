@@ -7,7 +7,6 @@ trait CheckUsed {
     fn add_used(&self, used: &mut Used, program: &mut Program);
 }
 
-
 impl CheckUsed for IrIf {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
         self.body.add_used(used, program);
@@ -25,7 +24,9 @@ impl CheckUsed for IrStatement {
         match self {
             IrStatement::If(x) => x.add_used(used, program),
             IrStatement::Unless(x) => x.add_used(used, program),
-            IrStatement::FnCall(x) => { used.functions.insert(x.fn_name.clone()); }
+            IrStatement::FnCall(x) => {
+                used.functions.insert(x.fn_name.clone());
+            }
             IrStatement::Block(x) => x.add_used(used, program),
             _ => {}
         }
