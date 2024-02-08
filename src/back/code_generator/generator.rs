@@ -208,12 +208,7 @@ impl CodeGenerator for IrBlock {
         for statement in &self.statements {
             result.append(&mut statement.generate(generated_code, context));
         }
-        generated_code.add_function(MFunction {
-            name: self.get_fn_name(),
-            body: result,
-        });
-
-        vec![format!("function {}", self.get_fn_name())]
+        result
     }
 }
 
