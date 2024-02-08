@@ -1,16 +1,11 @@
-use crate::front::ast_types::{
-    AtomicExpression, BinOp, Block, Compound, CompoundValue, Expression, FnCall, FnDef, FnMod, For,
-    GlobalResolvedName, If, LiteralValue, NamePath, Reference, Statement, StatementBlock,
-    StructDef, Type, UnOp, VarAssign, VarDecl, VarDef, VarMod, While,
-};
-use crate::middle::format::ir_types::{IrAtomicExpression, IrBinOp, IrLiteralValue, IrNamePath};
-use crate::middle::format::ir_types::{
-    IrBlock, IrCompound, IrCompoundValue, IrExpression, IrFnCall, IrFnDef, IrFnMod, IrFor, IrIf,
-    IrStatement, IrStructDef, IrType, IrUnOp, IrVarAssign, IrVarDecl, IrVarDef,
-    IrVarMod, IrWhile,
-};
+pub mod context;
+
+use crate::front::ast_types::{AtomicExpression, Block, Expression, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue, Reference, Statement, StatementBlock, VarAssign, VarDecl, While};
+use crate::middle::format::ir_types::{IrBlock, IrFnCall, IrFnDef, IrIf, IrStatement, IrScoreSet, Address, Cond, CheckVal, IrUnless, IrScoreOperation, IrScoreOperationType};
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
+use crate::front::mergers::convert::context::Context;
+use crate::front::mergers::definition_table::DefinitionTable;
 
 pub fn global_name_updater(
     package_name: &str,
@@ -22,208 +17,362 @@ pub fn global_name_updater(
     )
 }
 
-fn convert_compound_value(package_name: &str, ast_node: &CompoundValue) -> IrCompoundValue {
-    return match ast_node {
-        CompoundValue::Expression(expr) => {
-            IrCompoundValue::Expression(Box::from(convert_expr(package_name, expr)))
-        }
-        CompoundValue::Compound(compound) => {
-            IrCompoundValue::Compound(Box::from(convert_compound(package_name, compound)))
-        }
-    };
+// fn convert_compound_value(context: &mut Context, ast_node: &CompoundValue) -> IrCompoundValue {
+//     return match ast_node {
+//         CompoundValue::Expression(expr) => {
+//             IrCompoundValue::Expression(Box::from(convert_expr(context, expr)))
+//         }
+//         CompoundValue::Compound(compound) => {
+//             IrCompoundValue::Compound(Box::from(convert_compound(context, compound)))
+//         }
+//     };
+// }
+//
+// fn convert_compound(context: &mut Context, ast_node: &Compound) -> IrCompound {
+//     return ast_node
+//         .iter()
+//         .map(|(k, v)| (k.clone(), convert_compound_value(context, v)))
+//         .collect();
+// }
+//
+fn convert_fn_call(context: &mut Context, ast_node: &FnCall) -> Vec<IrStatement> {
+    let mut s: Vec<IrStatement> = vec![];
+    for (i, arg) in &ast_node.args.iter() {
+        s.append(&mut convert_expr(context, arg, &context.get_parameter_variable(ast_node.name.global_resolved.unwrap(), i)));
+    }
+    s.push(IrStatement::FnCall(IrFnCall {
+        fn_name: convert_reference(&context.package_name, &ast_node.name),
+    }));
+    s
 }
 
-fn convert_compound(package_name: &str, ast_node: &Compound) -> IrCompound {
-    return ast_node
-        .iter()
-        .map(|(k, v)| (k.clone(), convert_compound_value(package_name, v)))
-        .collect();
-}
+//
+// fn convert_unary_op(ast_node: &UnOp) -> IrUnOp {
+//     return match ast_node {
+//         UnOp::Neg => IrUnOp::Neg,
+//         UnOp::Not => IrUnOp::Not,
+//         UnOp::Deref => IrUnOp::Deref,
+//         UnOp::Ref => IrUnOp::Ref,
+//         UnOp::PreInc => IrUnOp::PreInc,
+//         UnOp::PreDec => IrUnOp::PreDec,
+//         UnOp::PostInc => IrUnOp::PostInc,
+//         UnOp::PostDec => IrUnOp::PostDec,
+//     };
+// }
+//
+// fn convert_binary_op(ast_node: &BinOp) -> IrBinOp {
+//     return match ast_node {
+//         BinOp::Add => IrBinOp::Add,
+//         BinOp::Sub => IrBinOp::Sub,
+//         BinOp::Mul => IrBinOp::Mul,
+//         BinOp::Div => IrBinOp::Div,
+//         BinOp::Mod => IrBinOp::Mod,
+//         BinOp::Eq => IrBinOp::Eq,
+//         BinOp::Neq => IrBinOp::Neq,
+//         BinOp::Lt => IrBinOp::Lt,
+//         BinOp::Gt => IrBinOp::Gt,
+//         BinOp::Leq => IrBinOp::Leq,
+//         BinOp::Geq => IrBinOp::Geq,
+//         BinOp::And => IrBinOp::And,
+//         BinOp::Or => IrBinOp::Or,
+//     };
+// }
+//
 
-fn convert_fn_call(package_name: &str, ast_node: &FnCall) -> IrFnCall {
-    return IrFnCall {
-        name: convert_reference(package_name, &ast_node.name),
-        args: ast_node
-            .args
-            .iter()
-            .map(|x| convert_expr(package_name, x))
-            .collect::<Vec<IrExpression>>(),
-    };
-}
-
-fn convert_unary_op(ast_node: &UnOp) -> IrUnOp {
-    return match ast_node {
-        UnOp::Neg => IrUnOp::Neg,
-        UnOp::Not => IrUnOp::Not,
-        UnOp::Deref => IrUnOp::Deref,
-        UnOp::Ref => IrUnOp::Ref,
-        UnOp::PreInc => IrUnOp::PreInc,
-        UnOp::PreDec => IrUnOp::PreDec,
-        UnOp::PostInc => IrUnOp::PostInc,
-        UnOp::PostDec => IrUnOp::PostDec,
-    };
-}
-
-fn convert_binary_op(ast_node: &BinOp) -> IrBinOp {
-    return match ast_node {
-        BinOp::Add => IrBinOp::Add,
-        BinOp::Sub => IrBinOp::Sub,
-        BinOp::Mul => IrBinOp::Mul,
-        BinOp::Div => IrBinOp::Div,
-        BinOp::Mod => IrBinOp::Mod,
-        BinOp::Eq => IrBinOp::Eq,
-        BinOp::Neq => IrBinOp::Neq,
-        BinOp::Lt => IrBinOp::Lt,
-        BinOp::Gt => IrBinOp::Gt,
-        BinOp::Leq => IrBinOp::Leq,
-        BinOp::Geq => IrBinOp::Geq,
-        BinOp::And => IrBinOp::And,
-        BinOp::Or => IrBinOp::Or,
-    };
-}
-
-fn convert_expr(package_name: &str, ast_node: &Expression) -> IrExpression {
-    return match ast_node {
-        Expression::AtomicExpression(atomic) => IrExpression::AtomicExpression(match atomic {
-            AtomicExpression::Literal(literal) => IrAtomicExpression::Literal(match literal {
-                LiteralValue::Null => IrLiteralValue::Null,
-                LiteralValue::Bool(val) => IrLiteralValue::Bool(*val),
-                LiteralValue::Int(val) => IrLiteralValue::Int(*val),
-                LiteralValue::Decimal(val) => IrLiteralValue::Decimal(*val),
-                LiteralValue::String(val) => IrLiteralValue::String(val.clone()),
-                LiteralValue::Compound(val) => {
-                    IrLiteralValue::Compound(convert_compound(package_name, val))
+fn set_from_atomic(context: &mut Context, ast_node: &AtomicExpression, result_var_name: &Address) -> Vec<IrStatement> {
+    match ast_node {
+        AtomicExpression::Literal(x) => {
+            match x {
+                LiteralValue::Null => {
+                    vec![IrStatement::ScoreSet(IrScoreSet {
+                        var_name: result_var_name.clone(),
+                        value: 0,
+                    })]
                 }
-            }),
-            AtomicExpression::Variable(var) => {
-                IrAtomicExpression::Variable(convert_name_path(package_name, var))
+                LiteralValue::Bool(b) => {
+                    vec![IrStatement::ScoreSet(IrScoreSet {
+                        var_name: result_var_name.clone(),
+                        value: b.clone() as i32,
+                    })]
+                }
+                LiteralValue::Int(x) => {
+                    vec![IrStatement::ScoreSet(IrScoreSet {
+                        var_name: result_var_name.clone(),
+                        value: x.clone(),
+                    })]
+                }
+                // LiteralValue::Decimal(_) => {}
+                // LiteralValue::String(_) => {}
+                // LiteralValue::Compound(_) => {}
+                _ => panic!("Not implemented") // TODO: implement storage types
             }
-            AtomicExpression::FnCall(fn_call) => {
-                IrAtomicExpression::FnCall(Box::from(convert_fn_call(package_name, fn_call)))
-            }
-        }),
-        Expression::Unary(unop, expr) => IrExpression::Unary(
-            convert_unary_op(unop),
-            Box::from(convert_expr(package_name, expr)),
-        ),
-        Expression::Binary(e0, binop, e1) => IrExpression::Binary(
-            Box::from(convert_expr(package_name, e0)),
-            convert_binary_op(binop),
-            Box::from(convert_expr(package_name, e1)),
-        ),
-    };
-}
-
-fn convert_var_def(package_name: &str, ast_node: &VarDef) -> IrVarDef {
-    IrVarDef {
-        mods: Rc::new(
-            ast_node
-                .mods
-                .iter()
-                .map(|x| match x {
-                    VarMod::Const => IrVarMod::Const,
-                })
-                .collect(),
-        ),
-        name: convert_reference(package_name, &ast_node.name),
-        type_: convert_type(package_name, &ast_node.type_),
-    }
-}
-
-fn convert_var_decl(package_name: &str, ast_node: &VarDecl) -> IrVarDecl {
-    IrVarDecl {
-        var_def: convert_var_def(package_name, &ast_node.var_def),
-        expr: match &ast_node.expr {
-            Some(x) => Some(Box::from(convert_expr(package_name, x))),
-            None => None,
-        },
-    }
-}
-
-fn convert_name_path(package_name: &str, ast_node: &NamePath) -> IrNamePath {
-    IrNamePath {
-        name: global_name_updater(
-            package_name,
-            ast_node.name.global_resolved.as_ref().unwrap(),
-        ),
-        path: ast_node.path.clone(),
-    }
-}
-
-fn convert_var_assign(package_name: &str, ast_node: &VarAssign) -> IrVarAssign {
-    IrVarAssign {
-        name_path: convert_name_path(package_name, &ast_node.name_path),
-        expr: Box::from(convert_expr(package_name, &ast_node.expr)),
-    }
-}
-
-fn convert_if(package_name: &str, ast_node: &If) -> IrIf {
-    IrIf {
-        cond: Box::from(convert_expr(package_name, &ast_node.cond)),
-        body: Box::from(convert_block(package_name, &ast_node.body)),
-        else_: match &ast_node.else_ {
-            Some(x) => Some(Box::from(convert_if(package_name, x))),
-            None => None,
-        },
-    }
-}
-
-fn convert_while(package_name: &str, ast_node: &While) -> IrWhile {
-    IrWhile {
-        cond: Box::from(convert_expr(package_name, &ast_node.cond)),
-        body: Box::from(convert_block(package_name, &ast_node.body)),
-    }
-}
-
-fn convert_for(package_name: &str, ast_node: &For) -> IrFor {
-    IrFor {
-        init: match &ast_node.init {
-            Some(x) => Some(Box::from(convert_statement(package_name, x))),
-            None => None,
-        },
-        cond: match &ast_node.cond {
-            Some(x) => Some(Box::from(convert_expr(package_name, x))),
-            None => None,
-        },
-        step: match &ast_node.step {
-            Some(x) => Some(Box::from(convert_statement(package_name, x))),
-            None => None,
-        },
-        body: convert_block(package_name, &ast_node.body),
-    }
-}
-
-fn convert_statement(package_name: &str, ast_node: &Statement) -> IrStatement {
-    return match ast_node {
-        Statement::VarDecl(x) => IrStatement::VarDecl(convert_var_decl(package_name, x)),
-        Statement::VarAssign(x) => IrStatement::VarAssign(convert_var_assign(package_name, x)),
-        Statement::If(x) => IrStatement::If(convert_if(package_name, x)),
-        Statement::While(x) => IrStatement::While(convert_while(package_name, x)),
-        Statement::For(x) => IrStatement::For(convert_for(package_name, x)),
-        Statement::Return(x) => IrStatement::Return(Box::from(convert_expr(package_name, x))),
-        Statement::Break => IrStatement::Break,
-        Statement::Continue => IrStatement::Continue,
-        Statement::Expression(x) => {
-            IrStatement::Expression(Box::from(convert_expr(package_name, x)))
         }
+        AtomicExpression::Variable(x) => {
+            // TODO: this only works with score types for now
+            vec![IrStatement::ScoreOperation(IrScoreOperation {
+                left: result_var_name.clone(),
+                op: IrScoreOperationType::Assign,
+                right: context.convert_name_path(x),
+            })]
+        }
+        AtomicExpression::FnCall(x) => {
+            let mut s = vec![];
+            s.append(&mut convert_fn_call(context, x));
+
+            s.push(IrStatement::ScoreOperation(IrScoreOperation {
+                left: result_var_name.clone(),
+                op: IrScoreOperationType::Assign,
+                right: context.get_return_variable(),
+            }));
+            s
+        }
+    }
+}
+
+fn rec_convert_expr(context: &mut Context, ast_node: &Expression, result_var_name: &Address, a: &Address, other: &Address) -> Vec<IrStatement> {
+    return match ast_node {
+        Expression::AtomicExpression(x) => set_from_atomic(context, x, result_var_name),
+        Expression::Unary(_, _) => {}
+        Expression::Binary(_, _, _) => {}
     };
 }
 
-fn convert_statement_block(package_name: &str, ast_node: &StatementBlock) -> IrStatement {
+fn convert_expr(context: &mut Context, ast_node: &Expression, result_var_name: &Address) -> Vec<IrStatement> {
+    let a0 = context.create_variable();
+    let a1 = context.create_variable();
+
+    return rec_convert_expr(context, ast_node, result_var_name, &a0, &a1);
+}
+
+fn convert_var_decl(context: &mut Context, ast_node: &VarDecl) -> Vec<IrStatement> {
+    if let Some(expr) = &ast_node.expr {
+        convert_expr(context, expr, &context.convert_var_name(&ast_node.var_def.name))
+    } else {
+        vec![]
+    }
+}
+
+fn convert_var_assign(context: &mut Context, ast_node: &VarAssign) -> Vec<IrStatement> {
+    convert_expr(context, &ast_node.expr, &context.convert_name_path(&ast_node.name_path))
+}
+
+fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
+    /**
+    Convert the if statement to a series of commands
+
+    if cond {
+        body
+    } else if cond {
+        body
+    } else {
+        body
+    }
+
+    becomes
+
+    set if_check to 1
+    compute cond
+    execute if cond run {
+        body
+        set if_check to 0
+    }
+
+    execute if if_check == 1 run {
+        compute cond
+        execute if cond run {
+            body
+            set if_check to 0
+        }
+    }
+    execute if if_check == 1 run {
+        body
+    }
+     */
+    let mut elses = vec![];
+
+    let mut cur = ast_node;
+
+    while let Some(next) = cur.else_.as_ref() {
+        cur = next;
+        elses.push((&next.cond, &next.body));
+    }
+
+    let if_variable = context.get_if_variable();
+
+    let mut s = vec![];
+
+    if elses.len() > 0 {        // Set if_check to 1, only needed if there are elses.
+        s.push(IrStatement::ScoreSet(IrScoreSet {
+            var_name: if_variable.clone(),
+            value: 1,
+        }));
+    }
+
+    let cond_var = context.create_variable();
+    // compute cond
+    s.append(&mut convert_expr(context, &ast_node.cond, &cond_var));
+
+    // execute if cond run {
+    s.push(IrStatement::Unless(IrUnless {
+        cond: Cond::CheckVal(CheckVal {
+            var_name: cond_var,
+            min: 0,
+            max: 0,
+        }),
+        body: IrStatement::Block({
+            let mut s = convert_block(context, &ast_node.body);
+            if elses.len() > 0 {
+                s.statements.push(IrStatement::ScoreSet(IrScoreSet {
+                    var_name: if_variable.clone(),
+                    value: 0,
+                }));
+            }
+            s
+        }),
+    }));
+
+    // TODO: could be optimized
+
+    for (cond, body) in elses {
+        // compute cond
+        s.append(&mut convert_expr(context, &cond, &cond_var));
+
+        // execute if if_check == 1 run {
+        s.push(IrStatement::Unless(IrUnless {
+            cond: Cond::CheckVal(CheckVal {
+                var_name: if_variable.clone(),
+                min: 0,
+                max: 0,
+            }),
+            body: IrStatement::Unless(IrUnless {
+                cond: Cond::CheckVal(CheckVal {
+                    var_name: cond_var.clone(),
+                    min: 0,
+                    max: 0,
+                }),
+                body: IrStatement::Block({
+                    let mut s = convert_block(context, &body);
+                    s.statements.push(IrStatement::ScoreSet(IrScoreSet {
+                        var_name: if_variable.clone(),
+                        value: 0,
+                    }));
+                    s
+                }),
+            }),
+        }));
+    }
+    s
+}
+
+
+fn convert_while(context: &mut Context, ast_node: &While) -> Vec<IrStatement> {
+    let mut s: Vec<IrStatement> = vec![];
+
+    let mut condition = vec![];
+
+    // if condition is 0, return
+    if let Some(cond) = &ast_node.cond {
+        let add = context.create_variable();
+        condition.append(&mut convert_expr(context, cond, &add));
+        condition.push(IrStatement::If(IrIf {
+            cond: Cond::CheckVal(CheckVal {
+                var_name: add,
+                min: 0,
+                max: 0,
+            }),
+            body: IrStatement::Return,
+        }));
+    }
+
+    // parse body
+    let mut body = convert_block(context, &ast_node.body);
+
+    // insert condition before body
+    condition.append(&mut body.statements);
+    body.statements = condition;
+
+    // insert recursion
+    body.statements.push(IrStatement::FnCall(IrFnCall {
+        fn_name: body.get_fn_name(),
+    }));
+    s.push(IrStatement::Block(body));
+    s
+}
+
+fn convert_for(context: &mut Context, ast_node: &For) -> Vec<IrStatement> {
+    let mut s: Vec<IrStatement> = vec![];
+    if let Some(init) = &ast_node.init {
+        s.append(&mut convert_statement(context, init));
+    }
+
+    let mut condition = vec![];
+
+    // if condition is 0, return
+    if let Some(cond) = &ast_node.cond {
+        let add = context.create_variable();
+        condition.append(&mut convert_expr(context, cond, &add));
+        condition.push(IrStatement::If(IrIf {
+            cond: Cond::CheckVal(CheckVal {
+                var_name: add,
+                min: 0,
+                max: 0,
+            }),
+            body: IrStatement::Return,
+        }));
+    }
+
+    // parse body
+    let mut body = convert_block(context, &ast_node.body);
+
+    // insert condition before body
+    condition.append(&mut body.statements);
+    body.statements = condition;
+
+    // insert step statement after body
+    body.statements.append(&mut {
+        if let Some(step) = &ast_node.step {
+            convert_statement(context, step)
+        } else {
+            vec![]
+        }
+    });
+
+    // insert recursion
+    body.statements.push(IrStatement::FnCall(IrFnCall {
+        fn_name: body.get_fn_name(),
+    }));
+    s.push(IrStatement::Block(body));
+    s
+}
+
+fn convert_statement(context: &mut Context, ast_node: &Statement) -> Vec<IrStatement> {
+    return match ast_node {
+        Statement::VarDecl(x) => convert_var_decl(context, x),
+        Statement::VarAssign(x) => convert_var_assign(context, x),
+        Statement::If(x) => convert_if(context, x),
+        Statement::While(x) => convert_while(context, x),
+        Statement::For(x) => convert_for(context, x),
+        _ => (panic!("Not implemented"))
+    };
+}
+
+fn convert_statement_block(context: &mut Context, ast_node: &StatementBlock) -> IrStatement {
     return match ast_node {
         StatementBlock::Block(x) => {
-            IrStatement::Block(convert_block(package_name, x))
+            IrStatement::Block(convert_block(context, x))
         }
-        StatementBlock::Statement(statement) => convert_statement(package_name, statement),
+        StatementBlock::Statement(statement) => convert_statement(context, statement),
     };
 }
 
-fn convert_block(package_name: &str, ast_node: &Block) -> IrBlock {
+fn convert_block(context: &mut Context, ast_node: &Block) -> IrBlock {
     IrBlock {
+        root_fn_name: context.fn_name.to_string(),
+        fn_block_index: context.use_block() as usize,
         statements: ast_node
             .statements
             .iter()
-            .map(|x| convert_statement_block(package_name, x))
+            .map(|x| convert_statement_block(context, x))
             .collect(),
     }
 }
@@ -232,53 +381,12 @@ fn convert_reference(package_name: &str, ast_node: &Reference) -> String {
     return global_name_updater(package_name, ast_node.global_resolved.as_ref().unwrap());
 }
 
-fn convert_type(package_name: &str, ast_node: &Type) -> IrType {
-    match ast_node {
-        Type::Void => IrType::Void,
-        Type::Int => IrType::Int,
-        Type::Float => IrType::Float,
-        Type::Double => IrType::Double,
-        Type::Bool => IrType::Bool,
-        Type::String => IrType::String,
-        Type::Struct(x) => IrType::Struct(convert_reference(package_name, x)),
-    }
-}
+pub fn convert_fn(package_name: &str, ast_node: &FnDef, definition_table: &DefinitionTable<Rc<GlobalResolvedName>>) -> IrFnDef {
+    let fn_name = convert_reference(package_name, &ast_node.name);
+    let mut ctx = Context::new(package_name, &fn_name, definition_table);
 
-pub fn convert_fn(package_name: &str, ast_node: &FnDef) -> IrFnDef {
     IrFnDef {
-        body: convert_block(package_name, ast_node.body.as_ref().unwrap()),
-        name: convert_reference(package_name, &ast_node.name),
-        mods: Rc::from(
-            ast_node
-                .mods
-                .iter()
-                .map(|x| match x {
-                    FnMod::Rec => IrFnMod::Rec,
-                    FnMod::Inline => IrFnMod::Inline,
-                })
-                .collect::<Vec<IrFnMod>>(),
-        ),
-        args: ast_node
-            .args
-            .iter()
-            .map(|x| convert_var_def(package_name, x))
-            .collect(),
-        return_type: convert_type(package_name, &ast_node.return_type),
+        fn_name: convert_reference(package_name, &ast_node.name),
+        body: convert_block(&mut ctx, ast_node.body.as_ref().unwrap()),
     }
-}
-
-pub fn convert_struct(package_name: &str, ast_node: &StructDef) -> IrStructDef {
-    IrStructDef {
-        mods: Rc::from(vec![]),
-        type_name: convert_reference(package_name, &ast_node.type_name),
-        map: ast_node
-            .map
-            .iter()
-            .map(|(k, v)| (k.clone(), convert_type(package_name, v)))
-            .collect(),
-    }
-}
-
-pub fn convert_global_var(package_name: &str, ast_node: &VarDecl) -> IrVarDecl {
-    convert_var_decl(package_name, ast_node)
 }

@@ -1,12 +1,13 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
 use crate::front::mergers::convert::{
-    convert_fn, convert_global_var, convert_struct, global_name_updater,
+    global_name_updater,
 };
 use crate::front::mergers::package::{Package, Packager};
 use crate::middle::format::types::Program;
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
+use crate::front::mergers::definition_table::DefinitionTable;
 
 pub struct ProgramMerger<R> {
     root_package: String,
@@ -34,9 +35,9 @@ impl<R: FileSystem> ProgramMerger<R> {
         let mut program = Program {
             public_functions: HashSet::new(),
             function_definitions: HashMap::new(),
-            struct_definitions: HashMap::new(),
-            global_var_definitions: HashMap::new(),
         };
+
+        let mut def_table = DefinitionTable::new();
 
         for (package_name, mut table) in self.packages.drain() {
             if package_name == self.root_package {
@@ -60,9 +61,9 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.function_definitions.insert(
+                def_table.function_definitions.insert(
                     global_name_updater(&package_name, &def.0),
-                    convert_fn(&package_name, &def.1),
+                    def.1,
                 );
             }
             for def in table
@@ -78,9 +79,9 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.struct_definitions.insert(
+                def_table.struct_definitions.insert(
                     global_name_updater(&package_name, &def.0),
-                    convert_struct(&package_name, &def.1),
+                    def.1,
                 );
             }
             for def in table
@@ -96,12 +97,13 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .drain(),
                 )
             {
-                program.global_var_definitions.insert(
+                def_table.global_var_definitions.insert(
                     global_name_updater(&package_name, &def.0),
-                    convert_global_var(&package_name, &def.1),
+                    def.1,
                 );
             }
         }
+
 
         program
     }
