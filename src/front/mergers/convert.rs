@@ -508,52 +508,78 @@ mod tests {
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
     use crate::middle::format::ir_types::{
-        Address, AddressOrigin, CompareOp, Cond, IrBlock, IrScoreOperationType, IrStatement,
+        Address, AddressOrigin, CompareOp, Cond, IrScoreOperationType, IrStatement,
     };
     use std::collections::HashMap;
 
     fn test_calculation(statements: &Vec<IrStatement>, result_address: &Address) -> i32 {
-        let mut vars = HashMap::new();
+        struct Vars {
+            vars: HashMap<Address, i32>,
+        }
+        impl Vars {
+            fn get(&self, address: &Address) -> i32 {
+                match &address.name {
+                    AddressOrigin::Const(c) => { return *c; }
+                    _ => {}
+                }
+                return *self.vars.get(address).unwrap();
+            }
 
-        fn run_statement(statement: &IrStatement, vars: &mut HashMap<Address, i32>) {
+            fn insert(&mut self, address: Address, value: i32) {
+                if matches!(address.name, AddressOrigin::Const(_)) {
+                    panic!("Cannot insert into const")
+                }
+
+                self.vars.insert(address, value);
+            }
+        }
+
+        let mut vars = Vars {
+            vars: HashMap::new(),
+        };
+
+        fn run_statement(statement: &IrStatement, vars: &mut Vars) {
             match statement {
                 IrStatement::ScoreSet(x) => {
                     vars.insert(x.var_name.clone(), x.value);
                 }
                 IrStatement::ScoreAddI(x) => {
-                    vars.insert(x.var_name.clone(), vars.get(&x.var_name).unwrap() + x.value);
+                    vars.insert(x.var_name.clone(), vars.get(&x.var_name) + x.value);
                 }
                 IrStatement::ScoreOperation(x) => {
-                    let left = vars.get(&x.left).unwrap_or(&0);
-                    let right = vars.get(&x.right).unwrap_or(&0);
+                    let left = match x.op {
+                        IrScoreOperationType::Assign => 0,
+                        _ => vars.get(&x.left)
+                    };
+                    let right = vars.get(&x.right);
                     let result = match x.op {
                         IrScoreOperationType::Add => left + right,
                         IrScoreOperationType::Sub => left - right,
                         IrScoreOperationType::Mul => left * right,
                         IrScoreOperationType::Div => left / right,
                         IrScoreOperationType::Mod => left % right,
-                        IrScoreOperationType::Eq => ((*left != 0) == (*right != 0)) as i32,
-                        IrScoreOperationType::Neq => ((*left != 0) != (*right != 0)) as i32,
-                        IrScoreOperationType::Lt => ((*left != 0) < (*right != 0)) as i32,
-                        IrScoreOperationType::Gt => ((*left != 0) > (*right != 0)) as i32,
-                        IrScoreOperationType::Leq => ((*left != 0) <= (*right != 0)) as i32,
-                        IrScoreOperationType::Geq => ((*left != 0) >= (*right != 0)) as i32,
-                        IrScoreOperationType::And => ((*left != 0) && (*right != 0)) as i32,
-                        IrScoreOperationType::Or => ((*left != 0) || (*right != 0)) as i32,
-                        IrScoreOperationType::Assign => *right,
+                        IrScoreOperationType::Eq => ((left != 0) == (right != 0)) as i32,
+                        IrScoreOperationType::Neq => ((left != 0) != (right != 0)) as i32,
+                        IrScoreOperationType::Lt => ((left != 0) < (right != 0)) as i32,
+                        IrScoreOperationType::Gt => ((left != 0) > (right != 0)) as i32,
+                        IrScoreOperationType::Leq => ((left != 0) <= (right != 0)) as i32,
+                        IrScoreOperationType::Geq => ((left != 0) >= (right != 0)) as i32,
+                        IrScoreOperationType::And => ((left != 0) && (right != 0)) as i32,
+                        IrScoreOperationType::Or => ((left != 0) || (right != 0)) as i32,
+                        IrScoreOperationType::Assign => right,
                     };
                     vars.insert(x.left.clone(), result);
                 }
                 IrStatement::If(x) => match &x.cond {
                     Cond::CheckVal(y) => {
-                        let a = *vars.get(&y.var_name).unwrap();
+                        let a = vars.get(&y.var_name);
                         if y.min <= a && a <= y.max {
                             run_statement(&x.body, vars);
                         }
                     }
                     Cond::CompareVal(y) => {
-                        let a = *vars.get(&y.var_0).unwrap();
-                        let b = *vars.get(&y.var_1).unwrap();
+                        let a = vars.get(&y.var_0);
+                        let b = vars.get(&y.var_1);
                         if match y.op {
                             CompareOp::Eq => a == b,
                             CompareOp::Neq => a != b,
@@ -568,14 +594,14 @@ mod tests {
                 },
                 IrStatement::Unless(x) => match &x.cond {
                     Cond::CheckVal(y) => {
-                        let a = *vars.get(&y.var_name).unwrap();
+                        let a = vars.get(&y.var_name);
                         if y.min <= a && a <= y.max {
                             run_statement(&x.body, vars);
                         }
                     }
                     Cond::CompareVal(y) => {
-                        let a = *vars.get(&y.var_0).unwrap();
-                        let b = *vars.get(&y.var_1).unwrap();
+                        let a = vars.get(&y.var_0);
+                        let b = vars.get(&y.var_1);
                         if match y.op {
                             CompareOp::Eq => a == b,
                             CompareOp::Neq => a != b,
@@ -604,7 +630,7 @@ mod tests {
             run_statement(statement, &mut vars);
         }
 
-        return *vars.get(result_address).unwrap();
+        return vars.get(result_address);
     }
 
     #[test]
