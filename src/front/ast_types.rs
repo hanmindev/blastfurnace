@@ -6,6 +6,7 @@ pub type ResolvedName = String;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct GlobalResolvedName {
+    pub package: Rc<str>,
     pub module: Rc<str>,
     pub name: String,
 }

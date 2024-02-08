@@ -8,12 +8,11 @@ use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
 
 pub fn global_name_updater(
-    package_name: &str,
     global_resolved_name: &Rc<GlobalResolvedName>,
 ) -> GlobalName {
     format!(
         "{}{}/{}",
-        package_name, global_resolved_name.module, global_resolved_name.name
+        global_resolved_name.package, global_resolved_name.module, global_resolved_name.name
     )
 }
 
@@ -37,11 +36,11 @@ pub fn global_name_updater(
 //
 fn convert_fn_call(context: &mut Context, ast_node: &FnCall) -> Vec<IrStatement> {
     let mut s: Vec<IrStatement> = vec![];
-    for (i, arg) in &ast_node.args.iter() {
-        s.append(&mut convert_expr(context, arg, &context.get_parameter_variable(ast_node.name.global_resolved.unwrap(), i)));
+    for (i, arg) in ast_node.args.iter().enumerate() {
+        s.append(&mut convert_expr(context, arg, &context.get_parameter_variable(&ast_node.name.global_resolved.as_ref().unwrap(), i as u32)));
     }
     s.push(IrStatement::FnCall(IrFnCall {
-        fn_name: convert_reference(&context.package_name, &ast_node.name),
+        fn_name: convert_reference(&ast_node.name),
     }));
     s
 }
@@ -132,8 +131,8 @@ fn set_from_atomic(context: &mut Context, ast_node: &AtomicExpression, result_va
 fn rec_convert_expr(context: &mut Context, ast_node: &Expression, result_var_name: &Address, a: &Address, other: &Address) -> Vec<IrStatement> {
     return match ast_node {
         Expression::AtomicExpression(x) => set_from_atomic(context, x, result_var_name),
-        Expression::Unary(_, _) => {}
-        Expression::Binary(_, _, _) => {}
+        Expression::Unary(_, _) => vec![],
+        Expression::Binary(_, _, _) => vec![]
     };
 }
 
@@ -215,11 +214,11 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
     // execute if cond run {
     s.push(IrStatement::Unless(IrUnless {
         cond: Cond::CheckVal(CheckVal {
-            var_name: cond_var,
+            var_name: cond_var.clone(),
             min: 0,
             max: 0,
         }),
-        body: IrStatement::Block({
+        body: Box::from(IrStatement::Block({
             let mut s = convert_block(context, &ast_node.body);
             if elses.len() > 0 {
                 s.statements.push(IrStatement::ScoreSet(IrScoreSet {
@@ -228,14 +227,14 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
                 }));
             }
             s
-        }),
+        })),
     }));
 
     // TODO: could be optimized
 
     for (cond, body) in elses {
         // compute cond
-        s.append(&mut convert_expr(context, &cond, &cond_var));
+        s.append(&mut convert_expr(context, &cond, &cond_var.clone()));
 
         // execute if if_check == 1 run {
         s.push(IrStatement::Unless(IrUnless {
@@ -244,21 +243,21 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
                 min: 0,
                 max: 0,
             }),
-            body: IrStatement::Unless(IrUnless {
+            body: Box::from(IrStatement::Unless(IrUnless {
                 cond: Cond::CheckVal(CheckVal {
                     var_name: cond_var.clone(),
                     min: 0,
                     max: 0,
                 }),
-                body: IrStatement::Block({
+                body: Box::from(IrStatement::Block({
                     let mut s = convert_block(context, &body);
                     s.statements.push(IrStatement::ScoreSet(IrScoreSet {
                         var_name: if_variable.clone(),
                         value: 0,
                     }));
                     s
-                }),
-            }),
+                })),
+            })),
         }));
     }
     s
@@ -271,18 +270,16 @@ fn convert_while(context: &mut Context, ast_node: &While) -> Vec<IrStatement> {
     let mut condition = vec![];
 
     // if condition is 0, return
-    if let Some(cond) = &ast_node.cond {
-        let add = context.create_variable();
-        condition.append(&mut convert_expr(context, cond, &add));
-        condition.push(IrStatement::If(IrIf {
-            cond: Cond::CheckVal(CheckVal {
-                var_name: add,
-                min: 0,
-                max: 0,
-            }),
-            body: IrStatement::Return,
-        }));
-    }
+    let add = context.create_variable();
+    condition.append(&mut convert_expr(context, &ast_node.cond, &add));
+    condition.push(IrStatement::If(IrIf {
+        cond: Cond::CheckVal(CheckVal {
+            var_name: add,
+            min: 0,
+            max: 0,
+        }),
+        body: Box::from(IrStatement::Return),
+    }));
 
     // parse body
     let mut body = convert_block(context, &ast_node.body);
@@ -317,7 +314,7 @@ fn convert_for(context: &mut Context, ast_node: &For) -> Vec<IrStatement> {
                 min: 0,
                 max: 0,
             }),
-            body: IrStatement::Return,
+            body: Box::from(IrStatement::Return),
         }));
     }
 
@@ -352,41 +349,42 @@ fn convert_statement(context: &mut Context, ast_node: &Statement) -> Vec<IrState
         Statement::If(x) => convert_if(context, x),
         Statement::While(x) => convert_while(context, x),
         Statement::For(x) => convert_for(context, x),
-        _ => (panic!("Not implemented"))
+        _ => panic!("Not implemented")
     };
 }
 
-fn convert_statement_block(context: &mut Context, ast_node: &StatementBlock) -> IrStatement {
+fn convert_statement_block(context: &mut Context, ast_node: &StatementBlock) -> Vec<IrStatement> {
     return match ast_node {
         StatementBlock::Block(x) => {
-            IrStatement::Block(convert_block(context, x))
+            vec![IrStatement::Block(convert_block(context, x))]
         }
         StatementBlock::Statement(statement) => convert_statement(context, statement),
     };
 }
 
 fn convert_block(context: &mut Context, ast_node: &Block) -> IrBlock {
+    let mut statements = vec![];
+    for statement_block in &ast_node.statements {
+        statements.append(&mut convert_statement_block(context, statement_block));
+    }
+
     IrBlock {
         root_fn_name: context.fn_name.to_string(),
         fn_block_index: context.use_block() as usize,
-        statements: ast_node
-            .statements
-            .iter()
-            .map(|x| convert_statement_block(context, x))
-            .collect(),
+        statements,
     }
 }
 
-fn convert_reference(package_name: &str, ast_node: &Reference) -> String {
-    return global_name_updater(package_name, ast_node.global_resolved.as_ref().unwrap());
+fn convert_reference(ast_node: &Reference) -> String {
+    return global_name_updater(ast_node.global_resolved.as_ref().unwrap());
 }
 
-pub fn convert_fn(package_name: &str, ast_node: &FnDef, definition_table: &DefinitionTable<Rc<GlobalResolvedName>>) -> IrFnDef {
-    let fn_name = convert_reference(package_name, &ast_node.name);
-    let mut ctx = Context::new(package_name, &fn_name, definition_table);
+pub fn convert_fn(ast_node: &FnDef, definition_table: &DefinitionTable<Rc<GlobalResolvedName>>) -> IrFnDef {
+    let fn_name = convert_reference(&ast_node.name);
+    let mut ctx = Context::new(&fn_name, definition_table);
 
     IrFnDef {
-        fn_name: convert_reference(package_name, &ast_node.name),
+        fn_name: convert_reference(&ast_node.name),
         body: convert_block(&mut ctx, ast_node.body.as_ref().unwrap()),
     }
 }
