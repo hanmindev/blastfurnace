@@ -388,3 +388,33 @@ pub fn convert_fn(ast_node: &FnDef, definition_table: &DefinitionTable<Rc<Global
         body: convert_block(&mut ctx, ast_node.body.as_ref().unwrap()),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::front::file_system::fs::FileSystem;
+    use crate::front::file_system::mock_fs::MockFileSystem;
+    use crate::front::mergers::program::ProgramMerger;
+    use crate::middle::format::ir_types::{IrStatement, AddressOrigin};
+
+    #[test]
+    fn test_convert_simple() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file("/main.ing", "pub fn main() { let a: int = 1; }");
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut program = program_merger.export_program();
+
+        println!("{:?}", program);
+
+        match &program.function_definitions.get("pkg/root/0_main").unwrap().body.statements[0] {
+            IrStatement::ScoreSet(x) => {
+                assert_eq!(x.var_name.name, AddressOrigin::User("pkg/root/0_a".to_string()));
+                assert_eq!(x.value, 1);
+            }
+            _ => {}
+        }
+    }
+}
