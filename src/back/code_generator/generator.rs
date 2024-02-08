@@ -1,4 +1,4 @@
-use crate::middle::format::ir_types::{CompareOp, FunctionName};
+use crate::middle::format::ir_types::{CompareOp};
 use crate::back::code_generator::{Context, GeneratedCode, MFunction};
 use crate::middle::format::ir_types::{Cond, IrUnless};
 use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrScoreSet, IrStatement};
@@ -140,7 +140,7 @@ fn if_unless_helper(generated_code: &mut GeneratedCode, context: &mut Context, c
     let statement = if statements.len() == 1 {
         statements.remove(0)
     } else {
-        wrap_in_function(context.fn_name.clone(), statements, generated_code, context)
+        wrap_in_function(statements, generated_code, context)
     };
 
     vec![format!("{} {}", match &cond {
@@ -208,12 +208,12 @@ impl CodeGenerator for IrBlock {
         for statement in &self.statements {
             result.append(&mut statement.generate(generated_code, context));
         }
-        result
+        vec![wrap_in_function(result, generated_code, context)]
     }
 }
 
-fn wrap_in_function(parent_fn_name: FunctionName, statements: Vec<String>, generated_code: &mut GeneratedCode, context: &mut Context) -> String {
-    let block_name = format!("{}_{}", parent_fn_name, context.block_count);
+fn wrap_in_function(statements: Vec<String>, generated_code: &mut GeneratedCode, context: &mut Context) -> String {
+    let block_name = context.new_block();
     context.block_count += 1;
 
     generated_code.add_function(MFunction {
