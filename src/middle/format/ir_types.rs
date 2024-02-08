@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum AddressOrigin {
     User(String),
     CtxGenerated(String, u32),
@@ -7,7 +7,7 @@ pub enum AddressOrigin {
     Const(i32),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub struct Address {
     pub name: AddressOrigin,
     pub offset: i32,
