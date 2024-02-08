@@ -208,7 +208,12 @@ impl CodeGenerator for IrBlock {
         for statement in &self.statements {
             result.append(&mut statement.generate(generated_code, context));
         }
-        vec![wrap_in_function(result, generated_code, context)]
+
+        if result.len() == 1 && self.can_embed {
+            result
+        } else {
+            vec![wrap_in_function(result, generated_code, context)]
+        }
     }
 }
 

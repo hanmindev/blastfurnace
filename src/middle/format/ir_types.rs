@@ -122,6 +122,7 @@ pub enum IrStatement {
 
 #[derive(Debug, PartialEq)]
 pub struct IrBlock {
+    pub can_embed: bool,
     pub root_fn_name: FunctionName,
     pub fn_block_index: usize,
     pub statements: Vec<IrStatement>,
