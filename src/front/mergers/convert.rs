@@ -58,27 +58,27 @@ fn set_from_atomic(
     context: &mut Context,
     ast_node: &AtomicExpression,
     result_var_name: &Address,
-) -> Vec<IrStatement> {
+) -> ExprEval {
     match ast_node {
         AtomicExpression::Literal(x) => {
             match x {
                 LiteralValue::Null => {
-                    vec![IrStatement::ScoreSet(IrScoreSet {
-                        var_name: result_var_name.clone(),
-                        value: 0,
-                    })]
+                    ExprEval {
+                        statements: vec![],
+                        existing_address: Some(context.const_generator.get_const(0)),
+                    }
                 }
                 LiteralValue::Bool(b) => {
-                    vec![IrStatement::ScoreSet(IrScoreSet {
-                        var_name: result_var_name.clone(),
-                        value: b.clone() as i32,
-                    })]
+                    ExprEval {
+                        statements: vec![],
+                        existing_address: Some(context.const_generator.get_const(b.clone() as i32)),
+                    }
                 }
                 LiteralValue::Int(x) => {
-                    vec![IrStatement::ScoreSet(IrScoreSet {
-                        var_name: result_var_name.clone(),
-                        value: x.clone(),
-                    })]
+                    ExprEval {
+                        statements: vec![],
+                        existing_address: Some(context.const_generator.get_const(x.clone())),
+                    }
                 }
                 // LiteralValue::Decimal(_) => {}
                 // LiteralValue::String(_) => {}
@@ -88,38 +88,49 @@ fn set_from_atomic(
         }
         AtomicExpression::Variable(x) => {
             // TODO: this only works with score types for now
-            vec![IrStatement::ScoreOperation(IrScoreOperation {
-                left: result_var_name.clone(),
-                op: IrScoreOperationType::Assign,
-                right: context.convert_name_path(x),
-            })]
+            ExprEval {
+                statements: vec![],
+                existing_address: Some(context.convert_name_path(x)),
+            }
         }
         AtomicExpression::FnCall(x) => {
             let mut s = vec![];
             s.append(&mut convert_fn_call(context, x));
 
-            s.push(IrStatement::ScoreOperation(IrScoreOperation {
-                left: result_var_name.clone(),
-                op: IrScoreOperationType::Assign,
-                right: context.get_return_variable(),
-            }));
-            s
+            ExprEval {
+                statements: s,
+                existing_address: Some(context.get_return_variable()),
+            }
         }
     }
 }
 
-fn convert_expr(
+struct ExprEval {
+    statements: Vec<IrStatement>,
+    existing_address: Option<Address>,
+}
+
+fn rec_convert_expr(
     context: &mut Context,
     ast_node: &Expression,
     result_var_name: &Address,
-) -> Vec<IrStatement> {
+) -> ExprEval {
     return match ast_node {
         Expression::AtomicExpression(x) => set_from_atomic(context, x, result_var_name),
         Expression::Unary(unop, e) => {
             let mut s = vec![];
-            s.append(&mut convert_expr(context, e, result_var_name));
 
-            s.append(&mut match unop {
+            let mut expr = rec_convert_expr(context, e, &result_var_name);
+            s.append(&mut expr.statements);
+            if let Some(e_a) = expr.existing_address {
+                s.push(IrStatement::ScoreOperation(IrScoreOperation {
+                    left: result_var_name.clone(),
+                    op: IrScoreOperationType::Assign,
+                    right: e_a,
+                }));
+            }
+
+            match unop {
                 UnOp::Neg => {
                     vec![IrStatement::ScoreOperation(IrScoreOperation {
                         left: result_var_name.clone(),
@@ -132,7 +143,7 @@ fn convert_expr(
                         left: result_var_name.clone(),
                         op: IrScoreOperationType::Eq,
                         right: context.const_generator.get_const(0),
-                    })]
+                    })] // TODO can use match instead
                 }
                 // UnOp::Deref => IrScoreOperationType::Deref, // TODO
                 // UnOp::Ref => IrScoreOperationType::Ref,
@@ -143,16 +154,38 @@ fn convert_expr(
                 _ => {
                     vec![]
                 }
-            });
+            };
 
-            s
+            ExprEval {
+                statements: s,
+                existing_address: None,
+            }
         }
         Expression::Binary(e0, binop, e1) => {
             let mut s = vec![];
-            let a0 = context.get_variable();
-            s.append(&mut convert_expr(context, e0, result_var_name));
-            s.append(&mut convert_expr(context, e1, &a0));
 
+            let mut expr0 = rec_convert_expr(context, e0, result_var_name);
+            expr0.existing_address.as_ref().unwrap_or(result_var_name);
+            s.append(&mut expr0.statements);
+            if let Some(e_a) = expr0.existing_address {
+                s.push(IrStatement::ScoreOperation(IrScoreOperation {
+                    left: result_var_name.clone(),
+                    op: IrScoreOperationType::Assign,
+                    right: e_a,
+                }));
+            }
+
+            let a0 = context.get_variable();
+            let mut expr1 = rec_convert_expr(context, e1, &a0);
+            let mut f = false;
+            let existing_address1 = if let Some(e_a) = expr1.existing_address {
+                context.forfeit_variable(&a0);
+                e_a
+            } else {
+                f = true;
+                a0.clone()
+            };
+            s.append(&mut expr1.statements);
             s.push(IrStatement::ScoreOperation(IrScoreOperation {
                 left: result_var_name.clone(),
                 op: {
@@ -174,13 +207,39 @@ fn convert_expr(
                         BinOp::Or => IrScoreOperationType::Or,
                     }
                 },
-                right: a0.clone(),
+                right: existing_address1,
             }));
-            context.forfeit_variable(&a0);
+            if f {
+                context.forfeit_variable(&a0);
+            }
 
-            s
+
+            ExprEval {
+                statements: s,
+                existing_address: None,
+            }
         }
     };
+}
+
+
+fn convert_expr(
+    context: &mut Context,
+    ast_node: &Expression,
+    result_var_name: &Address,
+) -> Vec<IrStatement> {
+    let expr = rec_convert_expr(context, ast_node, result_var_name);
+    let mut s = expr.statements;
+
+    if let Some(e) = expr.existing_address {
+        s.push(IrStatement::ScoreOperation(IrScoreOperation {
+            left: result_var_name.clone(),
+            op: IrScoreOperationType::Assign,
+            right: e,
+        }))
+    }
+
+    s
 }
 
 fn convert_var_decl(context: &mut Context, ast_node: &VarDecl) -> Vec<IrStatement> {
