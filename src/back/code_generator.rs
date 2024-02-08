@@ -26,8 +26,9 @@ pub struct Context {
 
 impl Context {
     pub fn new_block(&mut self) -> String {
+        let fn_name = format!("{}/{}", self.fn_name, self.block_count);
         self.block_count += 1;
-        format!("{}_{}", self.fn_name, self.block_count)
+        fn_name
     }
 }
 
@@ -71,7 +72,7 @@ mod tests {
     #[test]
     fn test_generate_code() {
         let mut mock_fs = MockFileSystem::new("/".to_string());
-        mock_fs.insert_file("/main.ing", "pub fn main() { let a: int = 5; } pub fn test() { let b: int = 8; }");
+        mock_fs.insert_file("/main.ing", "pub fn main() { let a: int = 5; if (a - 5 == 0) { a = 7; }; }");
 
         let mut program_merger = ProgramMerger::new("test");
         program_merger.read_package("test", mock_fs);
