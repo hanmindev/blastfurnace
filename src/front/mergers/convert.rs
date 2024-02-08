@@ -634,4 +634,31 @@ mod tests {
             },
         ), 11);
     }
+
+    #[test]
+    fn test_complicated_expression() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file(
+            "/main.ing",
+            "pub fn main() { let a: int = 2 * 18 / 9 * (6 - 8 * 3 % 3) + (true && (false || true) && !false); }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut program = program_merger.export_program();
+
+        assert_eq!(test_calculation(
+            &program
+                .function_definitions
+                .get("pkg/root/0_main")
+                .unwrap()
+                .body,
+            &Address {
+                name: AddressOrigin::User("pkg/root/0_a".to_string()),
+                offset: 0,
+            },
+        ), 25);
+    }
 }
