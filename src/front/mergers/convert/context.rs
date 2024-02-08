@@ -61,7 +61,7 @@ impl ConstGenerator {
 
 pub struct Context<'a> {
     pub fn_name: String,
-    block_count: u32,
+    pub block_count: usize,
     var_generator: VarGenerator,
     definition_table: &'a DefinitionTable<Rc<GlobalResolvedName>>,
     pub const_generator: &'a mut ConstGenerator,
@@ -82,7 +82,7 @@ impl Context<'_> {
         }
     }
 
-    pub fn use_block(&mut self) -> u32 {
+    pub fn use_block(&mut self) -> usize {
         let block = self.block_count;
         self.block_count += 1;
         block
