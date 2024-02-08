@@ -133,8 +133,15 @@ impl CodeGenerator for IrScoreOperation {
 }
 
 fn if_unless_helper(cond: &Cond, body: &Box<IrStatement>, type_: &str) -> Vec<String> {
-    let mut result = vec![];
-    result.push(match &cond {
+    let mut statements = body.generate();
+
+    let statement = if statements.len() == 1 {
+        &statements[0]
+    } else {
+        "merge statements into function call" // TODO
+    };
+
+    vec![format!("{} {}", match &cond {
         Cond::CheckVal(x) => {
             if x.min == x.max {
                 format!("execute {type_} score {} matches {} run", x.var_name.to_score(), x.min)
@@ -163,11 +170,7 @@ fn if_unless_helper(cond: &Cond, body: &Box<IrStatement>, type_: &str) -> Vec<St
                 x.var_1.to_score()
             )
         }
-    });
-    for statement in &body {
-        result.append(&mut statement.generate());
-    }
-    result
+    }, statement)]
 }
 
 impl CodeGenerator for IrIf {
@@ -190,7 +193,7 @@ impl CodeGenerator for IrStatement {
             IrStatement::ScoreOperation(x) => x.generate(),
             IrStatement::If(x) => x.generate(),
             IrStatement::Unless(x) => x.generate(),
-            IrStatement::FnCall(x) => x.generate(),
+            IrStatement::FnCall(x) => vec![format!("function {}", x.fn_name)],
             IrStatement::Return => vec!["return".to_string()],
             IrStatement::Block(x) => x.generate()
         }
