@@ -1,3 +1,5 @@
+use crate::middle::format::ir_types::{CompareOp, FunctionName};
+use crate::back::code_generator::{Context, GeneratedCode, MFunction};
 use crate::middle::format::ir_types::{Cond, IrUnless};
 use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrScoreSet, IrStatement};
 use crate::middle::format::ir_types::{
@@ -7,8 +9,8 @@ use crate::middle::format::ir_types::{
 static BLASTFURNACE_OBJECTIVE: &str = "blst";
 static BLASTFURNACE_CONST: &str = "blst";
 
-trait CodeGenerator {
-    fn generate(&self) -> Vec<String>;
+pub trait CodeGenerator {
+    fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String>;
 }
 
 impl Address {
@@ -30,7 +32,7 @@ impl Address {
 }
 
 impl CodeGenerator for IrScoreSet {
-    fn generate(&self) -> Vec<String> {
+    fn generate(&self, _generated_code: &mut GeneratedCode, _context: &mut Context) -> Vec<String> {
         vec![format!(
             "scoreboard players set {} {}",
             self.var_name.to_score(),
@@ -40,7 +42,7 @@ impl CodeGenerator for IrScoreSet {
 }
 
 impl CodeGenerator for IrScoreAddI {
-    fn generate(&self) -> Vec<String> {
+    fn generate(&self, _generated_code: &mut GeneratedCode, _context: &mut Context) -> Vec<String> {
         if self.value >= 0 {
             vec![format!(
                 "scoreboard players add {} {}",
@@ -58,7 +60,7 @@ impl CodeGenerator for IrScoreAddI {
 }
 
 impl CodeGenerator for IrScoreOperation {
-    fn generate(&self) -> Vec<String> {
+    fn generate(&self, _generated_code: &mut GeneratedCode, _context: &mut Context) -> Vec<String> {
         let op = match self.op {
             IrScoreOperationType::Add => "+=",
             IrScoreOperationType::Sub => "-=",
@@ -132,13 +134,13 @@ impl CodeGenerator for IrScoreOperation {
     }
 }
 
-fn if_unless_helper(cond: &Cond, body: &Box<IrStatement>, type_: &str) -> Vec<String> {
-    let mut statements = body.generate();
+fn if_unless_helper(generated_code: &mut GeneratedCode, context: &mut Context, cond: &Cond, body: &Box<IrStatement>, type_: &str) -> Vec<String> {
+    let mut statements = body.generate(generated_code, context);
 
     let statement = if statements.len() == 1 {
-        &statements[0]
+        statements.remove(0)
     } else {
-        "merge statements into function call" // TODO
+        wrap_in_function(context.fn_name.clone(), statements, generated_code, context)
     };
 
     vec![format!("{} {}", match &cond {
@@ -156,12 +158,12 @@ fn if_unless_helper(cond: &Cond, body: &Box<IrStatement>, type_: &str) -> Vec<St
         }
         Cond::CompareVal(x) => {
             let op = match x.op {
-                crate::middle::format::ir_types::CompareOp::Eq => "matches",
-                crate::middle::format::ir_types::CompareOp::Neq => "matches",
-                crate::middle::format::ir_types::CompareOp::Lt => "matches",
-                crate::middle::format::ir_types::CompareOp::Gt => "matches",
-                crate::middle::format::ir_types::CompareOp::Leq => "matches",
-                crate::middle::format::ir_types::CompareOp::Geq => "matches",
+                CompareOp::Eq => "matches",
+                CompareOp::Neq => "matches",
+                CompareOp::Lt => "matches",
+                CompareOp::Gt => "matches",
+                CompareOp::Leq => "matches",
+                CompareOp::Geq => "matches",
             };
             format!(
                 "execute {type_} score {} {} {} run",
@@ -174,38 +176,55 @@ fn if_unless_helper(cond: &Cond, body: &Box<IrStatement>, type_: &str) -> Vec<St
 }
 
 impl CodeGenerator for IrIf {
-    fn generate(&self) -> Vec<String> {
-        if_unless_helper(&self.cond, &self.body, "if")
+    fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String> {
+        if_unless_helper(generated_code, context, &self.cond, &self.body, "if")
     }
 }
 
 impl CodeGenerator for IrUnless {
-    fn generate(&self) -> Vec<String> {
-        if_unless_helper(&self.cond, &self.body, "unless")
+    fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String> {
+        if_unless_helper(generated_code, context, &self.cond, &self.body, "unless")
     }
 }
 
 impl CodeGenerator for IrStatement {
-    fn generate(&self) -> Vec<String> {
+    fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String> {
         match self {
-            IrStatement::ScoreSet(x) => x.generate(),
-            IrStatement::ScoreAddI(x) => x.generate(),
-            IrStatement::ScoreOperation(x) => x.generate(),
-            IrStatement::If(x) => x.generate(),
-            IrStatement::Unless(x) => x.generate(),
+            IrStatement::ScoreSet(x) => x.generate(generated_code, context),
+            IrStatement::ScoreAddI(x) => x.generate(generated_code, context),
+            IrStatement::ScoreOperation(x) => x.generate(generated_code, context),
+            IrStatement::If(x) => x.generate(generated_code, context),
+            IrStatement::Unless(x) => x.generate(generated_code, context),
             IrStatement::FnCall(x) => vec![format!("function {}", x.fn_name)],
             IrStatement::Return => vec!["return".to_string()],
-            IrStatement::Block(x) => x.generate()
+            IrStatement::Block(x) => x.generate(generated_code, context)
         }
     }
 }
 
 impl CodeGenerator for IrBlock {
-    fn generate(&self) -> Vec<String> {
+    fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String> {
         let mut result = vec![];
         for statement in &self.statements {
-            result.append(&mut statement.generate());
+            result.append(&mut statement.generate(generated_code, context));
         }
-        result
+        generated_code.add_function(MFunction {
+            name: self.get_fn_name(),
+            body: result,
+        });
+
+        vec![format!("function {}", self.get_fn_name())]
     }
+}
+
+fn wrap_in_function(parent_fn_name: FunctionName, statements: Vec<String>, generated_code: &mut GeneratedCode, context: &mut Context) -> String {
+    let block_name = format!("{}_{}", parent_fn_name, context.block_count);
+    context.block_count += 1;
+
+    generated_code.add_function(MFunction {
+        name: block_name.clone(),
+        body: statements,
+    });
+
+    format!("function {}", block_name)
 }
