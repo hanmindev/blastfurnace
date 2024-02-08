@@ -55,3 +55,80 @@ impl CodeGenerator for IrScoreAddI {
         }
     }
 }
+
+impl CodeGenerator for IrScoreOperation {
+    fn generate(&self) -> Vec<String> {
+        let op = match self.op {
+            IrScoreOperationType::Add => "+=",
+            IrScoreOperationType::Sub => "-=",
+            IrScoreOperationType::Mul => "*=",
+            IrScoreOperationType::Div => "/=",
+            IrScoreOperationType::Mod => "%=",
+            IrScoreOperationType::Assign => "=",
+            IrScoreOperationType::Leq => "<=",
+            IrScoreOperationType::Geq => "=>",
+            IrScoreOperationType::Lt => "<",
+            IrScoreOperationType::Gt => ">",
+            IrScoreOperationType::Eq => "=",
+            _ => "",
+        };
+        match self.op {
+            IrScoreOperationType::Add
+            | IrScoreOperationType::Sub
+            | IrScoreOperationType::Mul
+            | IrScoreOperationType::Div
+            | IrScoreOperationType::Mod
+            | IrScoreOperationType::Assign => {
+                vec![format!(
+                    "scoreboard players operation {} {} {}",
+                    self.left.to_score(),
+                    op,
+                    self.right.to_score()
+                )]
+            }
+            IrScoreOperationType::Leq |
+            IrScoreOperationType::Geq |
+            IrScoreOperationType::Lt |
+            IrScoreOperationType::Gt |
+            IrScoreOperationType::Eq => {
+                vec![format!(
+                    "execute store result score {} if score {} {op} {}",
+                    self.left.to_score(),
+                    self.left.to_score(),
+                    self.right.to_score()
+                )]
+            }
+            IrScoreOperationType::Neq => {
+                vec![format!(
+                    "execute store result score {} unless score {} = {}",
+                    self.left.to_score(),
+                    self.left.to_score(),
+                    self.right.to_score()
+                )]
+            }
+            IrScoreOperationType::And => {
+                vec![format!(
+                    "execute store result score {} unless score {} matches 0 unless score {} matches 0",
+                    self.left.to_score(),
+                    self.left.to_score(),
+                    self.right.to_score()
+                )]
+            }
+            IrScoreOperationType::Or => {
+                vec![
+                    format!(
+                        "scoreboard players set {} 1",
+                        self.left.to_score(),
+                    ),
+                    format!(
+                        "execute if score {} matches 0 if score {} matches 0 scoreboard players set {} 0",
+                        self.left.to_score(),
+                        self.right.to_score(),
+                        self.left.to_score(),
+                    )]
+            }
+        }
+    }
+}
+
+
