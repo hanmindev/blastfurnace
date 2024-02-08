@@ -1,12 +1,11 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
-use crate::front::mergers::convert::{
-    global_name_updater,
-};
+use crate::front::mergers::convert::{convert_fn, global_name_updater};
 use crate::front::mergers::package::{Package, Packager};
 use crate::middle::format::types::Program;
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
+use std::rc::Rc;
 use crate::front::mergers::definition_table::DefinitionTable;
 
 pub struct ProgramMerger<R> {
@@ -37,18 +36,20 @@ impl<R: FileSystem> ProgramMerger<R> {
             function_definitions: HashMap::new(),
         };
 
+        let mut public_functions = HashSet::new();
         let mut def_table = DefinitionTable::new();
 
         for (package_name, mut table) in self.packages.drain() {
             if package_name == self.root_package {
                 for def in &table.merged_module.public_definitions.function_definitions {
+                    public_functions.insert(Rc::clone(def.0));
                     program
                         .public_functions
-                        .insert(global_name_updater(&package_name, &def.0));
+                        .insert(global_name_updater(&def.0));
                 }
             }
 
-            for def in table
+            def_table.function_definitions.extend(table
                 .merged_module
                 .public_definitions
                 .function_definitions
@@ -59,14 +60,9 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .private_definitions
                         .function_definitions
                         .drain(),
-                )
-            {
-                def_table.function_definitions.insert(
-                    global_name_updater(&package_name, &def.0),
-                    def.1,
-                );
-            }
-            for def in table
+                ));
+
+            def_table.struct_definitions.extend(table
                 .merged_module
                 .public_definitions
                 .struct_definitions
@@ -77,14 +73,9 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .private_definitions
                         .struct_definitions
                         .drain(),
-                )
-            {
-                def_table.struct_definitions.insert(
-                    global_name_updater(&package_name, &def.0),
-                    def.1,
-                );
-            }
-            for def in table
+                ));
+
+            def_table.global_var_definitions.extend(table
                 .merged_module
                 .public_definitions
                 .global_var_definitions
@@ -95,15 +86,17 @@ impl<R: FileSystem> ProgramMerger<R> {
                         .private_definitions
                         .global_var_definitions
                         .drain(),
-                )
-            {
-                def_table.global_var_definitions.insert(
-                    global_name_updater(&package_name, &def.0),
-                    def.1,
+                ));
+        }
+
+        for public_function in public_functions {
+            if let Some(fn_) = def_table.function_definitions.get(&public_function) {
+                program.function_definitions.insert(
+                    global_name_updater(&public_function),
+                    convert_fn(fn_, &def_table),
                 );
             }
         }
-
 
         program
     }

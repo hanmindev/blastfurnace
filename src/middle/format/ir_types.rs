@@ -1,13 +1,13 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum AddressOrigin {
     User(String),
     CtxGenerated(String, u32),
     If,
-    Return
+    Return,
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Address {
     pub name: AddressOrigin,
     pub offset: i32,
@@ -87,13 +87,13 @@ pub enum Cond {
 #[derive(Debug, PartialEq)]
 pub struct IrIf {
     pub cond: Cond,
-    pub body: IrStatement,
+    pub body: Box<IrStatement>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct IrUnless {
     pub cond: Cond,
-    pub body: IrStatement,
+    pub body: Box<IrStatement>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -116,7 +116,7 @@ pub struct IrBlock {
 }
 
 impl IrBlock {
-    pub fn get_fn_name(&mut self) -> String {
+    pub fn get_fn_name(&self) -> String {
         format!("{}_{}", self.root_fn_name, self.fn_block_index)
     }
 }

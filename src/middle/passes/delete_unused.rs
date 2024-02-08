@@ -1,7 +1,4 @@
-use crate::middle::format::ir_types::{IrAtomicExpression, IrLiteralValue, IrVarDecl};
-use crate::middle::format::ir_types::{
-    IrBlock, IrCompound, IrCompoundValue, IrExpression, IrFnDef, IrIf, IrStatement,
-};
+use crate::middle::format::ir_types::{IrBlock, IrFnDef, IrIf, IrStatement, IrUnless};
 use crate::middle::format::types::{GlobalName, Program};
 use crate::middle::passes::Pass;
 use std::collections::HashSet;
@@ -10,106 +7,35 @@ trait CheckUsed {
     fn add_used(&self, used: &mut Used, program: &mut Program);
 }
 
-impl CheckUsed for IrCompound {
-    fn add_used(&self, used: &mut Used, program: &mut Program) {
-        for (_, value) in self {
-            match value {
-                IrCompoundValue::Expression(x) => x.add_used(used, program),
-                IrCompoundValue::Compound(x) => x.add_used(used, program),
-            }
-        }
-    }
-}
-
-impl CheckUsed for IrExpression {
-    fn add_used(&self, used: &mut Used, program: &mut Program) {
-        match self {
-            IrExpression::AtomicExpression(x) => match x {
-                IrAtomicExpression::Literal(y) => match y {
-                    IrLiteralValue::Compound(c) => {
-                        c.add_used(used, program);
-                    }
-                    _ => {}
-                },
-                IrAtomicExpression::Variable(y) => {
-                    used.variables.insert(y.name.clone());
-                }
-                IrAtomicExpression::FnCall(y) => {
-                    if let None = used.functions.get(&y.name) {
-                        used.functions.insert(y.name.clone());
-                        if let Some(fn_def) = program.function_definitions.remove(&y.name) {
-                            fn_def.add_used(used, program);
-                            program.function_definitions.insert(y.name.clone(), fn_def);
-                        }
-                    }
-                }
-            },
-            IrExpression::Unary(_, x) => {
-                x.add_used(used, program);
-            }
-            IrExpression::Binary(x0, _, x1) => {
-                x0.add_used(used, program);
-                x1.add_used(used, program);
-            }
-        }
-    }
-}
 
 impl CheckUsed for IrIf {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
-        self.cond.add_used(used, program);
         self.body.add_used(used, program);
-        if let Some(else_) = &self.else_ {
-            else_.add_used(used, program);
-        }
+    }
+}
+
+impl CheckUsed for IrUnless {
+    fn add_used(&self, used: &mut Used, program: &mut Program) {
+        self.body.add_used(used, program);
     }
 }
 
 impl CheckUsed for IrStatement {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
         match self {
-            IrStatement::VarSet(x) => {
-                used.variables.insert(x.var_name.name.clone());
-            }
             IrStatement::If(x) => x.add_used(used, program),
-            IrStatement::While(x) => {
-                x.cond.add_used(used, program);
-                x.body.add_used(used, program);
-            }
-            IrStatement::For(x) => {
-                if let Some(init) = &x.init {
-                    init.add_used(used, program);
-                }
-                if let Some(cond) = &x.cond {
-                    cond.add_used(used, program);
-                }
-                if let Some(step) = &x.step {
-                    step.add_used(used, program);
-                }
-                x.body.add_used(used, program);
-            }
-            IrStatement::Return(x) => {
-                x.add_used(used, program);
-            }
-            IrStatement::Expression(x) => x.add_used(used, program),
-            IrStatement::VarDecl(x) => x.add_used(used, program),
+            IrStatement::Unless(x) => x.add_used(used, program),
+            IrStatement::FnCall(x) => { used.functions.insert(x.fn_name.clone()); }
+            IrStatement::Block(x) => x.add_used(used, program),
             _ => {}
-        }
-    }
-}
-
-impl CheckUsed for IrVarDecl {
-    fn add_used(&self, used: &mut Used, program: &mut Program) {
-        if let Some(expr) = &self.expr {
-            expr.add_used(used, program);
         }
     }
 }
 
 impl CheckUsed for IrBlock {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
-        for statement_block in &self.statements {
-            statement_block.add_used(used, program);
+        for statement in &self.statements {
+            statement.add_used(used, program);
         }
     }
 }
@@ -148,9 +74,6 @@ impl Pass for DeleteUnused {
         program
             .function_definitions
             .retain(|x, _| used.functions.contains(x));
-        program
-            .struct_definitions
-            .retain(|x, _| used.structs.contains(x));
         // program.global_var_definitions.retain(|x, _| used.variables.contains(x));
     }
 }

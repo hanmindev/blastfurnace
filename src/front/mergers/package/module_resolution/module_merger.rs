@@ -14,7 +14,7 @@ pub type ModuleMergeResult<T> = Result<T, ModuleMergeError>;
 
 #[derive(Debug)]
 pub struct ModuleMerger {
-    pub package_name: String,
+    pub package_name: Rc<str>,
     module_source: ModuleSource,
     global_name_table: HashMap<(String, String), Rc<GlobalResolvedName>>,
     global_name_map: HashMap<Rc<ResolvedName>, Rc<GlobalResolvedName>>,
@@ -25,7 +25,7 @@ pub struct ModuleMerger {
 impl ModuleMerger {
     pub fn new(package_name: &str) -> ModuleMerger {
         ModuleMerger {
-            package_name: package_name.to_string(),
+            package_name: Rc::from(package_name),
             module_source: String::new(),
             global_name_table: Default::default(),
             global_name_map: HashMap::new(),
@@ -56,6 +56,7 @@ impl ModuleMerger {
         }
 
         let g = Rc::from(GlobalResolvedName {
+            package: Rc::clone(&self.package_name),
             module: Rc::from(module_name.clone()),
             name: name.clone(),
         });

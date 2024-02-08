@@ -1,20 +1,19 @@
 use std::rc::Rc;
 use crate::front::ast_types::{GlobalResolvedName, NamePath, Reference};
+use crate::front::mergers::convert::global_name_updater;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{Address, AddressOrigin};
 
 pub struct Context<'a> {
-    pub package_name: String,
     pub fn_name: String,
     block_count: u32,
     var_count: u32,
     definition_table: &'a DefinitionTable<Rc<GlobalResolvedName>>,
 }
 
-impl Context {
-    pub fn new(package_name: &str, fn_name: &str, definition_table: &DefinitionTable<Rc<GlobalResolvedName>>) -> Context {
+impl Context<'_> {
+    pub fn new<'a>(fn_name: &str, definition_table: &'a DefinitionTable<Rc<GlobalResolvedName>>) -> Context<'a> {
         Context {
-            package_name: package_name.to_string(),
             fn_name: fn_name.to_string(),
             block_count: 0,
             var_count: 0,
@@ -28,9 +27,9 @@ impl Context {
         block
     }
 
-    pub fn get_parameter_variable(&self, function_name: Rc<GlobalResolvedName>, index: u32) -> Address {
-        let fn_ = self.definition_table.function_definitions.get(&function_name).unwrap();
-        self.convert_var_name(fn_.args[index].name)
+    pub fn get_parameter_variable(&self, function_name: &Rc<GlobalResolvedName>, index: u32) -> Address {
+        let fn_ = self.definition_table.function_definitions.get(function_name).unwrap();
+        self.convert_var_name(&fn_.args[index as usize].name)
     }
 
     pub fn create_variable(&mut self) -> Address {
@@ -57,13 +56,10 @@ impl Context {
     }
 
     pub fn convert_var_name(&self, var_name: &Reference) -> Address {
-        let global_resolved_name = var_name.global_resolved.unwrap();
+        let global_resolved_name = var_name.global_resolved.as_ref().unwrap();
 
         Address {
-            name: AddressOrigin::User(format!(
-                "{}{}/{}",
-                self.package_name, global_resolved_name.module, global_resolved_name.name
-            )),
+            name: AddressOrigin::User(global_name_updater(&global_resolved_name)),
             offset: 0,
         }
     }
