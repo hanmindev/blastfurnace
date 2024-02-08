@@ -438,6 +438,7 @@ pub fn convert_fn(
     IrFnDef {
         fn_name: convert_reference(&ast_node.name),
         body: convert_block(&mut ctx, ast_node.body.as_ref().unwrap()),
+        block_count: ctx.block_count,
     }
 }
 
