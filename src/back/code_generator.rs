@@ -73,11 +73,26 @@ mod tests {
     use crate::front::mergers::program::ProgramMerger;
     use crate::front::file_system::fs::FileSystem;
     use crate::back::code_generator::{flatten_to_hmasm, generate_code};
-
+    // TODO: these tests don't do anything at the moment, you should review it and make sure the output is correct.
+    // TODO: should add a mcfunction interpreter to test the output of the code generator
     #[test]
     fn test_generate_code() {
         let mut mock_fs = MockFileSystem::new("/".to_string());
         mock_fs.insert_file("/main.ing", "pub fn main() { let a: int = 5; if (a - 5 == 0) { a = 7; }; }");
+
+        let mut program_merger = ProgramMerger::new("test");
+        program_merger.read_package("test", mock_fs);
+
+        let program = program_merger.export_program();
+
+        let hmasm = flatten_to_hmasm(&generate_code(&program));
+
+        println!("{}", hmasm);
+    }
+    #[test]
+    fn test_generate_for_code() {
+        let mut mock_fs = MockFileSystem::new("/".to_string());
+        mock_fs.insert_file("/main.ing", "pub fn main() { let a: int = 0; for (let i: int = 0; i < 9; i += 1) { a = 5; }; }");
 
         let mut program_merger = ProgramMerger::new("test");
         program_merger.read_package("test", mock_fs);
