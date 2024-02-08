@@ -54,39 +54,6 @@ fn convert_fn_call(context: &mut Context, ast_node: &FnCall) -> Vec<IrStatement>
     s
 }
 
-//
-// fn convert_unary_op(ast_node: &UnOp) -> IrUnOp {
-//     return match ast_node {
-//         UnOp::Neg => IrUnOp::Neg,
-//         UnOp::Not => IrUnOp::Not,
-//         UnOp::Deref => IrUnOp::Deref,
-//         UnOp::Ref => IrUnOp::Ref,
-//         UnOp::PreInc => IrUnOp::PreInc,
-//         UnOp::PreDec => IrUnOp::PreDec,
-//         UnOp::PostInc => IrUnOp::PostInc,
-//         UnOp::PostDec => IrUnOp::PostDec,
-//     };
-// }
-//
-// fn convert_binary_op(ast_node: &BinOp) -> IrBinOp {
-//     return match ast_node {
-//         BinOp::Add => IrBinOp::Add,
-//         BinOp::Sub => IrBinOp::Sub,
-//         BinOp::Mul => IrBinOp::Mul,
-//         BinOp::Div => IrBinOp::Div,
-//         BinOp::Mod => IrBinOp::Mod,
-//         BinOp::Eq => IrBinOp::Eq,
-//         BinOp::Neq => IrBinOp::Neq,
-//         BinOp::Lt => IrBinOp::Lt,
-//         BinOp::Gt => IrBinOp::Gt,
-//         BinOp::Leq => IrBinOp::Leq,
-//         BinOp::Geq => IrBinOp::Geq,
-//         BinOp::And => IrBinOp::And,
-//         BinOp::Or => IrBinOp::Or,
-//     };
-// }
-//
-
 fn set_from_atomic(
     context: &mut Context,
     ast_node: &AtomicExpression,
