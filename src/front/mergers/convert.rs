@@ -7,8 +7,8 @@ use crate::front::ast_types::{
 use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{
-    Address, CheckVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
-    IrScoreOperation, IrScoreOperationType, IrScoreSet, IrStatement, IrUnless,
+    Address, CheckVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf, IrScoreOperation,
+    IrScoreOperationType, IrScoreSet, IrStatement, IrUnless,
 };
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
@@ -57,29 +57,23 @@ fn convert_fn_call(context: &mut Context, ast_node: &FnCall) -> Vec<IrStatement>
 fn set_from_atomic(
     context: &mut Context,
     ast_node: &AtomicExpression,
-    result_var_name: &Address,
+    _result_var_name: &Address,
 ) -> ExprEval {
     match ast_node {
         AtomicExpression::Literal(x) => {
             match x {
-                LiteralValue::Null => {
-                    ExprEval {
-                        statements: vec![],
-                        existing_address: Some(context.const_generator.get_const(0)),
-                    }
-                }
-                LiteralValue::Bool(b) => {
-                    ExprEval {
-                        statements: vec![],
-                        existing_address: Some(context.const_generator.get_const(b.clone() as i32)),
-                    }
-                }
-                LiteralValue::Int(x) => {
-                    ExprEval {
-                        statements: vec![],
-                        existing_address: Some(context.const_generator.get_const(x.clone())),
-                    }
-                }
+                LiteralValue::Null => ExprEval {
+                    statements: vec![],
+                    existing_address: Some(context.const_generator.get_const(0)),
+                },
+                LiteralValue::Bool(b) => ExprEval {
+                    statements: vec![],
+                    existing_address: Some(context.const_generator.get_const(b.clone() as i32)),
+                },
+                LiteralValue::Int(x) => ExprEval {
+                    statements: vec![],
+                    existing_address: Some(context.const_generator.get_const(x.clone())),
+                },
                 // LiteralValue::Decimal(_) => {}
                 // LiteralValue::String(_) => {}
                 // LiteralValue::Compound(_) => {}
@@ -131,13 +125,11 @@ fn rec_convert_expr(
             }
 
             match unop {
-                UnOp::Neg => {
-                    s.push(IrStatement::ScoreOperation(IrScoreOperation {
-                        left: result_var_name.clone(),
-                        op: IrScoreOperationType::Mul,
-                        right: context.const_generator.get_const(-1),
-                    }))
-                }
+                UnOp::Neg => s.push(IrStatement::ScoreOperation(IrScoreOperation {
+                    left: result_var_name.clone(),
+                    op: IrScoreOperationType::Mul,
+                    right: context.const_generator.get_const(-1),
+                })),
                 UnOp::Not => {
                     s.push(IrStatement::ScoreOperation(IrScoreOperation {
                         left: result_var_name.clone(),
@@ -211,7 +203,6 @@ fn rec_convert_expr(
                 context.forfeit_variable(&a0);
             }
 
-
             ExprEval {
                 statements: s,
                 existing_address: None,
@@ -219,7 +210,6 @@ fn rec_convert_expr(
         }
     };
 }
-
 
 fn convert_expr(
     context: &mut Context,
@@ -517,7 +507,9 @@ mod tests {
         impl Vars {
             fn get(&self, address: &Address) -> i32 {
                 match &address.name {
-                    AddressOrigin::Const(c) => { return *c; }
+                    AddressOrigin::Const(c) => {
+                        return *c;
+                    }
                     _ => {}
                 }
                 return *self.vars.get(address).unwrap();
@@ -547,7 +539,7 @@ mod tests {
                 IrStatement::ScoreOperation(x) => {
                     let left = match x.op {
                         IrScoreOperationType::Assign => 0,
-                        _ => vars.get(&x.left)
+                        _ => vars.get(&x.left),
                     };
                     let right = vars.get(&x.right);
                     let result = match x.op {
@@ -620,7 +612,9 @@ mod tests {
                         run_statement(&statement, vars);
                     }
                 }
-                _ => { panic!("Not implemented") }
+                _ => {
+                    panic!("Not implemented")
+                }
             }
         }
 
