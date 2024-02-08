@@ -148,3 +148,18 @@ impl std::fmt::Display for IrBlock {
         write!(f, "}}")
     }
 }
+
+
+impl std::fmt::Display for IrFnDef {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "fn {} {{\n",
+            self.fn_name,
+        )?;
+        for statement in &self.statements {
+            write!(f, "    {:?}\n", statement)?;
+        }
+        write!(f, "}}")
+    }
+}
