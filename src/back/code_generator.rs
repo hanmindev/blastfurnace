@@ -24,6 +24,14 @@ pub struct Context {
     pub block_count: usize,
 }
 
+impl Context {
+    pub fn new_block(&mut self) -> String {
+        self.block_count += 1;
+        format!("{}_{}", self.fn_name, self.block_count)
+    }
+}
+
+
 pub fn generate_code(program: &Program) -> GeneratedCode {
     let mut generated_code = GeneratedCode { functions: vec![] };
     for (name, def) in &program.function_definitions {
