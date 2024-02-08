@@ -327,7 +327,7 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
             max: 0,
         }),
         body: Box::from(IrStatement::Block({
-            let mut s = convert_block(context, &ast_node.body);
+            let mut s = convert_block(context, &ast_node.body, true);
             if elses.len() > 0 {
                 s.statements.push(IrStatement::ScoreSet(IrScoreSet {
                     var_name: if_variable.clone(),
@@ -358,7 +358,7 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
                     max: 0,
                 }),
                 body: Box::from(IrStatement::Block({
-                    let mut s = convert_block(context, &body);
+                    let mut s = convert_block(context, &body, true);
                     s.statements.push(IrStatement::ScoreSet(IrScoreSet {
                         var_name: if_variable.clone(),
                         value: 0,
@@ -389,7 +389,7 @@ fn convert_while(context: &mut Context, ast_node: &While) -> Vec<IrStatement> {
     }));
 
     // parse body
-    let mut body = convert_block(context, &ast_node.body);
+    let mut body = convert_block(context, &ast_node.body, false);
 
     // insert condition before body
     condition.append(&mut body.statements);
@@ -426,7 +426,7 @@ fn convert_for(context: &mut Context, ast_node: &For) -> Vec<IrStatement> {
     }
 
     // parse body
-    let mut body = convert_block(context, &ast_node.body);
+    let mut body = convert_block(context, &ast_node.body, false);
 
     // insert condition before body
     condition.append(&mut body.statements);
@@ -463,19 +463,20 @@ fn convert_statement(context: &mut Context, ast_node: &Statement) -> Vec<IrState
 fn convert_statement_block(context: &mut Context, ast_node: &StatementBlock) -> Vec<IrStatement> {
     return match ast_node {
         StatementBlock::Block(x) => {
-            vec![IrStatement::Block(convert_block(context, x))]
+            vec![IrStatement::Block(convert_block(context, x, true))]
         }
         StatementBlock::Statement(statement) => convert_statement(context, statement),
     };
 }
 
-fn convert_block(context: &mut Context, ast_node: &Block) -> IrBlock {
+fn convert_block(context: &mut Context, ast_node: &Block, can_embed: bool) -> IrBlock {
     let mut statements = vec![];
     for statement_block in &ast_node.statements {
         statements.append(&mut convert_statement_block(context, statement_block));
     }
 
     IrBlock {
+        can_embed,
         root_fn_name: context.fn_name.to_string(),
         fn_block_index: context.use_block() as usize,
         statements,
@@ -496,7 +497,7 @@ pub fn convert_fn(
 
     IrFnDef {
         fn_name: convert_reference(&ast_node.name),
-        body: convert_block(&mut ctx, ast_node.body.as_ref().unwrap()),
+        body: convert_block(&mut ctx, ast_node.body.as_ref().unwrap(), true),
         block_count: ctx.block_count,
     }
 }
