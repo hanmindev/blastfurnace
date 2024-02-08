@@ -1,4 +1,5 @@
-use crate::middle::format::ir_types::{Address, IrScoreSet};
+use crate::middle::format::ir_types::{Cond, IrUnless};
+use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrScoreSet, IrStatement};
 use crate::middle::format::ir_types::{
     AddressOrigin, IrScoreAddI, IrScoreOperation, IrScoreOperationType,
 };
@@ -131,4 +132,77 @@ impl CodeGenerator for IrScoreOperation {
     }
 }
 
+fn if_unless_helper(cond: &Cond, body: &Box<IrStatement>, type_: &str) -> Vec<String> {
+    let mut result = vec![];
+    result.push(match &cond {
+        Cond::CheckVal(x) => {
+            if x.min == x.max {
+                format!("execute {type_} score {} matches {} run", x.var_name.to_score(), x.min)
+            } else {
+                format!(
+                    "execute {type_} score {} matches {}..{} run",
+                    x.var_name.to_score(),
+                    x.min,
+                    x.max
+                )
+            }
+        }
+        Cond::CompareVal(x) => {
+            let op = match x.op {
+                crate::middle::format::ir_types::CompareOp::Eq => "matches",
+                crate::middle::format::ir_types::CompareOp::Neq => "matches",
+                crate::middle::format::ir_types::CompareOp::Lt => "matches",
+                crate::middle::format::ir_types::CompareOp::Gt => "matches",
+                crate::middle::format::ir_types::CompareOp::Leq => "matches",
+                crate::middle::format::ir_types::CompareOp::Geq => "matches",
+            };
+            format!(
+                "execute {type_} score {} {} {} run",
+                x.var_0.to_score(),
+                op,
+                x.var_1.to_score()
+            )
+        }
+    });
+    for statement in &body {
+        result.append(&mut statement.generate());
+    }
+    result
+}
 
+impl CodeGenerator for IrIf {
+    fn generate(&self) -> Vec<String> {
+        if_unless_helper(&self.cond, &self.body, "if")
+    }
+}
+
+impl CodeGenerator for IrUnless {
+    fn generate(&self) -> Vec<String> {
+        if_unless_helper(&self.cond, &self.body, "unless")
+    }
+}
+
+impl CodeGenerator for IrStatement {
+    fn generate(&self) -> Vec<String> {
+        match self {
+            IrStatement::ScoreSet(x) => x.generate(),
+            IrStatement::ScoreAddI(x) => x.generate(),
+            IrStatement::ScoreOperation(x) => x.generate(),
+            IrStatement::If(x) => x.generate(),
+            IrStatement::Unless(x) => x.generate(),
+            IrStatement::FnCall(x) => x.generate(),
+            IrStatement::Return => vec!["return".to_string()],
+            IrStatement::Block(x) => x.generate()
+        }
+    }
+}
+
+impl CodeGenerator for IrBlock {
+    fn generate(&self) -> Vec<String> {
+        let mut result = vec![];
+        for statement in &self.statements {
+            result.append(&mut statement.generate());
+        }
+        result
+    }
+}
