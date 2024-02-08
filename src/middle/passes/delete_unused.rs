@@ -68,8 +68,8 @@ impl CheckUsed for IrIf {
 impl CheckUsed for IrStatement {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
         match self {
-            IrStatement::VarAssign(x) => {
-                used.variables.insert(x.name_path.name.clone());
+            IrStatement::VarSet(x) => {
+                used.variables.insert(x.var_name.name.clone());
             }
             IrStatement::If(x) => x.add_used(used, program),
             IrStatement::While(x) => {
@@ -116,7 +116,7 @@ impl CheckUsed for IrBlock {
 
 impl CheckUsed for IrFnDef {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
-        used.functions.insert(self.name.clone());
+        used.functions.insert(self.fn_name.clone());
         self.body.add_used(used, program);
     }
 }

@@ -1,4 +1,4 @@
-use crate::middle::format::ir_types::{IrFnDef, IrStructDef, IrVarDecl};
+use crate::middle::format::ir_types::{IrFnDef};
 use std::collections::{HashMap, HashSet};
 
 pub type GlobalName = String;
@@ -7,6 +7,4 @@ pub type GlobalName = String;
 pub struct Program {
     pub public_functions: HashSet<GlobalName>,
     pub function_definitions: HashMap<GlobalName, IrFnDef>,
-    pub struct_definitions: HashMap<GlobalName, IrStructDef>,
-    pub global_var_definitions: HashMap<GlobalName, IrVarDecl>,
 }
