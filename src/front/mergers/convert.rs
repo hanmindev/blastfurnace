@@ -132,18 +132,18 @@ fn rec_convert_expr(
 
             match unop {
                 UnOp::Neg => {
-                    vec![IrStatement::ScoreOperation(IrScoreOperation {
+                    s.push(IrStatement::ScoreOperation(IrScoreOperation {
                         left: result_var_name.clone(),
                         op: IrScoreOperationType::Mul,
                         right: context.const_generator.get_const(-1),
-                    })]
+                    }))
                 }
                 UnOp::Not => {
-                    vec![IrStatement::ScoreOperation(IrScoreOperation {
+                    s.push(IrStatement::ScoreOperation(IrScoreOperation {
                         left: result_var_name.clone(),
                         op: IrScoreOperationType::Eq,
                         right: context.const_generator.get_const(0),
-                    })] // TODO can use match instead
+                    })) // TODO can use match instead
                 }
                 // UnOp::Deref => IrScoreOperationType::Deref, // TODO
                 // UnOp::Ref => IrScoreOperationType::Ref,
@@ -151,9 +151,7 @@ fn rec_convert_expr(
                 // UnOp::PreDec => IrScoreOperationType::PreDec,
                 // UnOp::PostInc => IrScoreOperationType::PostInc,
                 // UnOp::PostDec => IrScoreOperationType::PostDec,
-                _ => {
-                    vec![]
-                }
+                _ => {}
             };
 
             ExprEval {
@@ -622,7 +620,7 @@ mod tests {
                         run_statement(&statement, vars);
                     }
                 }
-                IrStatement::FnCall(_) => {} // TODO: not implemented
+                _ => { panic!("Not implemented") }
             }
         }
 
