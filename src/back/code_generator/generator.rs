@@ -100,6 +100,13 @@ impl CodeGenerator for IrScoreOperation {
                             )]
                         };
                     }
+                    IrScoreOperationType::Assign => {
+                        return vec![format!(
+                            "scoreboard players set {} {}",
+                            self.left.to_score(),
+                            x
+                        )];
+                    }
                     _ => {}
                 }
             }
