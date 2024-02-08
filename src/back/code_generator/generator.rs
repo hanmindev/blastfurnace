@@ -75,6 +75,37 @@ impl CodeGenerator for IrScoreOperation {
             IrScoreOperationType::Eq => "=",
             _ => "",
         };
+        match self.right.name {
+            AddressOrigin::Const(x) => {
+                match self.op {
+                    IrScoreOperationType::Add
+                    | IrScoreOperationType::Sub => {
+                        let mut con = if self.op == IrScoreOperationType::Sub {
+                            -x
+                        } else {
+                            x
+                        };
+
+                        return if con >= 0 {
+                            vec![format!(
+                                "scoreboard players add {} {}",
+                                self.left.to_score(),
+                                con
+                            )]
+                        } else {
+                            vec![format!(
+                                "scoreboard players remove {} {}",
+                                self.left.to_score(),
+                                -con
+                            )]
+                        };
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+
         match self.op {
             IrScoreOperationType::Add
             | IrScoreOperationType::Sub
