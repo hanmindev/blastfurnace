@@ -7,6 +7,7 @@ use crate::middle::format::types::Program;
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 use std::rc::Rc;
+use crate::front::mergers::convert::context::ConstGenerator;
 
 pub struct ProgramMerger<R> {
     root_package: String,
@@ -93,11 +94,13 @@ impl<R: FileSystem> ProgramMerger<R> {
             );
         }
 
+        let mut const_generator = ConstGenerator::new();
+
         for public_function in public_functions {
             if let Some(fn_) = def_table.function_definitions.get(&public_function) {
                 program.function_definitions.insert(
                     global_name_updater(&public_function),
-                    convert_fn(fn_, &def_table),
+                    convert_fn(fn_, &def_table, &mut const_generator),
                 );
             }
         }

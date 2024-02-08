@@ -1,15 +1,9 @@
 pub mod context;
 
-use crate::front::ast_types::{
-    AtomicExpression, Block, Expression, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue,
-    Reference, Statement, StatementBlock, VarAssign, VarDecl, While,
-};
+use crate::front::ast_types::{AtomicExpression, BinOp, Block, Expression, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue, Reference, Statement, StatementBlock, UnOp, VarAssign, VarDecl, While};
 use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
-use crate::middle::format::ir_types::{
-    Address, CheckVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf, IrScoreOperation,
-    IrScoreOperationType, IrScoreSet, IrStatement, IrUnless,
-};
+use crate::middle::format::ir_types::{Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf, IrScoreOperation, IrScoreOperationType, IrScoreSet, IrStatement, IrUnless};
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
 
@@ -141,29 +135,77 @@ fn set_from_atomic(
     }
 }
 
-fn rec_convert_expr(
-    context: &mut Context,
-    ast_node: &Expression,
-    result_var_name: &Address,
-    a: &Address,
-    other: &Address,
-) -> Vec<IrStatement> {
-    return match ast_node {
-        Expression::AtomicExpression(x) => set_from_atomic(context, x, result_var_name),
-        Expression::Unary(_, _) => vec![],
-        Expression::Binary(_, _, _) => vec![],
-    };
-}
-
 fn convert_expr(
     context: &mut Context,
     ast_node: &Expression,
     result_var_name: &Address,
 ) -> Vec<IrStatement> {
-    let a0 = context.create_variable();
-    let a1 = context.create_variable();
+    return match ast_node {
+        Expression::AtomicExpression(x) => set_from_atomic(context, x, result_var_name),
+        Expression::Unary(unop, e) => {
+            let mut s = vec![];
+            s.append(&mut convert_expr(context, e, result_var_name));
 
-    return rec_convert_expr(context, ast_node, result_var_name, &a0, &a1);
+            s.append(&mut match unop {
+                UnOp::Neg => {
+                    vec![IrStatement::ScoreOperation(IrScoreOperation {
+                        left: result_var_name.clone(),
+                        op: IrScoreOperationType::Mul,
+                        right: context.const_generator.get_const(-1),
+                    })]
+                }
+                UnOp::Not => {
+                    vec![IrStatement::ScoreOperation(IrScoreOperation {
+                        left: result_var_name.clone(),
+                        op: IrScoreOperationType::Eq,
+                        right: context.const_generator.get_const(0),
+                    })]
+                }
+                // UnOp::Deref => IrScoreOperationType::Deref, // TODO
+                // UnOp::Ref => IrScoreOperationType::Ref,
+                // UnOp::PreInc => {},
+                // UnOp::PreDec => IrScoreOperationType::PreDec,
+                // UnOp::PostInc => IrScoreOperationType::PostInc,
+                // UnOp::PostDec => IrScoreOperationType::PostDec,
+                _ => { vec![] }
+            });
+
+            s
+        }
+        Expression::Binary(e0, binop, e1) => {
+            let mut s = vec![];
+            let a0 = context.get_variable();
+            s.append(&mut convert_expr(context, e0, result_var_name));
+            s.append(&mut convert_expr(context, e1, &a0));
+
+            s.push(IrStatement::ScoreOperation(IrScoreOperation {
+                left: result_var_name.clone(),
+                op: {
+                    match binop {
+                        BinOp::Add => IrScoreOperationType::Add,
+                        BinOp::Sub => IrScoreOperationType::Sub,
+                        BinOp::Mul => IrScoreOperationType::Mul,
+                        BinOp::Div => IrScoreOperationType::Div,
+                        BinOp::Mod => IrScoreOperationType::Mod,
+
+                        BinOp::Eq => IrScoreOperationType::Eq,
+                        BinOp::Neq => IrScoreOperationType::Neq,
+                        BinOp::Lt => IrScoreOperationType::Lt,
+                        BinOp::Gt => IrScoreOperationType::Gt,
+                        BinOp::Leq => IrScoreOperationType::Leq,
+                        BinOp::Geq => IrScoreOperationType::Geq,
+
+                        BinOp::And => IrScoreOperationType::And,
+                        BinOp::Or => IrScoreOperationType::Or,
+                    }
+                },
+                right: a0.clone(),
+            }));
+            context.forfeit_variable(&a0);
+
+            s
+        }
+    };
 }
 
 fn convert_var_decl(context: &mut Context, ast_node: &VarDecl) -> Vec<IrStatement> {
@@ -239,7 +281,7 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
         }));
     }
 
-    let cond_var = context.create_variable();
+    let cond_var = context.get_variable();
     // compute cond
     s.append(&mut convert_expr(context, &ast_node.cond, &cond_var));
 
@@ -301,7 +343,7 @@ fn convert_while(context: &mut Context, ast_node: &While) -> Vec<IrStatement> {
     let mut condition = vec![];
 
     // if condition is 0, return
-    let add = context.create_variable();
+    let add = context.get_variable();
     condition.append(&mut convert_expr(context, &ast_node.cond, &add));
     condition.push(IrStatement::If(IrIf {
         cond: Cond::CheckVal(CheckVal {
@@ -337,7 +379,7 @@ fn convert_for(context: &mut Context, ast_node: &For) -> Vec<IrStatement> {
 
     // if condition is 0, return
     if let Some(cond) = &ast_node.cond {
-        let add = context.create_variable();
+        let add = context.get_variable();
         condition.append(&mut convert_expr(context, cond, &add));
         condition.push(IrStatement::If(IrIf {
             cond: Cond::CheckVal(CheckVal {
@@ -413,9 +455,10 @@ fn convert_reference(ast_node: &Reference) -> String {
 pub fn convert_fn(
     ast_node: &FnDef,
     definition_table: &DefinitionTable<Rc<GlobalResolvedName>>,
+    const_generator: &mut context::ConstGenerator,
 ) -> IrFnDef {
     let fn_name = convert_reference(&ast_node.name);
-    let mut ctx = Context::new(&fn_name, definition_table);
+    let mut ctx = Context::new(&fn_name, definition_table, const_generator);
 
     IrFnDef {
         fn_name: convert_reference(&ast_node.name),
@@ -440,8 +483,6 @@ mod tests {
         program_merger.read_package("pkg", mock_file_system);
 
         let mut program = program_merger.export_program();
-
-        println!("{:?}", program);
 
         match &program
             .function_definitions
