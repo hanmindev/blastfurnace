@@ -120,12 +120,16 @@ impl CodeGenerator for IrScoreOperation {
             | IrScoreOperationType::Div
             | IrScoreOperationType::Mod
             | IrScoreOperationType::Assign => {
-                vec![format!(
-                    "scoreboard players operation {} {} {}",
-                    self.left.to_score(),
-                    op,
-                    self.right.to_score()
-                )]
+                if self.left != self.right {
+                    vec![format!(
+                        "scoreboard players operation {} {} {}",
+                        self.left.to_score(),
+                        op,
+                        self.right.to_score()
+                    )]
+                } else {
+                    vec![]
+                }
             }
             IrScoreOperationType::Leq |
             IrScoreOperationType::Geq |
