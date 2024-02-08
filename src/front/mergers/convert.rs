@@ -497,7 +497,7 @@ pub fn convert_fn(
 
     IrFnDef {
         fn_name: convert_reference(&ast_node.name),
-        body: convert_block(&mut ctx, ast_node.body.as_ref().unwrap(), true),
+        statements: convert_block(&mut ctx, ast_node.body.as_ref().unwrap(), true).statements,
         block_count: ctx.block_count,
     }
 }
@@ -512,7 +512,7 @@ mod tests {
     };
     use std::collections::HashMap;
 
-    fn test_calculation(block: &IrBlock, result_address: &Address) -> i32 {
+    fn test_calculation(statements: &Vec<IrStatement>, result_address: &Address) -> i32 {
         let mut vars = HashMap::new();
 
         fn run_statement(statement: &IrStatement, vars: &mut HashMap<Address, i32>) {
@@ -600,7 +600,7 @@ mod tests {
             }
         }
 
-        for statement in &block.statements {
+        for statement in statements {
             run_statement(statement, &mut vars);
         }
 
@@ -622,7 +622,6 @@ mod tests {
             .function_definitions
             .get("pkg/root/0_main")
             .unwrap()
-            .body
             .statements[0]
         {
             IrStatement::ScoreSet(x) => {
@@ -656,7 +655,7 @@ mod tests {
                     .function_definitions
                     .get("pkg/root/0_main")
                     .unwrap()
-                    .body,
+                    .statements,
                 &Address {
                     name: AddressOrigin::User("pkg/root/0_b".to_string()),
                     offset: 0,
@@ -686,7 +685,7 @@ mod tests {
                     .function_definitions
                     .get("pkg/root/0_main")
                     .unwrap()
-                    .body,
+                    .statements,
                 &Address {
                     name: AddressOrigin::User("pkg/root/0_a".to_string()),
                     offset: 0,

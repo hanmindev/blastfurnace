@@ -44,7 +44,9 @@ impl CheckUsed for IrBlock {
 impl CheckUsed for IrFnDef {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
         used.functions.insert(self.fn_name.clone());
-        self.body.add_used(used, program);
+        for statement in &self.statements {
+            statement.add_used(used, program);
+        }
     }
 }
 
