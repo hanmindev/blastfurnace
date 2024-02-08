@@ -22,9 +22,9 @@ impl Address {
             AddressOrigin::Return => format!("!return {BLASTFURNACE_OBJECTIVE}"),
             AddressOrigin::Const(x) => {
                 if *x >= 0 {
-                    format!("{x} {BLASTFURNACE_CONST}")
+                    format!("c{x} {BLASTFURNACE_CONST}")
                 } else {
-                    format!("n{x} {BLASTFURNACE_CONST}")
+                    format!("cn{x} {BLASTFURNACE_CONST}")
                 }
             }
         }
