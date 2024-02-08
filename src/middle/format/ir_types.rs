@@ -4,6 +4,7 @@ pub enum AddressOrigin {
     CtxGenerated(String, u32),
     If,
     Return,
+    Const(i32),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -34,6 +35,16 @@ pub enum IrScoreOperationType {
     Div,
     Mod,
     Assign,
+
+    Leq,
+    Geq,
+    Lt,
+    Gt,
+    Eq,
+    Neq,
+
+    And,
+    Or,
 }
 
 #[derive(Debug, PartialEq)]
@@ -81,6 +92,7 @@ pub struct CompareVal {
 #[derive(Debug, PartialEq)]
 pub enum Cond {
     CheckVal(CheckVal),
+    CompareVal(CompareVal),
 }
 
 #[derive(Debug, PartialEq)]
