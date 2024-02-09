@@ -617,9 +617,6 @@ mod tests {
                 IrStatement::ScoreSet(x) => {
                     vars.insert(x.var_name.clone(), x.value);
                 }
-                IrStatement::ScoreAddI(x) => {
-                    vars.insert(x.var_name.clone(), vars.get(&x.var_name) + x.value);
-                }
                 IrStatement::ScoreOperation(x) => {
                     let left = match x.op {
                         IrScoreOperationType::Assign => 0,

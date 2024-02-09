@@ -22,12 +22,6 @@ pub struct IrScoreSet {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct IrScoreAddI {
-    pub var_name: Address,
-    pub value: i32,
-}
-
-#[derive(Debug, PartialEq)]
 pub enum IrScoreOperationType {
     Add,
     Sub,
@@ -106,7 +100,6 @@ pub struct IrIf {
 #[derive(Debug, PartialEq)]
 pub enum IrStatement {
     ScoreSet(IrScoreSet),
-    ScoreAddI(IrScoreAddI),
     ScoreOperation(IrScoreOperation),
     If(IrIf),
     FnCall(IrFnCall),
