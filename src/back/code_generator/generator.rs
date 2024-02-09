@@ -1,6 +1,6 @@
 use crate::back::code_generator::{Context, GeneratedCode, MFunction};
 use crate::middle::format::ir_types::CompareOp;
-use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrScoreSet, IrStatement};
+use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrStatement};
 use crate::middle::format::ir_types::{
     AddressOrigin, IrScoreOperation, IrScoreOperationType,
 };
@@ -28,16 +28,6 @@ impl Address {
                 }
             }
         }
-    }
-}
-
-impl CodeGenerator for IrScoreSet {
-    fn generate(&self, _generated_code: &mut GeneratedCode, _context: &mut Context) -> Vec<String> {
-        vec![format!(
-            "scoreboard players set {} {}",
-            self.var_name.to_score(),
-            self.value
-        )]
     }
 }
 
@@ -219,7 +209,6 @@ impl CodeGenerator for IrIf {
 impl CodeGenerator for IrStatement {
     fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String> {
         match self {
-            IrStatement::ScoreSet(x) => x.generate(generated_code, context),
             IrStatement::ScoreOperation(x) => x.generate(generated_code, context),
             IrStatement::If(x) => x.generate(generated_code, context),
             IrStatement::FnCall(x) => vec![format!("function {}", x.fn_name)],

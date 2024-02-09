@@ -1,4 +1,4 @@
-use crate::middle::format::ir_types::{IrBlock, IrFnDef, IrIf, IrStatement, IrUnless};
+use crate::middle::format::ir_types::{IrBlock, IrFnDef, IrIf, IrStatement};
 use crate::middle::format::types::{GlobalName, Program};
 use crate::middle::passes::Pass;
 use std::collections::HashSet;
@@ -13,17 +13,10 @@ impl CheckUsed for IrIf {
     }
 }
 
-impl CheckUsed for IrUnless {
-    fn add_used(&self, used: &mut Used, program: &mut Program) {
-        self.body.add_used(used, program);
-    }
-}
-
 impl CheckUsed for IrStatement {
     fn add_used(&self, used: &mut Used, program: &mut Program) {
         match self {
             IrStatement::If(x) => x.add_used(used, program),
-            IrStatement::Unless(x) => x.add_used(used, program),
             IrStatement::FnCall(x) => {
                 used.functions.insert(x.fn_name.clone());
             }
