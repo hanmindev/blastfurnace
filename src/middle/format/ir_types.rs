@@ -98,12 +98,7 @@ pub enum Cond {
 
 #[derive(Debug, PartialEq)]
 pub struct IrIf {
-    pub cond: Cond,
-    pub body: Box<IrStatement>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct IrUnless {
+    pub invert: bool,
     pub cond: Cond,
     pub body: Box<IrStatement>,
 }
@@ -114,7 +109,6 @@ pub enum IrStatement {
     ScoreAddI(IrScoreAddI),
     ScoreOperation(IrScoreOperation),
     If(IrIf),
-    Unless(IrUnless),
     FnCall(IrFnCall),
     Return,
     Block(IrBlock),

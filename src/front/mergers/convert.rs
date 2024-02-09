@@ -7,8 +7,8 @@ use crate::front::ast_types::{
 use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{
-    Address, CheckVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf, IrScoreOperation,
-    IrScoreOperationType, IrScoreSet, IrStatement, IrUnless,
+    Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
+    IrScoreOperation, IrScoreOperationType, IrScoreSet, IrStatement,
 };
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
@@ -230,6 +230,99 @@ fn convert_expr(
     s
 }
 
+fn convert_expr_for_comparison(
+    context: &mut Context,
+    ast_node: &Expression,
+) -> (Vec<IrStatement>, Cond, bool) {
+    match ast_node {
+        Expression::AtomicExpression(x) => {
+            let a0 = context.get_variable();
+            let expr = set_from_atomic(context, x, &a0);
+            let mut s = expr.statements;
+            let address = expr.existing_address.unwrap_or(a0.clone());
+            context.forfeit_variable(&a0);
+            return (
+                s,
+                Cond::CheckVal(CheckVal {
+                    var_name: address,
+                    min: 0,
+                    max: 0,
+                }),
+                false,
+            );
+        }
+        Expression::Unary(unop, x) => {
+            if matches!(unop, UnOp::Not) {
+                let a0 = context.get_variable();
+                let expr = rec_convert_expr(context, x, &a0);
+                let mut s = expr.statements;
+                let address = expr.existing_address.unwrap_or(a0.clone());
+                context.forfeit_variable(&a0);
+
+                return (
+                    s,
+                    Cond::CheckVal(CheckVal {
+                        var_name: address,
+                        min: 0,
+                        max: 0,
+                    }),
+                    true,
+                );
+            }
+        }
+        Expression::Binary(e0, binop, e1) => match binop {
+            BinOp::Eq | BinOp::Neq | BinOp::Lt | BinOp::Gt | BinOp::Leq | BinOp::Geq => {
+                let a0 = context.get_variable();
+                let mut expr0 = rec_convert_expr(context, e0, &a0);
+                let a1 = context.get_variable();
+                let mut expr1 = rec_convert_expr(context, e1, &a1);
+
+                let mut s = expr0.statements;
+                s.append(&mut expr1.statements);
+
+                let address0 = expr0.existing_address.unwrap_or(a0.clone());
+                let address1 = expr1.existing_address.unwrap_or(a1.clone());
+                context.forfeit_variable(&a0);
+                context.forfeit_variable(&a1);
+
+                return (
+                    s,
+                    Cond::CompareVal({
+                        CompareVal {
+                            var_0: address0,
+                            op: match binop {
+                                BinOp::Eq => CompareOp::Eq,
+                                BinOp::Neq => CompareOp::Neq,
+                                BinOp::Lt => CompareOp::Lt,
+                                BinOp::Gt => CompareOp::Gt,
+                                BinOp::Leq => CompareOp::Leq,
+                                BinOp::Geq => CompareOp::Geq,
+                                _ => panic!("Impossible, match arms must be incorrect"),
+                            },
+                            var_1: address1,
+                        }
+                    }),
+                    false,
+                );
+            }
+            _ => {}
+        },
+    }
+
+    let a0 = context.get_variable();
+    let expr = convert_expr(context, ast_node, &a0);
+
+    (
+        expr,
+        Cond::CheckVal(CheckVal {
+            var_name: a0,
+            min: 0,
+            max: 0,
+        }),
+        false,
+    )
+}
+
 fn convert_var_decl(context: &mut Context, ast_node: &VarDecl) -> Vec<IrStatement> {
     if let Some(expr) = &ast_node.expr {
         convert_expr(
@@ -302,18 +395,14 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
             value: 1,
         }));
     }
-
-    let cond_var = context.get_variable();
     // compute cond
-    s.append(&mut convert_expr(context, &ast_node.cond, &cond_var));
+    let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, &ast_node.cond);
+    s.append(&mut expr_statements);
 
     // execute if cond run {
-    s.push(IrStatement::Unless(IrUnless {
-        cond: Cond::CheckVal(CheckVal {
-            var_name: cond_var.clone(),
-            min: 0,
-            max: 0,
-        }),
+    s.push(IrStatement::If(IrIf {
+        invert: !invert,
+        cond,
         body: Box::from(IrStatement::Block({
             let mut s = convert_block(context, &ast_node.body, true);
             if elses.len() > 0 {
@@ -328,23 +417,22 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
 
     // TODO: could be optimized
 
-    for (cond, body) in elses {
+    for (condition, body) in elses {
         // compute cond
-        s.append(&mut convert_expr(context, &cond, &cond_var.clone()));
+        let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, condition);
+        s.append(&mut expr_statements);
 
         // execute if if_check == 1 run {
-        s.push(IrStatement::Unless(IrUnless {
+        s.push(IrStatement::If(IrIf {
+            invert: !invert,
             cond: Cond::CheckVal(CheckVal {
                 var_name: if_variable.clone(),
                 min: 0,
                 max: 0,
             }),
-            body: Box::from(IrStatement::Unless(IrUnless {
-                cond: Cond::CheckVal(CheckVal {
-                    var_name: cond_var.clone(),
-                    min: 0,
-                    max: 0,
-                }),
+            body: Box::from(IrStatement::If(IrIf {
+                invert: true,
+                cond,
                 body: Box::from(IrStatement::Block({
                     let mut s = convert_block(context, &body, true);
                     s.statements.push(IrStatement::ScoreSet(IrScoreSet {
@@ -365,14 +453,11 @@ fn convert_while(context: &mut Context, ast_node: &While) -> Vec<IrStatement> {
     let mut condition = vec![];
 
     // if condition is 0, return
-    let add = context.get_variable();
-    condition.append(&mut convert_expr(context, &ast_node.cond, &add));
+    let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, &ast_node.cond);
+    condition.append(&mut expr_statements);
     condition.push(IrStatement::If(IrIf {
-        cond: Cond::CheckVal(CheckVal {
-            var_name: add,
-            min: 0,
-            max: 0,
-        }),
+        invert: !invert,
+        cond,
         body: Box::from(IrStatement::Return),
     }));
 
@@ -401,14 +486,11 @@ fn convert_for(context: &mut Context, ast_node: &For) -> Vec<IrStatement> {
 
     // if condition is 0, return
     if let Some(cond) = &ast_node.cond {
-        let add = context.get_variable();
-        condition.append(&mut convert_expr(context, cond, &add));
+        let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, cond);
+        condition.append(&mut expr_statements);
         condition.push(IrStatement::If(IrIf {
-            cond: Cond::CheckVal(CheckVal {
-                var_name: add,
-                min: 0,
-                max: 0,
-            }),
+            invert: !invert,
+            cond,
             body: Box::from(IrStatement::Return),
         }));
     }
@@ -563,7 +645,7 @@ mod tests {
                 IrStatement::If(x) => match &x.cond {
                     Cond::CheckVal(y) => {
                         let a = vars.get(&y.var_name);
-                        if y.min <= a && a <= y.max {
+                        if (y.min <= a && a <= y.max) != x.invert {
                             run_statement(&x.body, vars);
                         }
                     }
@@ -577,29 +659,8 @@ mod tests {
                             CompareOp::Gt => a > b,
                             CompareOp::Leq => a <= b,
                             CompareOp::Geq => a >= b,
-                        } {
-                            run_statement(&x.body, vars);
-                        }
-                    }
-                },
-                IrStatement::Unless(x) => match &x.cond {
-                    Cond::CheckVal(y) => {
-                        let a = vars.get(&y.var_name);
-                        if y.min <= a && a <= y.max {
-                            run_statement(&x.body, vars);
-                        }
-                    }
-                    Cond::CompareVal(y) => {
-                        let a = vars.get(&y.var_0);
-                        let b = vars.get(&y.var_1);
-                        if match y.op {
-                            CompareOp::Eq => a == b,
-                            CompareOp::Neq => a != b,
-                            CompareOp::Lt => a < b,
-                            CompareOp::Gt => a > b,
-                            CompareOp::Leq => a <= b,
-                            CompareOp::Geq => a >= b,
-                        } {
+                        } != x.invert
+                        {
                             run_statement(&x.body, vars);
                         }
                     }
