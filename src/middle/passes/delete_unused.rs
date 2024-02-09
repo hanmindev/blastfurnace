@@ -57,7 +57,7 @@ struct Used {
 }
 
 #[derive(Debug)]
-pub struct DeleteUnused {}
+pub struct DeleteUnused;
 
 impl Pass for DeleteUnused {
     fn optimize(&mut self, program: &mut Program) {
@@ -106,7 +106,7 @@ mod tests {
 
         let mut program = program_merger.export_program();
 
-        optimize(&mut program, &mut vec![Box::new(DeleteUnused {})]);
+        optimize(&mut program, &mut vec![Box::new(DeleteUnused)]);
 
         assert_eq!(program.function_definitions.len(), 1);
         assert_eq!(
