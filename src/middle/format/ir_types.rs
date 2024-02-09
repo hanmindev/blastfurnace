@@ -15,7 +15,7 @@ pub struct Address {
 
 pub type FunctionName = String;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum IrScoreOperationType {
     Add,
     Sub,
@@ -35,33 +35,33 @@ pub enum IrScoreOperationType {
     Or,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IrScoreOperation {
     pub left: Address,
     pub op: IrScoreOperationType,
     pub right: Address,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IrFnDef {
     pub fn_name: FunctionName,
     pub block_count: usize,
     pub statements: Vec<IrStatement>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IrFnCall {
     pub fn_name: FunctionName,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CheckVal {
     pub var_name: Address,
     pub min: i32,
     pub max: i32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum CompareOp {
     Eq,
     Neq,
@@ -71,27 +71,27 @@ pub enum CompareOp {
     Geq,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CompareVal {
     pub var_0: Address,
     pub op: CompareOp,
     pub var_1: Address,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Cond {
     CheckVal(CheckVal),
     CompareVal(CompareVal),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IrIf {
     pub invert: bool,
     pub cond: Cond,
     pub body: Box<IrStatement>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum IrStatement {
     ScoreOperation(IrScoreOperation),
     If(IrIf),
@@ -100,7 +100,7 @@ pub enum IrStatement {
     Block(IrBlock),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct IrBlock {
     pub can_embed: bool,
     pub root_fn_name: FunctionName,
@@ -130,13 +130,13 @@ impl std::fmt::Display for IrBlock {
 
 impl std::fmt::Display for IrFnDef {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "fn {} {{\n", self.fn_name,)?;
+        write!(f, "fn {} {{\n", self.fn_name, )?;
         for statement in &self.statements {
             match statement {
                 IrStatement::Block(x) => {
                     write!(f, "{}\n", x)?;
                 }
-                _=> {
+                _ => {
                     write!(f, "    {:?}\n", statement)?;
                 }
             }
