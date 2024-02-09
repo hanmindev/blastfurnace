@@ -345,6 +345,19 @@ fn convert_var_assign(context: &mut Context, ast_node: &VarAssign) -> Vec<IrStat
     )
 }
 
+fn convert_condition(context: &mut Context, cond: &Box<Expression>, body: IrStatement) -> Vec<IrStatement> {
+    let mut condition = vec![];
+    // if condition is 0, return
+    let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, cond);
+    condition.append(&mut expr_statements);
+    condition.push(IrStatement::If(IrIf {
+        invert,
+        cond,
+        body: Box::from(body),
+    }));
+    return condition;
+}
+
 fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
     /**
     Convert the if statement to a series of commands
@@ -398,55 +411,50 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
             right: context.const_generator.get_const(1),
         }));
     }
-    // compute cond
-    let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, &ast_node.cond);
-    s.append(&mut expr_statements);
 
-    // execute if cond run {
-    s.push(IrStatement::If(IrIf {
-        invert: !invert,
-        cond,
-        body: Box::from(IrStatement::Block({
-            let mut s = convert_block(context, &ast_node.body, true);
-            if elses.len() > 0 {
-                s.statements.push(IrStatement::ScoreOperation(IrScoreOperation {
-                    left: if_variable.clone(),
-                    op: IrScoreOperationType::Assign,
-                    right: context.const_generator.get_const(0),
-                }));
-            }
-            s
-        })),
-    }));
 
-    // TODO: could be optimized
+    // compute block for first if statement
+    let block = IrStatement::Block({
+        let mut s = convert_block(context, &ast_node.body, true);
+        if elses.len() > 0 {
+            s.statements.push(IrStatement::ScoreOperation(IrScoreOperation {
+                left: if_variable.clone(),
+                op: IrScoreOperationType::Assign,
+                right: context.const_generator.get_const(0),
+            }));
+        }
+        s
+    });
+    // write if statement
+    s.append(&mut convert_condition(context, &ast_node.cond, block));
 
     for (condition, body) in elses {
-        // compute cond
-        let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, condition);
-        s.append(&mut expr_statements);
+        let block = IrStatement::Block({
+            let mut s = convert_block(context, &body, true);
+            s.statements.push(IrStatement::ScoreOperation(IrScoreOperation {
+                left: if_variable.clone(),
+                op: IrScoreOperationType::Assign,
+                right: context.const_generator.get_const(0),
+            }));
+            s
+        });
 
+        // for if else
+        let else_block = IrStatement::Block(IrBlock {
+            can_embed: true,
+            root_fn_name: context.fn_name.clone(),
+            fn_block_index: context.use_block(),
+            statements: convert_condition(context, condition, block),
+        });
         // execute if if_check == 1 run {
         s.push(IrStatement::If(IrIf {
-            invert: !invert,
+            invert: true,
             cond: Cond::CheckVal(CheckVal {
                 var_name: if_variable.clone(),
                 min: 0,
                 max: 0,
             }),
-            body: Box::from(IrStatement::If(IrIf {
-                invert: true,
-                cond,
-                body: Box::from(IrStatement::Block({
-                    let mut s = convert_block(context, &body, true);
-                    s.statements.push(IrStatement::ScoreOperation(IrScoreOperation {
-                        left: if_variable.clone(),
-                        op: IrScoreOperationType::Assign,
-                        right: context.const_generator.get_const(0),
-                    }));
-                    s
-                })),
-            })),
+            body: Box::from(else_block),
         }));
     }
     s
@@ -455,16 +463,7 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
 fn convert_while(context: &mut Context, ast_node: &While) -> Vec<IrStatement> {
     let mut s: Vec<IrStatement> = vec![];
 
-    let mut condition = vec![];
-
-    // if condition is 0, return
-    let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, &ast_node.cond);
-    condition.append(&mut expr_statements);
-    condition.push(IrStatement::If(IrIf {
-        invert: !invert,
-        cond,
-        body: Box::from(IrStatement::Return),
-    }));
+    let mut condition = convert_condition(context, &ast_node.cond, IrStatement::Return);
 
     // parse body
     let mut body = convert_block(context, &ast_node.body, false);
@@ -488,16 +487,8 @@ fn convert_for(context: &mut Context, ast_node: &For) -> Vec<IrStatement> {
     }
 
     let mut condition = vec![];
-
-    // if condition is 0, return
     if let Some(cond) = &ast_node.cond {
-        let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, cond);
-        condition.append(&mut expr_statements);
-        condition.push(IrStatement::If(IrIf {
-            invert: !invert,
-            cond,
-            body: Box::from(IrStatement::Return),
-        }));
+        condition.append(&mut convert_condition(context, cond, IrStatement::Return));
     }
 
     // parse body
