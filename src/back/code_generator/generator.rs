@@ -4,7 +4,7 @@ use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrScoreSet, IrStat
 use crate::middle::format::ir_types::{
     AddressOrigin, IrScoreAddI, IrScoreOperation, IrScoreOperationType,
 };
-use crate::middle::format::ir_types::{Cond, IrUnless};
+use crate::middle::format::ir_types::{Cond};
 
 static BLASTFURNACE_OBJECTIVE: &str = "blst";
 static BLASTFURNACE_CONST: &str = "blst";
@@ -230,13 +230,7 @@ fn if_unless_helper(
 
 impl CodeGenerator for IrIf {
     fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String> {
-        if_unless_helper(generated_code, context, &self.cond, &self.body, "if")
-    }
-}
-
-impl CodeGenerator for IrUnless {
-    fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String> {
-        if_unless_helper(generated_code, context, &self.cond, &self.body, "unless")
+        if_unless_helper(generated_code, context, &self.cond, &self.body, if self.invert { "unless" } else { "if" })
     }
 }
 
@@ -247,7 +241,6 @@ impl CodeGenerator for IrStatement {
             IrStatement::ScoreAddI(x) => x.generate(generated_code, context),
             IrStatement::ScoreOperation(x) => x.generate(generated_code, context),
             IrStatement::If(x) => x.generate(generated_code, context),
-            IrStatement::Unless(x) => x.generate(generated_code, context),
             IrStatement::FnCall(x) => vec![format!("function {}", x.fn_name)],
             IrStatement::Return => vec!["return".to_string()],
             IrStatement::Block(x) => x.generate(generated_code, context),
