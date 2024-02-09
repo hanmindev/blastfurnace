@@ -158,11 +158,13 @@ fn rec_convert_expr(
             expr0.existing_address.as_ref().unwrap_or(result_var_name);
             s.append(&mut expr0.statements);
             if let Some(e_a) = expr0.existing_address {
-                s.push(IrStatement::ScoreOperation(IrScoreOperation {
-                    left: result_var_name.clone(),
-                    op: IrScoreOperationType::Assign,
-                    right: e_a,
-                }));
+                if result_var_name != &e_a {
+                    s.push(IrStatement::ScoreOperation(IrScoreOperation {
+                        left: result_var_name.clone(),
+                        op: IrScoreOperationType::Assign,
+                        right: e_a,
+                    }));
+                }
             }
 
             let a0 = context.get_variable();
