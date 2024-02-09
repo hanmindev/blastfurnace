@@ -16,12 +16,6 @@ pub struct Address {
 pub type FunctionName = String;
 
 #[derive(Debug, PartialEq)]
-pub struct IrScoreSet {
-    pub var_name: Address,
-    pub value: i32,
-}
-
-#[derive(Debug, PartialEq)]
 pub enum IrScoreOperationType {
     Add,
     Sub,
@@ -99,7 +93,6 @@ pub struct IrIf {
 
 #[derive(Debug, PartialEq)]
 pub enum IrStatement {
-    ScoreSet(IrScoreSet),
     ScoreOperation(IrScoreOperation),
     If(IrIf),
     FnCall(IrFnCall),

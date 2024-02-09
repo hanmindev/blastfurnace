@@ -8,7 +8,7 @@ use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{
     Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
-    IrScoreOperation, IrScoreOperationType, IrScoreSet, IrStatement,
+    IrScoreOperation, IrScoreOperationType, IrStatement,
 };
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
@@ -392,9 +392,10 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
 
     if elses.len() > 0 {
         // Set if_check to 1, only needed if there are elses.
-        s.push(IrStatement::ScoreSet(IrScoreSet {
-            var_name: if_variable.clone(),
-            value: 1,
+        s.push(IrStatement::ScoreOperation(IrScoreOperation {
+            left: if_variable.clone(),
+            op: IrScoreOperationType::Assign,
+            right: context.const_generator.get_const(1),
         }));
     }
     // compute cond
@@ -408,9 +409,10 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
         body: Box::from(IrStatement::Block({
             let mut s = convert_block(context, &ast_node.body, true);
             if elses.len() > 0 {
-                s.statements.push(IrStatement::ScoreSet(IrScoreSet {
-                    var_name: if_variable.clone(),
-                    value: 0,
+                s.statements.push(IrStatement::ScoreOperation(IrScoreOperation {
+                    left: if_variable.clone(),
+                    op: IrScoreOperationType::Assign,
+                    right: context.const_generator.get_const(0),
                 }));
             }
             s
@@ -437,9 +439,10 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
                 cond,
                 body: Box::from(IrStatement::Block({
                     let mut s = convert_block(context, &body, true);
-                    s.statements.push(IrStatement::ScoreSet(IrScoreSet {
-                        var_name: if_variable.clone(),
-                        value: 0,
+                    s.statements.push(IrStatement::ScoreOperation(IrScoreOperation {
+                        left: if_variable.clone(),
+                        op: IrScoreOperationType::Assign,
+                        right: context.const_generator.get_const(0),
                     }));
                     s
                 })),
@@ -614,9 +617,6 @@ mod tests {
 
         fn run_statement(statement: &IrStatement, vars: &mut Vars) {
             match statement {
-                IrStatement::ScoreSet(x) => {
-                    vars.insert(x.var_name.clone(), x.value);
-                }
                 IrStatement::ScoreOperation(x) => {
                     let left = match x.op {
                         IrScoreOperationType::Assign => 0,
@@ -702,12 +702,15 @@ mod tests {
             .unwrap()
             .statements[0]
         {
-            IrStatement::ScoreSet(x) => {
+            IrStatement::ScoreOperation(x) => {
                 assert_eq!(
-                    x.var_name.name,
+                    x.left.name,
                     AddressOrigin::User("pkg/root/0_a".to_string())
                 );
-                assert_eq!(x.value, 1);
+                assert_eq!(x.right, Address {
+                    name: AddressOrigin::Const(1),
+                    offset: 0,
+                });
             }
             _ => {}
         }
