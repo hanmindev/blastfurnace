@@ -345,13 +345,13 @@ fn convert_var_assign(context: &mut Context, ast_node: &VarAssign) -> Vec<IrStat
     )
 }
 
-fn convert_condition(context: &mut Context, cond: &Box<Expression>, body: IrStatement) -> Vec<IrStatement> {
+fn convert_condition(context: &mut Context, cond: &Box<Expression>, invert_cond: bool, body: IrStatement) -> Vec<IrStatement> {
     let mut condition = vec![];
     // if condition is 0, return
     let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, cond);
     condition.append(&mut expr_statements);
     condition.push(IrStatement::If(IrIf {
-        invert,
+        invert: invert != invert_cond,
         cond,
         body: Box::from(body),
     }));
@@ -426,7 +426,7 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
         s
     });
     // write if statement
-    s.append(&mut convert_condition(context, &ast_node.cond, block));
+    s.append(&mut convert_condition(context, &ast_node.cond, false, block));
 
     for (condition, body) in elses {
         let block = IrStatement::Block({
@@ -444,7 +444,7 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
             can_embed: true,
             root_fn_name: context.fn_name.clone(),
             fn_block_index: context.use_block(),
-            statements: convert_condition(context, condition, block),
+            statements: convert_condition(context, condition, false, block),
         });
         // execute if if_check == 1 run {
         s.push(IrStatement::If(IrIf {
@@ -463,7 +463,7 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
 fn convert_while(context: &mut Context, ast_node: &While) -> Vec<IrStatement> {
     let mut s: Vec<IrStatement> = vec![];
 
-    let mut condition = convert_condition(context, &ast_node.cond, IrStatement::Return);
+    let mut condition = convert_condition(context, &ast_node.cond, true, IrStatement::Return);
 
     // parse body
     let mut body = convert_block(context, &ast_node.body, false);
@@ -488,7 +488,7 @@ fn convert_for(context: &mut Context, ast_node: &For) -> Vec<IrStatement> {
 
     let mut condition = vec![];
     if let Some(cond) = &ast_node.cond {
-        condition.append(&mut convert_condition(context, cond, IrStatement::Return));
+        condition.append(&mut convert_condition(context, cond, true, IrStatement::Return));
     }
 
     // parse body
@@ -835,7 +835,7 @@ mod tests {
                     offset: 0,
                 },
             ),
-            3
+            10
         );
     }
 }
