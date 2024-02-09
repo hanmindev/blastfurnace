@@ -150,8 +150,9 @@ fn if_unless_helper(
     context: &mut Context,
     cond: &Cond,
     body: &Box<IrStatement>,
-    type_: &str,
+    invert: bool,
 ) -> Vec<String> {
+
     let mut statements = body.generate(generated_code, context);
 
     let statement = if statements.len() == 1 {
@@ -164,6 +165,7 @@ fn if_unless_helper(
         "{} {}",
         match &cond {
             Cond::CheckVal(x) => {
+                let type_ = if invert { "unless" } else { "if" };
                 if x.min == x.max {
                     format!(
                         "execute {type_} score {} matches {} run",
@@ -181,13 +183,14 @@ fn if_unless_helper(
             }
             Cond::CompareVal(x) => {
                 let op = match x.op {
-                    CompareOp::Eq => "matches",
-                    CompareOp::Neq => "matches",
-                    CompareOp::Lt => "matches",
-                    CompareOp::Gt => "matches",
-                    CompareOp::Leq => "matches",
-                    CompareOp::Geq => "matches",
+                    CompareOp::Eq => "=",
+                    CompareOp::Neq => "=",
+                    CompareOp::Lt => "<",
+                    CompareOp::Gt => ">",
+                    CompareOp::Leq => "<=",
+                    CompareOp::Geq => ">=",
                 };
+                let type_ = if invert != (matches!(x.op, CompareOp::Neq)) { "unless" } else { "if" };
                 format!(
                     "execute {type_} score {} {} {} run",
                     x.var_0.to_score(),
@@ -202,7 +205,7 @@ fn if_unless_helper(
 
 impl CodeGenerator for IrIf {
     fn generate(&self, generated_code: &mut GeneratedCode, context: &mut Context) -> Vec<String> {
-        if_unless_helper(generated_code, context, &self.cond, &self.body, if self.invert { "unless" } else { "if" })
+        if_unless_helper(generated_code, context, &self.cond, &self.body, self.invert)
     }
 }
 
