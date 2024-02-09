@@ -586,10 +586,13 @@ mod tests {
         Address, AddressOrigin, CompareOp, Cond, IrScoreOperationType, IrStatement,
     };
     use std::collections::HashMap;
+    use std::ops::Deref;
+    use crate::middle::format::ir_types::IrFnDef;
+    use crate::middle::format::types::GlobalName;
 
-    fn test_calculation(statements: &Vec<IrStatement>, result_address: &Address) -> i32 {
+    fn test_calculation(run_function: &str, functions: &HashMap<GlobalName, IrFnDef>, result_address: &Address) -> i32 {
         struct Vars {
-            vars: HashMap<Address, i32>,
+            var_map: HashMap<Address, i32>,
         }
         impl Vars {
             fn get(&self, address: &Address) -> i32 {
@@ -599,7 +602,7 @@ mod tests {
                     }
                     _ => {}
                 }
-                return *self.vars.get(address).unwrap();
+                return *self.var_map.get(address).unwrap();
             }
 
             fn insert(&mut self, address: Address, value: i32) {
@@ -607,80 +610,87 @@ mod tests {
                     panic!("Cannot insert into const")
                 }
 
-                self.vars.insert(address, value);
+                self.var_map.insert(address, value);
             }
+        }
+
+        fn run_statements(curr_fn_name: &str, statements: &Vec<IrStatement>, vars_ref: &mut Vars, functions: &HashMap<GlobalName, IrFnDef>) -> bool {
+            for statement in statements {
+                match statement {
+                    IrStatement::ScoreOperation(x) => {
+                        let left = match x.op {
+                            IrScoreOperationType::Assign => 0,
+                            _ => vars_ref.get(&x.left),
+                        };
+                        let right = vars_ref.get(&x.right);
+                        let result = match x.op {
+                            IrScoreOperationType::Add => left + right,
+                            IrScoreOperationType::Sub => left - right,
+                            IrScoreOperationType::Mul => left * right,
+                            IrScoreOperationType::Div => left / right,
+                            IrScoreOperationType::Mod => left % right,
+                            IrScoreOperationType::Eq => ((left != 0) == (right != 0)) as i32,
+                            IrScoreOperationType::Neq => ((left != 0) != (right != 0)) as i32,
+                            IrScoreOperationType::Lt => ((left != 0) < (right != 0)) as i32,
+                            IrScoreOperationType::Gt => ((left != 0) > (right != 0)) as i32,
+                            IrScoreOperationType::Leq => ((left != 0) <= (right != 0)) as i32,
+                            IrScoreOperationType::Geq => ((left != 0) >= (right != 0)) as i32,
+                            IrScoreOperationType::And => ((left != 0) && (right != 0)) as i32,
+                            IrScoreOperationType::Or => ((left != 0) || (right != 0)) as i32,
+                            IrScoreOperationType::Assign => right,
+                        };
+                        vars_ref.insert(x.left.clone(), result);
+                    }
+                    IrStatement::If(x) => match &x.cond {
+                        Cond::CheckVal(y) => {
+                            let a = vars_ref.get(&y.var_name);
+                            if (y.min <= a && a <= y.max) != x.invert {
+                                run_statements(curr_fn_name, &vec![(*x.body.deref()).clone()], vars_ref, functions);
+                            }
+                        }
+                        Cond::CompareVal(y) => {
+                            let a = vars_ref.get(&y.var_0);
+                            let b = vars_ref.get(&y.var_1);
+                            if match y.op {
+                                CompareOp::Eq => a == b,
+                                CompareOp::Neq => a != b,
+                                CompareOp::Lt => a < b,
+                                CompareOp::Gt => a > b,
+                                CompareOp::Leq => a <= b,
+                                CompareOp::Geq => a >= b,
+                            } != x.invert
+                            {
+                                if run_statements(curr_fn_name, &vec![(*x.body.deref()).clone()], vars_ref, functions) {
+                                    return false;
+                                }
+                            }
+                        }
+                    },
+                    IrStatement::Return => {
+                        return true;
+                    }
+                    IrStatement::Block(x) => {
+                        run_statements(&x.get_fn_name(), &x.statements, vars_ref, functions);
+                    }
+                    IrStatement::FnCall(x) => {
+                        if &x.fn_name == curr_fn_name {
+                            run_statements(&x.fn_name, statements, vars_ref, functions);
+                        } else {
+                            run_statements(&x.fn_name, &functions.get(&x.fn_name).unwrap().statements, vars_ref, functions);
+                        }
+                    }
+                    _ => {
+                        panic!("{:?} Not implemented", statement)
+                    }
+                }
+            }
+            return false;
         }
 
         let mut vars = Vars {
-            vars: HashMap::new(),
+            var_map: HashMap::new(),
         };
-
-        fn run_statement(statement: &IrStatement, vars: &mut Vars) {
-            match statement {
-                IrStatement::ScoreOperation(x) => {
-                    let left = match x.op {
-                        IrScoreOperationType::Assign => 0,
-                        _ => vars.get(&x.left),
-                    };
-                    let right = vars.get(&x.right);
-                    let result = match x.op {
-                        IrScoreOperationType::Add => left + right,
-                        IrScoreOperationType::Sub => left - right,
-                        IrScoreOperationType::Mul => left * right,
-                        IrScoreOperationType::Div => left / right,
-                        IrScoreOperationType::Mod => left % right,
-                        IrScoreOperationType::Eq => ((left != 0) == (right != 0)) as i32,
-                        IrScoreOperationType::Neq => ((left != 0) != (right != 0)) as i32,
-                        IrScoreOperationType::Lt => ((left != 0) < (right != 0)) as i32,
-                        IrScoreOperationType::Gt => ((left != 0) > (right != 0)) as i32,
-                        IrScoreOperationType::Leq => ((left != 0) <= (right != 0)) as i32,
-                        IrScoreOperationType::Geq => ((left != 0) >= (right != 0)) as i32,
-                        IrScoreOperationType::And => ((left != 0) && (right != 0)) as i32,
-                        IrScoreOperationType::Or => ((left != 0) || (right != 0)) as i32,
-                        IrScoreOperationType::Assign => right,
-                    };
-                    vars.insert(x.left.clone(), result);
-                }
-                IrStatement::If(x) => match &x.cond {
-                    Cond::CheckVal(y) => {
-                        let a = vars.get(&y.var_name);
-                        if (y.min <= a && a <= y.max) != x.invert {
-                            run_statement(&x.body, vars);
-                        }
-                    }
-                    Cond::CompareVal(y) => {
-                        let a = vars.get(&y.var_0);
-                        let b = vars.get(&y.var_1);
-                        if match y.op {
-                            CompareOp::Eq => a == b,
-                            CompareOp::Neq => a != b,
-                            CompareOp::Lt => a < b,
-                            CompareOp::Gt => a > b,
-                            CompareOp::Leq => a <= b,
-                            CompareOp::Geq => a >= b,
-                        } != x.invert
-                        {
-                            run_statement(&x.body, vars);
-                        }
-                    }
-                },
-                IrStatement::Return => {
-                    return;
-                }
-                IrStatement::Block(x) => {
-                    for statement in &x.statements {
-                        run_statement(&statement, vars);
-                    }
-                }
-                _ => {
-                    panic!("Not implemented")
-                }
-            }
-        }
-
-        for statement in statements {
-            run_statement(statement, &mut vars);
-        }
+        run_statements("pkg/root/0_main", &functions.get("pkg/root/0_main").unwrap().statements, &mut vars, &functions);
 
         return vars.get(result_address);
     }
@@ -732,11 +742,9 @@ mod tests {
 
         assert_eq!(
             test_calculation(
+                "pkg/root/0_main",
                 &program
-                    .function_definitions
-                    .get("pkg/root/0_main")
-                    .unwrap()
-                    .statements,
+                    .function_definitions,
                 &Address {
                     name: AddressOrigin::User("pkg/root/0_b".to_string()),
                     offset: 0,
@@ -762,17 +770,81 @@ mod tests {
 
         assert_eq!(
             test_calculation(
-                &program
-                    .function_definitions
-                    .get("pkg/root/0_main")
-                    .unwrap()
-                    .statements,
+                "pkg/root/0_main",
+                &program.function_definitions,
                 &Address {
                     name: AddressOrigin::User("pkg/root/0_a".to_string()),
                     offset: 0,
                 },
             ),
             25
+        );
+    }
+
+    #[test]
+    fn test_if_else() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file(
+            "/main.ing",
+            "pub fn main() { let a: int = 3; let r: int = 0; if (a == 1) { r = 1; } else if (a == 2) { r = 2; } else if (a == 3) { r = 3; } }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut program = program_merger.export_program();
+
+        println!("{}", program
+            .function_definitions
+            .get("pkg/root/0_main")
+            .unwrap());
+
+        assert_eq!(
+            test_calculation(
+                "pkg/root/0_main",
+                &program
+                    .function_definitions,
+                &Address {
+                    name: AddressOrigin::User("pkg/root/0_r".to_string()),
+                    offset: 0,
+                },
+            ),
+            3
+        );
+    }
+
+
+    #[test]
+    fn test_while() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file(
+            "/main.ing",
+            "pub fn main() { let a: int = 3; while (a < 10) { a+=1; } }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut program = program_merger.export_program();
+
+        println!("{}", program
+            .function_definitions
+            .get("pkg/root/0_main")
+            .unwrap());
+
+        assert_eq!(
+            test_calculation(
+                "pkg/root/0_main",
+                &program
+                    .function_definitions,
+                &Address {
+                    name: AddressOrigin::User("pkg/root/0_a".to_string()),
+                    offset: 0,
+                },
+            ),
+            3
         );
     }
 }
