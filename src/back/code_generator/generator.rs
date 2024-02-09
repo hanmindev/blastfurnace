@@ -5,6 +5,7 @@ use crate::middle::format::ir_types::{
     AddressOrigin, IrScoreOperation, IrScoreOperationType,
 };
 use crate::middle::format::ir_types::{Cond};
+use crate::middle::format::ir_types::AddressOrigin::Const;
 
 static BLASTFURNACE_OBJECTIVE: &str = "blst";
 static BLASTFURNACE_CONST: &str = "blst";
@@ -152,7 +153,6 @@ fn if_unless_helper(
     body: &Box<IrStatement>,
     invert: bool,
 ) -> Vec<String> {
-
     let mut statements = body.generate(generated_code, context);
 
     let statement = if statements.len() == 1 {
@@ -182,21 +182,90 @@ fn if_unless_helper(
                 }
             }
             Cond::CompareVal(x) => {
+                let mut type_ = "if";
+
                 let op = match x.op {
-                    CompareOp::Eq => "=",
-                    CompareOp::Neq => "=",
-                    CompareOp::Lt => "<",
-                    CompareOp::Gt => ">",
-                    CompareOp::Leq => "<=",
-                    CompareOp::Geq => ">=",
+                    CompareOp::Eq => {
+                        if invert {
+                            type_ = "unless";
+                        }
+                        "="
+                    }
+                    CompareOp::Neq => {
+                        if !invert {
+                            type_ = "unless";
+                        }
+                        "="
+                    }
+                    CompareOp::Lt => if invert { ">" } else { "<" },
+                    CompareOp::Gt => if invert { "<" } else { ">" },
+                    CompareOp::Leq => if invert { ">=" } else { "<=" },
+                    CompareOp::Geq => if invert { "<=" } else { ">=" },
                 };
-                let type_ = if invert != (matches!(x.op, CompareOp::Neq)) { "unless" } else { "if" };
-                format!(
-                    "execute {type_} score {} {} {} run",
-                    x.var_0.to_score(),
-                    op,
-                    x.var_1.to_score()
-                )
+
+                // should be type_ var0 op var1
+
+                if let Const(c1) = x.var_1.name {
+                    if let Const(c0) = x.var_0.name {
+                        return if match op {
+                            "=" => {
+                                (c0 == c1 && type_ == "if") || c0 != c1 && type_ == "unless"
+                            }
+                            "<" => {
+                                c0 < c1
+                            }
+                            ">" => {
+                                c0 > c1
+                            }
+                            "<=" => {
+                                c0 <= c1
+                            }
+                            ">=" => {
+                                c0 >= c1
+                            }
+                            _ => {
+                                panic!("Invalid op, match arms must be insufficient")
+                            }
+                        } {
+                            vec![statement]
+                        } else {
+                            vec![]
+                        };
+                    }
+
+                    let range = match op {
+                        "=" => {
+                            c1.to_string()
+                        }
+                        "<" => {
+                            format!("..{}", c1 - 1)
+                        }
+                        ">" => {
+                            format!("{}..", c1 + 1)
+                        }
+                        "<=" => {
+                            format!("..{}", c1)
+                        }
+                        ">=" => {
+                            format!("{}..", c1)
+                        }
+                        _ => {
+                            panic!("Invalid op, match arms must be insufficient")
+                        }
+                    };
+                    format!(
+                        "execute {type_} score {} matches {} run",
+                        x.var_0.to_score(),
+                        range
+                    )
+                } else {
+                    format!(
+                        "execute {type_} score {} {} {} run",
+                        x.var_0.to_score(),
+                        op,
+                        x.var_1.to_score()
+                    )
+                }
             }
         },
         statement
