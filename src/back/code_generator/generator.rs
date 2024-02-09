@@ -1,11 +1,9 @@
 use crate::back::code_generator::{Context, GeneratedCode, MFunction};
-use crate::middle::format::ir_types::CompareOp;
-use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrStatement};
-use crate::middle::format::ir_types::{
-    AddressOrigin, IrScoreOperation, IrScoreOperationType,
-};
-use crate::middle::format::ir_types::{Cond};
 use crate::middle::format::ir_types::AddressOrigin::Const;
+use crate::middle::format::ir_types::CompareOp;
+use crate::middle::format::ir_types::Cond;
+use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrStatement};
+use crate::middle::format::ir_types::{AddressOrigin, IrScoreOperation, IrScoreOperationType};
 
 static BLASTFURNACE_OBJECTIVE: &str = "blst";
 static BLASTFURNACE_CONST: &str = "blst";
@@ -197,10 +195,34 @@ fn if_unless_helper(
                         }
                         "="
                     }
-                    CompareOp::Lt => if invert { ">" } else { "<" },
-                    CompareOp::Gt => if invert { "<" } else { ">" },
-                    CompareOp::Leq => if invert { ">=" } else { "<=" },
-                    CompareOp::Geq => if invert { "<=" } else { ">=" },
+                    CompareOp::Lt => {
+                        if invert {
+                            ">"
+                        } else {
+                            "<"
+                        }
+                    }
+                    CompareOp::Gt => {
+                        if invert {
+                            "<"
+                        } else {
+                            ">"
+                        }
+                    }
+                    CompareOp::Leq => {
+                        if invert {
+                            ">="
+                        } else {
+                            "<="
+                        }
+                    }
+                    CompareOp::Geq => {
+                        if invert {
+                            "<="
+                        } else {
+                            ">="
+                        }
+                    }
                 };
 
                 // should be type_ var0 op var1
@@ -208,21 +230,11 @@ fn if_unless_helper(
                 if let Const(c1) = x.var_1.name {
                     if let Const(c0) = x.var_0.name {
                         return if match op {
-                            "=" => {
-                                (c0 == c1 && type_ == "if") || c0 != c1 && type_ == "unless"
-                            }
-                            "<" => {
-                                c0 < c1
-                            }
-                            ">" => {
-                                c0 > c1
-                            }
-                            "<=" => {
-                                c0 <= c1
-                            }
-                            ">=" => {
-                                c0 >= c1
-                            }
+                            "=" => (c0 == c1 && type_ == "if") || c0 != c1 && type_ == "unless",
+                            "<" => c0 < c1,
+                            ">" => c0 > c1,
+                            "<=" => c0 <= c1,
+                            ">=" => c0 >= c1,
                             _ => {
                                 panic!("Invalid op, match arms must be insufficient")
                             }
@@ -234,9 +246,7 @@ fn if_unless_helper(
                     }
 
                     let range = match op {
-                        "=" => {
-                            c1.to_string()
-                        }
+                        "=" => c1.to_string(),
                         "<" => {
                             format!("..{}", c1 - 1)
                         }

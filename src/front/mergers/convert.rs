@@ -345,7 +345,12 @@ fn convert_var_assign(context: &mut Context, ast_node: &VarAssign) -> Vec<IrStat
     )
 }
 
-fn convert_condition(context: &mut Context, cond: &Box<Expression>, invert_cond: bool, body: IrStatement) -> Vec<IrStatement> {
+fn convert_condition(
+    context: &mut Context,
+    cond: &Box<Expression>,
+    invert_cond: bool,
+    body: IrStatement,
+) -> Vec<IrStatement> {
     let mut condition = vec![];
     // if condition is 0, return
     let (mut expr_statements, cond, invert) = convert_expr_for_comparison(context, cond);
@@ -412,30 +417,36 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
         }));
     }
 
-
     // compute block for first if statement
     let block = IrStatement::Block({
         let mut s = convert_block(context, &ast_node.body, true);
         if elses.len() > 0 {
-            s.statements.push(IrStatement::ScoreOperation(IrScoreOperation {
-                left: if_variable.clone(),
-                op: IrScoreOperationType::Assign,
-                right: context.const_generator.get_const(0),
-            }));
+            s.statements
+                .push(IrStatement::ScoreOperation(IrScoreOperation {
+                    left: if_variable.clone(),
+                    op: IrScoreOperationType::Assign,
+                    right: context.const_generator.get_const(0),
+                }));
         }
         s
     });
     // write if statement
-    s.append(&mut convert_condition(context, &ast_node.cond, false, block));
+    s.append(&mut convert_condition(
+        context,
+        &ast_node.cond,
+        false,
+        block,
+    ));
 
     for (condition, body) in elses {
         let block = IrStatement::Block({
             let mut s = convert_block(context, &body, true);
-            s.statements.push(IrStatement::ScoreOperation(IrScoreOperation {
-                left: if_variable.clone(),
-                op: IrScoreOperationType::Assign,
-                right: context.const_generator.get_const(0),
-            }));
+            s.statements
+                .push(IrStatement::ScoreOperation(IrScoreOperation {
+                    left: if_variable.clone(),
+                    op: IrScoreOperationType::Assign,
+                    right: context.const_generator.get_const(0),
+                }));
             s
         });
 
@@ -488,7 +499,12 @@ fn convert_for(context: &mut Context, ast_node: &For) -> Vec<IrStatement> {
 
     let mut condition = vec![];
     if let Some(cond) = &ast_node.cond {
-        condition.append(&mut convert_condition(context, cond, true, IrStatement::Return));
+        condition.append(&mut convert_condition(
+            context,
+            cond,
+            true,
+            IrStatement::Return,
+        ));
     }
 
     // parse body
@@ -573,15 +589,19 @@ mod tests {
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
+    use crate::middle::format::ir_types::IrFnDef;
     use crate::middle::format::ir_types::{
         Address, AddressOrigin, CompareOp, Cond, IrScoreOperationType, IrStatement,
     };
+    use crate::middle::format::types::GlobalName;
     use std::collections::HashMap;
     use std::ops::Deref;
-    use crate::middle::format::ir_types::IrFnDef;
-    use crate::middle::format::types::GlobalName;
 
-    fn test_calculation(run_function: &str, functions: &HashMap<GlobalName, IrFnDef>, result_address: &Address) -> i32 {
+    fn test_calculation(
+        run_function: &str,
+        functions: &HashMap<GlobalName, IrFnDef>,
+        result_address: &Address,
+    ) -> i32 {
         struct Vars {
             var_map: HashMap<Address, i32>,
         }
@@ -605,7 +625,12 @@ mod tests {
             }
         }
 
-        fn run_statements(curr_fn_name: &str, statements: &Vec<IrStatement>, vars_ref: &mut Vars, functions: &HashMap<GlobalName, IrFnDef>) -> bool {
+        fn run_statements(
+            curr_fn_name: &str,
+            statements: &Vec<IrStatement>,
+            vars_ref: &mut Vars,
+            functions: &HashMap<GlobalName, IrFnDef>,
+        ) -> bool {
             for statement in statements {
                 match statement {
                     IrStatement::ScoreOperation(x) => {
@@ -636,7 +661,12 @@ mod tests {
                         Cond::CheckVal(y) => {
                             let a = vars_ref.get(&y.var_name);
                             if (y.min <= a && a <= y.max) != x.invert {
-                                run_statements(curr_fn_name, &vec![(*x.body.deref()).clone()], vars_ref, functions);
+                                run_statements(
+                                    curr_fn_name,
+                                    &vec![(*x.body.deref()).clone()],
+                                    vars_ref,
+                                    functions,
+                                );
                             }
                         }
                         Cond::CompareVal(y) => {
@@ -651,7 +681,12 @@ mod tests {
                                 CompareOp::Geq => a >= b,
                             } != x.invert
                             {
-                                if run_statements(curr_fn_name, &vec![(*x.body.deref()).clone()], vars_ref, functions) {
+                                if run_statements(
+                                    curr_fn_name,
+                                    &vec![(*x.body.deref()).clone()],
+                                    vars_ref,
+                                    functions,
+                                ) {
                                     return false;
                                 }
                             }
@@ -667,7 +702,12 @@ mod tests {
                         if &x.fn_name == curr_fn_name {
                             run_statements(&x.fn_name, statements, vars_ref, functions);
                         } else {
-                            run_statements(&x.fn_name, &functions.get(&x.fn_name).unwrap().statements, vars_ref, functions);
+                            run_statements(
+                                &x.fn_name,
+                                &functions.get(&x.fn_name).unwrap().statements,
+                                vars_ref,
+                                functions,
+                            );
                         }
                     }
                     _ => {
@@ -681,7 +721,12 @@ mod tests {
         let mut vars = Vars {
             var_map: HashMap::new(),
         };
-        run_statements("pkg/root/0_main", &functions.get("pkg/root/0_main").unwrap().statements, &mut vars, &functions);
+        run_statements(
+            "pkg/root/0_main",
+            &functions.get("pkg/root/0_main").unwrap().statements,
+            &mut vars,
+            &functions,
+        );
 
         return vars.get(result_address);
     }
@@ -704,14 +749,14 @@ mod tests {
             .statements[0]
         {
             IrStatement::ScoreOperation(x) => {
+                assert_eq!(x.left.name, AddressOrigin::User("pkg/root/0_a".to_string()));
                 assert_eq!(
-                    x.left.name,
-                    AddressOrigin::User("pkg/root/0_a".to_string())
+                    x.right,
+                    Address {
+                        name: AddressOrigin::Const(1),
+                        offset: 0,
+                    }
                 );
-                assert_eq!(x.right, Address {
-                    name: AddressOrigin::Const(1),
-                    offset: 0,
-                });
             }
             _ => {}
         }
@@ -734,8 +779,7 @@ mod tests {
         assert_eq!(
             test_calculation(
                 "pkg/root/0_main",
-                &program
-                    .function_definitions,
+                &program.function_definitions,
                 &Address {
                     name: AddressOrigin::User("pkg/root/0_b".to_string()),
                     offset: 0,
@@ -789,8 +833,7 @@ mod tests {
         assert_eq!(
             test_calculation(
                 "pkg/root/0_main",
-                &program
-                    .function_definitions,
+                &program.function_definitions,
                 &Address {
                     name: AddressOrigin::User("pkg/root/0_r".to_string()),
                     offset: 0,
@@ -799,7 +842,6 @@ mod tests {
             3
         );
     }
-
 
     #[test]
     fn test_while() {
@@ -818,8 +860,7 @@ mod tests {
         assert_eq!(
             test_calculation(
                 "pkg/root/0_main",
-                &program
-                    .function_definitions,
+                &program.function_definitions,
                 &Address {
                     name: AddressOrigin::User("pkg/root/0_a".to_string()),
                     offset: 0,
@@ -846,8 +887,7 @@ mod tests {
         assert_eq!(
             test_calculation(
                 "pkg/root/0_main",
-                &program
-                    .function_definitions,
+                &program.function_definitions,
                 &Address {
                     name: AddressOrigin::User("pkg/root/0_a".to_string()),
                     offset: 0,
