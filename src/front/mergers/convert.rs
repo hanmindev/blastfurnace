@@ -828,4 +828,32 @@ mod tests {
             10
         );
     }
+
+    #[test]
+    fn test_for() {
+        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        mock_file_system.insert_file(
+            "/main.ing",
+            "pub fn main() { for (let a: int = 0; a < 10; a += 1) { } }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut program = program_merger.export_program();
+
+        assert_eq!(
+            test_calculation(
+                "pkg/root/0_main",
+                &program
+                    .function_definitions,
+                &Address {
+                    name: AddressOrigin::User("pkg/root/0_a".to_string()),
+                    offset: 0,
+                },
+            ),
+            10
+        );
+    }
 }
