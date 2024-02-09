@@ -1,5 +1,5 @@
 use crate::back::code_generator::generator::CodeGenerator;
-use crate::middle::format::ir_types::FunctionName;
+use crate::middle::format::ir_types::{fn_name_from_block, FunctionName};
 use crate::middle::format::types::Program;
 
 mod generator;
@@ -26,7 +26,7 @@ pub struct Context {
 
 impl Context {
     pub fn new_block(&mut self) -> String {
-        let fn_name = format!("{}/{}", self.fn_name, self.block_count);
+        let fn_name = fn_name_from_block(&self.fn_name, self.block_count);
         self.block_count += 1;
         fn_name
     }
@@ -72,6 +72,7 @@ mod tests {
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
+
     // TODO: these tests don't do anything at the moment, you should review it and make sure the output is correct.
     // TODO: should add a mcfunction interpreter to test the output of the code generator
     #[test]
@@ -91,6 +92,7 @@ mod tests {
 
         println!("{}", hmasm);
     }
+
     #[test]
     fn test_generate_for_code() {
         let mut mock_fs = MockFileSystem::new("/".to_string());

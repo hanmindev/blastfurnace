@@ -108,9 +108,13 @@ pub struct IrBlock {
     pub statements: Vec<IrStatement>,
 }
 
+pub fn fn_name_from_block(fn_name: &str, block_index: usize) -> String {
+    format!("{}/{}", fn_name, block_index)
+}
+
 impl IrBlock {
     pub fn get_fn_name(&self) -> String {
-        format!("{}_{}", self.root_fn_name, self.fn_block_index)
+        fn_name_from_block(&self.root_fn_name, self.fn_block_index)
     }
 }
 
