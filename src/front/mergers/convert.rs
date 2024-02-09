@@ -786,11 +786,6 @@ mod tests {
 
         let mut program = program_merger.export_program();
 
-        println!("{}", program
-            .function_definitions
-            .get("pkg/root/0_main")
-            .unwrap());
-
         assert_eq!(
             test_calculation(
                 "pkg/root/0_main",
@@ -819,11 +814,6 @@ mod tests {
         program_merger.read_package("pkg", mock_file_system);
 
         let mut program = program_merger.export_program();
-
-        println!("{}", program
-            .function_definitions
-            .get("pkg/root/0_main")
-            .unwrap());
 
         assert_eq!(
             test_calculation(
