@@ -1,3 +1,3 @@
 pub mod new;
 pub mod build;
-mod arg_runner;
+pub mod arg_runner;
