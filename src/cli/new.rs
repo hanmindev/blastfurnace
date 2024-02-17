@@ -1,6 +1,6 @@
+use crate::cli::arg_runner::ArgRunner;
 use camino::Utf8PathBuf;
 use clap::Args;
-use crate::cli::arg_runner::ArgRunner;
 
 #[derive(Debug, Args)]
 pub struct NewArgs {
