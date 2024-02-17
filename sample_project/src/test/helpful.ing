@@ -1,0 +1,3 @@
+pub fn helpful_function(a: int, b: int) -> int {
+    return a + b * a;
+}
