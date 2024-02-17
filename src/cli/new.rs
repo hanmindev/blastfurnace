@@ -1,7 +1,6 @@
 use camino::Utf8PathBuf;
 use clap::Args;
 use crate::cli::arg_runner::ArgRunner;
-use crate::cli::build::BuildArgs;
 
 #[derive(Debug, Args)]
 pub struct NewArgs {
@@ -13,7 +12,7 @@ pub struct NewArgs {
     name: Option<String>,
 }
 
-impl ArgRunner for BuildArgs {
+impl ArgRunner for NewArgs {
     fn run(&self) -> String {
         format!("{:?}", self)
     }
