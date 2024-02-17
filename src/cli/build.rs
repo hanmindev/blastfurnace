@@ -1,4 +1,4 @@
-use crate::cli::arg_runner::ArgRunner;
+use crate::cli::arg_runner::{ArgRunner, CliMessage};
 use clap::Args;
 
 #[derive(Debug, Args)]
@@ -9,7 +9,7 @@ pub struct BuildArgs {
 }
 
 impl ArgRunner for BuildArgs {
-    fn run(&self) -> String {
-        format!("{:?}", self)
+    fn run(&self) -> CliMessage {
+        CliMessage::Message(format!("{:?}", self))
     }
 }
