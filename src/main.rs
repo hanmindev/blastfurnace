@@ -18,7 +18,7 @@ pub struct App {
 enum Command {
     /// Help message for creating a new project.
     New(NewArgs),
-    /// Help message for build the project.
+    /// Help message for building a project.
     Build(BuildArgs),
 }
 
