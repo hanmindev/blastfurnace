@@ -1,12 +1,12 @@
-use clap::{Args, Parser, Subcommand};
+use crate::cli::arg_runner::ArgRunner;
 use crate::cli::build::BuildArgs;
 use crate::cli::new::NewArgs;
-use crate::cli::arg_runner::ArgRunner;
+use clap::{Args, Parser, Subcommand};
 
 mod back;
+mod cli;
 mod front;
 mod middle;
-mod cli;
 
 #[derive(Debug, Parser)]
 #[clap(name = "BlastFurnace", version)]
@@ -25,8 +25,11 @@ enum Command {
 
 fn main() {
     let app = App::parse();
-    println!("{}", match app.command {
-        Command::New(args) => args.run(),
-        Command::Build(args) => args.run()
-    });
+    println!(
+        "{}",
+        match app.command {
+            Command::New(args) => args.run(),
+            Command::Build(args) => args.run(),
+        }
+    );
 }

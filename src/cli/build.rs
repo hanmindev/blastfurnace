@@ -1,5 +1,5 @@
-use clap::Args;
 use crate::cli::arg_runner::ArgRunner;
+use clap::Args;
 
 #[derive(Debug, Args)]
 pub struct BuildArgs {
