@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub struct DefinitionTable<T> {
     pub function_definitions: HashMap<T, FnDef>,
     pub struct_definitions: HashMap<T, StructDef>,
-    pub var_definitions: HashMap<T, VarDecl>,
+    pub global_var_definitions: HashMap<T, VarDecl>,
 }
 
 impl<T> DefinitionTable<T> {
@@ -13,7 +13,7 @@ impl<T> DefinitionTable<T> {
         DefinitionTable {
             function_definitions: Default::default(),
             struct_definitions: Default::default(),
-            var_definitions: Default::default(),
+            global_var_definitions: Default::default(),
         }
     }
 }

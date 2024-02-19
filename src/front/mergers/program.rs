@@ -70,17 +70,17 @@ impl<R: FileSystem> ProgramMerger<R> {
                     ),
             );
 
-            def_table.var_definitions.extend(
+            def_table.global_var_definitions.extend(
                 table
                     .merged_module
                     .public_definitions
-                    .var_definitions
+                    .global_var_definitions
                     .drain()
                     .chain(
                         table
                             .merged_module
                             .private_definitions
-                            .var_definitions
+                            .global_var_definitions
                             .drain(),
                     ),
             );

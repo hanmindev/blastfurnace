@@ -220,14 +220,14 @@ impl ModuleMerger {
                 .as_mut()
                 .unwrap()
                 .public_definitions
-                .var_definitions
+                .global_var_definitions
         } else {
             &mut self
                 .merged_module
                 .as_mut()
                 .unwrap()
                 .private_definitions
-                .var_definitions
+                .global_var_definitions
         };
         definitions.insert(global_resolved_name, definition);
     }
