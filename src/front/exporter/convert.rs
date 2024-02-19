@@ -572,7 +572,7 @@ pub fn convert_fn(
 
     IrFnDef {
         fn_name: convert_reference(&ast_node.name),
-        statements: convert_block(&mut ctx, ast_node.body.as_ref().unwrap(), true).statements,
+        statements: convert_block(&mut ctx, &ast_node.body, true).statements,
         block_count: ctx.block_count,
     }
 }

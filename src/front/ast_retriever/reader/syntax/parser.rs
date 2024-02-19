@@ -829,7 +829,7 @@ impl<T: TokenStream> Parser<T> {
             Type::Void
         };
 
-        let body = Some(self.parse_block()?);
+        let body = self.parse_block()?;
 
         Ok(FnDef {
             return_type,
@@ -1050,7 +1050,7 @@ mod tests {
                 return_type: Type::Void,
                 name: Reference::new("main".to_string()),
                 args: Vec::new(),
-                body: Some(Block {
+                body: Block {
                     definitions: Vec::new(),
                     statements: vec![Statement::Return(Box::from(
                         Expression {
@@ -1060,7 +1060,7 @@ mod tests {
                             type_: None,
                         }
                     ))],
-                }),
+                },
                 mods: Rc::new(Vec::new()),
             })
         );
@@ -1494,7 +1494,7 @@ mod tests {
                         name: Reference::new("b".to_string()),
                     },
                 ],
-                body: Some(Block {
+                body: (Block {
                     definitions: vec![],
                     statements: vec![(Statement::Return(Box::from(
                         Expression {
@@ -2456,7 +2456,7 @@ mod tests {
                     type_: Some(Type::Int),
                     name: Reference::new("a".to_string()),
                 }],
-                body: Some(Block {
+                body: (Block {
                     definitions: vec![],
                     statements: vec![
                         (Statement::VarDecl(VarDecl {

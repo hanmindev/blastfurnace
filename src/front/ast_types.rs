@@ -128,7 +128,7 @@ pub struct FnDef {
     pub mods: Rc<Vec<FnMod>>,
     pub name: Reference,
     pub args: Vec<VarDef>,
-    pub body: Option<Block>, // only None for imported
+    pub body: Block,
 }
 
 #[derive(Debug, PartialEq)]
