@@ -1,8 +1,9 @@
 pub mod ast_retriever;
 mod ast_types;
-mod exporter;
 pub mod file_system;
 pub mod mergers;
+mod exporter;
+mod passes;
 
 #[cfg(test)]
 mod tests {
