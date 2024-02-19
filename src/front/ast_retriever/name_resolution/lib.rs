@@ -65,7 +65,7 @@ mod tests {
                     }
                 );
 
-                match &fn_def.body.as_ref().unwrap().statements[0] {
+                match &fn_def.body.statements[0] {
                     (Statement::Expression(bx)) => match &bx.expr {
                         ExpressionEnum::Binary(e0, _, _) => match &e0.expr {
                             ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
@@ -88,7 +88,7 @@ mod tests {
                         panic!("Expected Expression");
                     }
                 };
-                match &fn_def.body.as_ref().unwrap().statements[1] {
+                match &fn_def.body.statements[1] {
                     (Statement::VarDecl(var_decl)) => {
                         assert_eq!(
                             var_decl.var_def.name.clone(),
@@ -331,7 +331,7 @@ mod tests {
                     }
                 );
 
-                match &fn_def.body.as_ref().unwrap().statements[0] {
+                match &fn_def.body.statements[0] {
                     (Statement::VarDecl(var_decl)) => {
                         assert_eq!(
                             var_decl.var_def.type_,
@@ -355,7 +355,7 @@ mod tests {
                         panic!("Expected VarDecl");
                     }
                 };
-                match &fn_def.body.as_ref().unwrap().statements[1] {
+                match &fn_def.body.statements[1] {
                     (Statement::VarDecl(var_decl)) => {
                         assert_eq!(
                             var_decl.var_def.type_,

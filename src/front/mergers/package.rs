@@ -77,7 +77,7 @@ mod tests {
                     global_resolved: Some(gr),
                 },
                 return_type: Void,
-                body: Some(Block {
+                body: (Block {
                     definitions: vec![],
                     statements: vec![],
                 }),
@@ -101,7 +101,7 @@ mod tests {
                     global_resolved: Some(gr),
                 },
                 return_type: Void,
-                body: Some(Block {
+                body: (Block {
                     definitions: vec![],
                     statements: vec![],
                 }),
@@ -145,7 +145,7 @@ mod tests {
                     global_resolved: Some(gr),
                 },
                 return_type: Void,
-                body: Some(Block {
+                body: (Block {
                     definitions: vec![],
                     statements: vec![(Statement::Expression(Box::new(
                         Expression {
@@ -187,7 +187,7 @@ mod tests {
                     global_resolved: Some(gr),
                 },
                 return_type: Void,
-                body: Some(Block {
+                body: (Block {
                     definitions: vec![],
                     statements: vec![],
                 }),
@@ -229,8 +229,6 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .body
-                .as_ref()
-                .unwrap()
                 .statements[0],
             (Statement::Expression(Box::new(Expression {
                 type_: None,
