@@ -4,10 +4,10 @@ mod tests {
     use crate::front::ast_retriever::name_resolution::resolvers::ResolverError::Redefinition;
     use crate::front::ast_retriever::name_resolution::scope_table::ScopeTable;
     use crate::front::ast_retriever::string_to_module;
-    use crate::front::ast_types::{ExpressionEnum, StatementBlock};
     use crate::front::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, Type,
     };
+    use crate::front::ast_types::{ExpressionEnum, StatementBlock};
     use std::rc::Rc;
 
     #[test]
@@ -68,7 +68,9 @@ mod tests {
                 match &fn_def.body.as_ref().unwrap().statements[0] {
                     StatementBlock::Statement(Statement::Expression(bx)) => match &bx.expr {
                         ExpressionEnum::Binary(e0, _, _) => match &e0.expr {
-                            ExpressionEnum::AtomicExpression(AtomicExpression::Variable(name_path)) => {
+                            ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
+                                name_path,
+                            )) => {
                                 assert_eq!(
                                     name_path.name.clone(),
                                     Reference {
@@ -97,7 +99,9 @@ mod tests {
                             }
                         );
                         match &var_decl.expr.as_ref().unwrap().expr {
-                            ExpressionEnum::AtomicExpression(AtomicExpression::Variable(name_path)) => {
+                            ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
+                                name_path,
+                            )) => {
                                 assert_eq!(
                                     name_path.name.clone(),
                                     Reference {

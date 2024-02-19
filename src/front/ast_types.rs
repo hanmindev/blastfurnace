@@ -164,7 +164,7 @@ pub enum ExpressionEnum {
 #[derive(Debug, PartialEq)]
 pub struct Expression {
     pub expr: ExpressionEnum,
-    pub type_: Option<Type>
+    pub type_: Option<Type>,
 }
 #[derive(Debug, PartialEq)]
 pub struct If {
