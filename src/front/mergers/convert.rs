@@ -1,9 +1,6 @@
 pub mod context;
 
-use crate::front::ast_types::{
-    AtomicExpression, BinOp, Block, Expression, FnCall, FnDef, For, GlobalResolvedName, If,
-    LiteralValue, Reference, Statement, StatementBlock, UnOp, VarAssign, VarDecl, While,
-};
+use crate::front::ast_types::{AtomicExpression, BinOp, Block, Expression, ExpressionEnum, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue, Reference, Statement, StatementBlock, UnOp, VarAssign, VarDecl, While};
 use crate::front::mergers::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{
@@ -109,9 +106,9 @@ fn rec_convert_expr(
     ast_node: &Expression,
     result_var_name: &Address,
 ) -> ExprEval {
-    return match ast_node {
-        Expression::AtomicExpression(x) => set_from_atomic(context, x, result_var_name),
-        Expression::Unary(unop, e) => {
+    return match &ast_node.expr {
+        ExpressionEnum::AtomicExpression(x) => set_from_atomic(context, x, result_var_name),
+        ExpressionEnum::Unary(unop, e) => {
             let mut s = vec![];
 
             let mut expr = rec_convert_expr(context, e, &result_var_name);
@@ -151,7 +148,7 @@ fn rec_convert_expr(
                 existing_address: None,
             }
         }
-        Expression::Binary(e0, binop, e1) => {
+        ExpressionEnum::Binary(e0, binop, e1) => {
             let mut s = vec![];
 
             let mut expr0 = rec_convert_expr(context, e0, result_var_name);
@@ -236,8 +233,8 @@ fn convert_expr_for_comparison(
     context: &mut Context,
     ast_node: &Expression,
 ) -> (Vec<IrStatement>, Cond, bool) {
-    match ast_node {
-        Expression::AtomicExpression(x) => {
+    match &ast_node.expr {
+        ExpressionEnum::AtomicExpression(x) => {
             let a0 = context.get_variable();
             let expr = set_from_atomic(context, x, &a0);
             let mut s = expr.statements;
@@ -253,7 +250,7 @@ fn convert_expr_for_comparison(
                 false,
             );
         }
-        Expression::Unary(unop, x) => {
+        ExpressionEnum::Unary(unop, x) => {
             if matches!(unop, UnOp::Not) {
                 let a0 = context.get_variable();
                 let expr = rec_convert_expr(context, x, &a0);
@@ -272,7 +269,7 @@ fn convert_expr_for_comparison(
                 );
             }
         }
-        Expression::Binary(e0, binop, e1) => match binop {
+        ExpressionEnum::Binary(e0, binop, e1) => match binop {
             BinOp::Eq | BinOp::Neq | BinOp::Lt | BinOp::Gt | BinOp::Leq | BinOp::Geq => {
                 let a0 = context.get_variable();
                 let mut expr0 = rec_convert_expr(context, e0, &a0);

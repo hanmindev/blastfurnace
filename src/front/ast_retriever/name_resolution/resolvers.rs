@@ -1,9 +1,5 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
-use crate::front::ast_types::{
-    AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, FnCall, FnDef, For,
-    If, LiteralValue, Module, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign,
-    VarDecl, VarDef, While,
-};
+use crate::front::ast_types::{AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, ExpressionEnum, FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Statement, StatementBlock, StructDef, Type, Use, VarAssign, VarDecl, VarDef, While};
 
 pub trait Resolvable {
     fn resolve_name(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {
@@ -91,7 +87,7 @@ impl Resolvable for Statement {
 
 impl Resolvable for VarDef {
     fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        if let Type::Struct(struct_name) = &mut self.type_ {
+        if let Some(Type::Struct(struct_name)) = &mut self.type_ {
             struct_name.module_resolved =
                 Some(scope_table.scope_lookup_force(&struct_name.raw, SymbolType::Struct));
         }
@@ -156,14 +152,14 @@ impl Resolvable for FnDef {
 
 impl Resolvable for Expression {
     fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        match self {
-            Expression::AtomicExpression(atomic) => {
+        match &mut self.expr {
+            ExpressionEnum::AtomicExpression(atomic) => {
                 atomic.resolve_name(scope_table)?;
             }
-            Expression::Unary(_, expression) => {
+            ExpressionEnum::Unary(_, expression) => {
                 expression.resolve_name(scope_table)?;
             }
-            Expression::Binary(e0, _, e1) => {
+            ExpressionEnum::Binary(e0, _, e1) => {
                 e0.resolve_name(scope_table)?;
                 e1.resolve_name(scope_table)?;
             }
