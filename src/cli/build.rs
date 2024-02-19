@@ -1,6 +1,6 @@
-use std::fs;
+use std::{fs, io};
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Error, Read, Write};
 use camino::Utf8PathBuf;
 use crate::cli::arg_runner::{ArgRunner, CliMessage};
 use clap::Args;
@@ -86,8 +86,11 @@ impl ArgRunner for BuildArgs {
 
         optimize(&mut program, &mut vec![Box::new(DeleteUnused)]);
 
-        if let Err(_) = fs::create_dir(&abs_path.join("target")) {
-            return CliMessage::Error(String::from("Could not create the directory specified. Check permissions and try again."));
+        if let Err(e) = fs::create_dir(&abs_path.join("target")) {
+            match e.kind() {
+                io::ErrorKind::AlreadyExists => {}
+                _ => return CliMessage::Error(format!("Could not create directory 'target'. Error: {}", e)),
+            }
         }
 
 
