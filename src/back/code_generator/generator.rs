@@ -1,5 +1,4 @@
 use crate::back::code_generator::{Context, GeneratedCode, MFunction};
-use crate::middle::format::ir_types::AddressOrigin::Const;
 use crate::middle::format::ir_types::CompareOp;
 use crate::middle::format::ir_types::Cond;
 use crate::middle::format::ir_types::{Address, IrBlock, IrIf, IrStatement};
@@ -49,7 +48,7 @@ impl CodeGenerator for IrScoreOperation {
         match self.right.name {
             AddressOrigin::Const(x) => match self.op {
                 IrScoreOperationType::Add | IrScoreOperationType::Sub => {
-                    let mut con = if self.op == IrScoreOperationType::Sub {
+                    let con = if self.op == IrScoreOperationType::Sub {
                         -x
                     } else {
                         x
@@ -227,8 +226,8 @@ fn if_unless_helper(
 
                 // should be type_ var0 op var1
 
-                if let Const(c1) = x.var_1.name {
-                    if let Const(c0) = x.var_0.name {
+                if let AddressOrigin::Const(c1) = x.var_1.name {
+                    if let AddressOrigin::Const(c0) = x.var_0.name {
                         return if match op {
                             "=" => (c0 == c1 && type_ == "if") || c0 != c1 && type_ == "unless",
                             "<" => c0 < c1,
