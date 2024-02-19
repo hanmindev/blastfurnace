@@ -887,34 +887,31 @@ impl<T: TokenStream> Parser<T> {
         };
 
         loop {
-            if let Token::Ident(s) = self.eat(&Any)?.0 {
-                match self.eat(&Any)? {
+            match self.eat(&Any)? {
+                (Token::Ident(s), _) => match self.eat(&Any)? {
                     (Token::Colon, _) => {
                         self.eat(&Token::Colon)?;
                         use_.path.push(s);
                     }
-                    (Token::LBrace, _) => {
-                        use_.path.push(s);
-                        break;
-                    }
                     (Token::Semicolon, _) | (Token::As, _) => {
                         use_.elements.push(UseElement {
                             origin_name: s.clone(),
-                            imported_name: Reference::new((|| {
+                            imported_name: Reference::new({
                                 if self.eat(&Token::As).is_ok() {
                                     let tok = self.eat(&Any)?;
-                                    return if let Token::Ident(s) = tok.0 {
-                                        Ok(s)
+                                    if let Token::Ident(s) = tok.0 {
+                                        s
                                     } else {
-                                        Err(ParseError::Unexpected(
+                                        return Err(ParseError::Unexpected(
                                             tok,
                                             "Expected identifier for imported name alias"
                                                 .to_string(),
-                                        ))
-                                    };
+                                        ));
+                                    }
+                                } else {
+                                    s
                                 }
-                                Ok(s)
-                            })()?),
+                            }),
                         });
 
                         return Ok(use_);
@@ -925,6 +922,55 @@ impl<T: TokenStream> Parser<T> {
                             "Expected identifier for use path".to_string(),
                         ));
                     }
+                },
+                (Token::LBrace, _) => {
+                    loop {
+                        match self.eat(&Any)? {
+                            (Token::RBrace, _) => {
+                                self.eat(&Token::Semicolon)?;
+                                break;
+                            }
+                            (Token::Ident(s), _) => {
+                                use_.elements.push(UseElement {
+                                    origin_name: s.clone(),
+                                    imported_name: Reference::new({
+                                        if self.eat(&Token::As).is_ok() {
+                                            let tok = self.eat(&Any)?;
+                                            if let Token::Ident(s) = tok.0 {
+                                                s
+                                            } else {
+                                                return Err(ParseError::Unexpected(
+                                                    tok,
+                                                    "Expected identifier for imported name alias"
+                                                        .to_string(),
+                                                ));
+                                            }
+                                        } else {
+                                            s
+                                        }
+                                    }),
+                                });
+                                if self.eat(&Token::Comma).is_err() {
+                                    break;
+                                }
+                            }
+                            tok => {
+                                return Err(ParseError::Unexpected(
+                                    tok.clone(),
+                                    "Expected identifier for use path".to_string(),
+                                ));
+                            }
+                        }
+                    }
+                    self.eat(&Token::RBrace)?;
+                    self.eat(&Token::Semicolon)?;
+                    break;
+                }
+                tok => {
+                    return Err(ParseError::Unexpected(
+                        tok.clone(),
+                        "Expected identifier for use path".to_string(),
+                    ));
                 }
             }
         }
@@ -2006,5 +2052,44 @@ mod tests {
                 mods: Rc::new(Vec::new()),
             }))
         );
+    }
+
+    #[test]
+    fn multiple_use() {
+        let statement = "use root::test::{foo, bar};";
+        let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
+            statement.to_string(),
+        ))));
+        let mut parser = Parser::new(lexer);
+
+        let module = parser.parse_module_no_brace(false).unwrap();
+
+        assert_eq!(module.uses.len(), 1);
+        assert_eq!(
+            module.uses[0],
+            Use {
+                path: vec!["root".to_string(), "test".to_string()],
+                elements: vec![
+                    UseElement {
+                        origin_name: "foo".to_string(),
+                        imported_name: Reference {
+                            raw: "foo".to_string(),
+                            module_resolved: None,
+                            global_resolved: None
+                        }
+                    },
+                    UseElement {
+                        origin_name: "bar".to_string(),
+                        imported_name: Reference {
+                            raw: "bar".to_string(),
+                            module_resolved: None,
+                            global_resolved: None
+                        }
+                    }
+                ]
+            }
+        );
+
+        println!("{:?}", module);
     }
 }
