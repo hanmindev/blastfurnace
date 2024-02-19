@@ -44,7 +44,7 @@ impl<T: FileSystem> FileRetriever<T> {
 
             let module_path = file_path_ext.with_extension("");
 
-            if self.file_system.enter_dir(module_path.clone()).unwrap() {
+            if self.file_system.enter_dir(module_path.clone()).unwrap_or(false) {
                 self.read_nodes_rec(&mut module);
                 self.file_system.exit_dir();
             }
@@ -53,7 +53,10 @@ impl<T: FileSystem> FileRetriever<T> {
                 String::from("/root")
             } else {
                 let mut new_path = String::from("/root/");
-                new_path.push_str(&module_path.into_string());
+                let it = module_path.iter();
+                let module_path = it.collect::<Vec<&str>>().join("/");
+
+                new_path.push_str(&module_path);
                 new_path
             };
 

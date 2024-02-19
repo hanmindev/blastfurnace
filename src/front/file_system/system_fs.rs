@@ -43,6 +43,11 @@ impl ByteStreamable for FileReader {
     }
 }
 
+impl SystemFs {
+    fn get_abs_path(&self) -> AbsUtf8PathBuf {
+        self.root_dir.join(&self.current_dir)
+    }
+}
 impl FileSystem for SystemFs {
     fn new(root: AbsUtf8PathBuf) -> FileSystemResult<SystemFs> {
         if !root.is_absolute() { return Err(FileSystemError::NotAbsolute); }
@@ -52,12 +57,12 @@ impl FileSystem for SystemFs {
 
     fn ls_files_with_extension(&self, extension: &str) -> Vec<RelUtf8PathBuf> {
         let mut files = Vec::new();
-        if let Ok(paths) = fs::read_dir(&self.current_dir) {
+        if let Ok(paths) = fs::read_dir(self.get_abs_path()) {
             for dir_entry_res in paths {
                 if let Ok(dir_entry) = dir_entry_res {
                     if let Ok(path) = RelUtf8PathBuf::try_from(dir_entry.path()) {
                         if path.extension() == Some(extension) {
-                            files.push(path);
+                            files.push(path.strip_prefix(&self.root_dir).unwrap().to_path_buf());
                         }
                     }
                 }
