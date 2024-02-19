@@ -147,8 +147,8 @@ mod tests {
                 return_type: Void,
                 body: (Block {
                     definitions: vec![],
-                    statements: vec![(Statement::Expression(Box::new(
-                        Expression {
+                    statements: vec![
+                        (Statement::Expression(Box::new(Expression {
                             type_: None,
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(
                                 Box::new(FnCall {
@@ -164,8 +164,8 @@ mod tests {
                                     args: vec![],
                                 })
                             )),
-                        },
-                    )))],
+                        },)))
+                    ],
                 }),
                 mods: Rc::new(vec![]),
                 args: vec![],
@@ -246,7 +246,7 @@ mod tests {
                         args: vec![],
                     }
                 ))),
-            },)))
+            })))
         );
     }
 }

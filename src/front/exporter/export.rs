@@ -1,11 +1,10 @@
-use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
 use crate::front::ast_types::GlobalResolvedName;
-use crate::middle::format::types::{Program};
 use crate::front::exporter::convert::context::ConstGenerator;
 use crate::front::exporter::convert::{convert_fn, global_name_updater};
 use crate::front::mergers::definition_table::DefinitionTable;
-
+use crate::middle::format::types::Program;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct FrontProgram {
@@ -16,7 +15,11 @@ pub struct FrontProgram {
 impl FrontProgram {
     pub fn export_program(&self) -> Program {
         let mut program = Program {
-            public_functions: self.public_functions.iter().map(|x| global_name_updater(x)).collect(),
+            public_functions: self
+                .public_functions
+                .iter()
+                .map(|x| global_name_updater(x))
+                .collect(),
             function_definitions: HashMap::new(),
         };
 
@@ -33,5 +36,4 @@ impl FrontProgram {
 
         program
     }
-
 }

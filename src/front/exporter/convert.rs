@@ -2,17 +2,16 @@ pub mod context;
 
 use crate::front::ast_types::{
     AtomicExpression, BinOp, Block, Expression, ExpressionEnum, FnCall, FnDef, For,
-    GlobalResolvedName, If, LiteralValue, Reference, Statement, UnOp, VarAssign,
-    VarDecl, While,
+    GlobalResolvedName, If, LiteralValue, Reference, Statement, UnOp, VarAssign, VarDecl, While,
 };
 use crate::front::exporter::convert::context::Context;
+use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{
     Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
     IrScoreOperation, IrScoreOperationType, IrStatement,
 };
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
-use crate::front::mergers::definition_table::DefinitionTable;
 
 pub fn global_name_updater(global_resolved_name: &Rc<GlobalResolvedName>) -> GlobalName {
     format!(

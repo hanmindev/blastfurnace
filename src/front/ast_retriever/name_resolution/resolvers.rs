@@ -1,8 +1,8 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, ExpressionEnum,
-    FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Statement, StructDef,
-    Type, Use, VarAssign, VarDecl, VarDef, While,
+    FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Statement, StructDef, Type, Use,
+    VarAssign, VarDecl, VarDef, While,
 };
 
 pub trait Resolvable {

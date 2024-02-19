@@ -1,11 +1,11 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
+use crate::front::exporter::export::FrontProgram;
 use crate::front::file_system::fs::FileSystem;
+use crate::front::mergers::definition_table::DefinitionTable;
 use crate::front::mergers::package::{Package, Packager};
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 use std::rc::Rc;
-use crate::front::exporter::export::FrontProgram;
-use crate::front::mergers::definition_table::DefinitionTable;
 
 pub struct ProgramMerger<R> {
     root_package: String,

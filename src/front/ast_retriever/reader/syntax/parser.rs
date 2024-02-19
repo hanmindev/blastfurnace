@@ -4,8 +4,8 @@ use crate::front::ast_retriever::reader::lexical::token_types::Token::Any;
 use crate::front::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression,
     ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath,
-    Reference, Statement, StructDef, Type, UnOp, Use, UseElement, VarAssign,
-    VarDecl, VarDef, VarMod, While,
+    Reference, Statement, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef,
+    VarMod, While,
 };
 use std::collections::{HashMap, VecDeque};
 use std::mem;
@@ -576,9 +576,7 @@ impl<T: TokenStream> Parser<T> {
                                     .push(Definition::VarDecl(self.parse_var_decl()?));
                             }
                         } else {
-                            statements.push(Statement::VarDecl(
-                                self.parse_var_decl()?,
-                            ));
+                            statements.push(Statement::VarDecl(self.parse_var_decl()?));
                         }
                         continue;
                     }
@@ -1052,14 +1050,12 @@ mod tests {
                 args: Vec::new(),
                 body: Block {
                     definitions: Vec::new(),
-                    statements: vec![Statement::Return(Box::from(
-                        Expression {
-                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                                LiteralValue::Int(0)
-                            )),
-                            type_: None,
-                        }
-                    ))],
+                    statements: vec![Statement::Return(Box::from(Expression {
+                        expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                            LiteralValue::Int(0)
+                        )),
+                        type_: None,
+                    }))],
                 },
                 mods: Rc::new(Vec::new()),
             })
@@ -1496,8 +1492,8 @@ mod tests {
                 ],
                 body: (Block {
                     definitions: vec![],
-                    statements: vec![(Statement::Return(Box::from(
-                        Expression {
+                    statements: vec![
+                        (Statement::Return(Box::from(Expression {
                             type_: None,
                             expr: ExpressionEnum::Binary(
                                 Box::from(Expression {
@@ -1518,8 +1514,8 @@ mod tests {
                                     ),
                                 }),
                             ),
-                        }
-                    )))],
+                        })))
+                    ],
                 }),
                 mods: Rc::new(Vec::new()),
             }))
@@ -1604,14 +1600,14 @@ mod tests {
                 }),
                 body: Box::from(Block {
                     definitions: vec![],
-                    statements: vec![(Statement::Return(Box::from(
-                        Expression {
+                    statements: vec![
+                        (Statement::Return(Box::from(Expression {
                             type_: None,
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                                 LiteralValue::Int(0)
                             )),
-                        }
-                    )))],
+                        })))
+                    ],
                 }),
                 else_: None,
             }))
@@ -1653,14 +1649,14 @@ mod tests {
                 }),
                 body: Box::from(Block {
                     definitions: vec![],
-                    statements: vec![(Statement::Return(Box::from(
-                        Expression {
+                    statements: vec![
+                        (Statement::Return(Box::from(Expression {
                             type_: None,
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                                 LiteralValue::Int(0)
                             )),
-                        }
-                    )))],
+                        })))
+                    ],
                 }),
                 else_: Some(Box::from(If {
                     cond: Box::from(Expression {
@@ -1683,14 +1679,14 @@ mod tests {
                     }),
                     body: Box::from(Block {
                         definitions: vec![],
-                        statements: vec![(Statement::Return(Box::from(
-                            Expression {
+                        statements: vec![
+                            (Statement::Return(Box::from(Expression {
                                 type_: None,
                                 expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                                     LiteralValue::Int(1)
                                 )),
-                            }
-                        )))],
+                            })))
+                        ],
                     }),
                     else_: Some(Box::from(If {
                         cond: Box::from(Expression {
@@ -1701,14 +1697,14 @@ mod tests {
                         }),
                         body: Box::from(Block {
                             definitions: vec![],
-                            statements: vec![(Statement::Return(
-                                Box::from(Expression {
+                            statements: vec![
+                                (Statement::Return(Box::from(Expression {
                                     type_: None,
                                     expr: ExpressionEnum::AtomicExpression(
                                         AtomicExpression::Literal(LiteralValue::Int(2))
                                     ),
-                                })
-                            ))],
+                                })))
+                            ],
                         }),
                         else_: None,
                     })),
@@ -1751,29 +1747,31 @@ mod tests {
                 }),
                 body: Box::from(Block {
                     definitions: vec![],
-                    statements: vec![(Statement::VarAssign(VarAssign {
-                        name_path: Parser::<Lexer>::string_to_namepath("a"),
-                        expr: Box::from(Expression {
-                            type_: None,
-                            expr: ExpressionEnum::Binary(
-                                Box::from(Expression {
-                                    type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(
-                                        AtomicExpression::Variable(
-                                            Parser::<Lexer>::string_to_namepath("a")
-                                        )
-                                    ),
-                                }),
-                                BinOp::Add,
-                                Box::from(Expression {
-                                    type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(
-                                        AtomicExpression::Literal(LiteralValue::Int(1))
-                                    ),
-                                }),
-                            ),
-                        }),
-                    }))],
+                    statements: vec![
+                        (Statement::VarAssign(VarAssign {
+                            name_path: Parser::<Lexer>::string_to_namepath("a"),
+                            expr: Box::from(Expression {
+                                type_: None,
+                                expr: ExpressionEnum::Binary(
+                                    Box::from(Expression {
+                                        type_: None,
+                                        expr: ExpressionEnum::AtomicExpression(
+                                            AtomicExpression::Variable(
+                                                Parser::<Lexer>::string_to_namepath("a")
+                                            )
+                                        ),
+                                    }),
+                                    BinOp::Add,
+                                    Box::from(Expression {
+                                        type_: None,
+                                        expr: ExpressionEnum::AtomicExpression(
+                                            AtomicExpression::Literal(LiteralValue::Int(1))
+                                        ),
+                                    }),
+                                ),
+                            }),
+                        }))
+                    ],
                 }),
             }))
         );
@@ -1847,29 +1845,31 @@ mod tests {
                 }))),
                 body: Block {
                     definitions: vec![],
-                    statements: vec![(Statement::VarAssign(VarAssign {
-                        name_path: Parser::<Lexer>::string_to_namepath("a"),
-                        expr: Box::from(Expression {
-                            type_: None,
-                            expr: ExpressionEnum::Binary(
-                                Box::from(Expression {
-                                    type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(
-                                        AtomicExpression::Variable(
-                                            Parser::<Lexer>::string_to_namepath("a")
-                                        )
-                                    ),
-                                }),
-                                BinOp::Add,
-                                Box::from(Expression {
-                                    type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(
-                                        AtomicExpression::Literal(LiteralValue::Int(1))
-                                    ),
-                                }),
-                            ),
-                        }),
-                    }))],
+                    statements: vec![
+                        (Statement::VarAssign(VarAssign {
+                            name_path: Parser::<Lexer>::string_to_namepath("a"),
+                            expr: Box::from(Expression {
+                                type_: None,
+                                expr: ExpressionEnum::Binary(
+                                    Box::from(Expression {
+                                        type_: None,
+                                        expr: ExpressionEnum::AtomicExpression(
+                                            AtomicExpression::Variable(
+                                                Parser::<Lexer>::string_to_namepath("a")
+                                            )
+                                        ),
+                                    }),
+                                    BinOp::Add,
+                                    Box::from(Expression {
+                                        type_: None,
+                                        expr: ExpressionEnum::AtomicExpression(
+                                            AtomicExpression::Literal(LiteralValue::Int(1))
+                                        ),
+                                    }),
+                                ),
+                            }),
+                        }))
+                    ],
                 },
             }))
         );
@@ -1897,10 +1897,7 @@ mod tests {
                 }),
                 body: Box::from(Block {
                     definitions: vec![],
-                    statements: vec![
-                        (Statement::Break),
-                        (Statement::Continue),
-                    ],
+                    statements: vec![(Statement::Break), (Statement::Continue),],
                 }),
             }))
         );
