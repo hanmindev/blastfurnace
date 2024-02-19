@@ -5,14 +5,14 @@ use crate::front::ast_types::{
     GlobalResolvedName, If, LiteralValue, Reference, Statement, StatementBlock, UnOp, VarAssign,
     VarDecl, While,
 };
-use crate::front::mergers::convert::context::Context;
-use crate::front::mergers::definition_table::DefinitionTable;
+use crate::front::exporter::convert::context::Context;
 use crate::middle::format::ir_types::{
     Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
     IrScoreOperation, IrScoreOperationType, IrStatement,
 };
 use crate::middle::format::types::GlobalName;
 use std::rc::Rc;
+use crate::front::mergers::definition_table::DefinitionTable;
 
 pub fn global_name_updater(global_resolved_name: &Rc<GlobalResolvedName>) -> GlobalName {
     format!(
@@ -745,7 +745,8 @@ mod tests {
 
         program_merger.read_package("pkg", mock_file_system);
 
-        let mut program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         match &program
             .function_definitions
@@ -779,7 +780,8 @@ mod tests {
 
         program_merger.read_package("pkg", mock_file_system);
 
-        let mut program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         assert_eq!(
             test_calculation(
@@ -806,7 +808,8 @@ mod tests {
 
         program_merger.read_package("pkg", mock_file_system);
 
-        let mut program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         assert_eq!(
             test_calculation(
@@ -833,7 +836,8 @@ mod tests {
 
         program_merger.read_package("pkg", mock_file_system);
 
-        let mut program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         assert_eq!(
             test_calculation(
@@ -860,7 +864,8 @@ mod tests {
 
         program_merger.read_package("pkg", mock_file_system);
 
-        let mut program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         assert_eq!(
             test_calculation(
@@ -887,7 +892,8 @@ mod tests {
 
         program_merger.read_package("pkg", mock_file_system);
 
-        let mut program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         assert_eq!(
             test_calculation(

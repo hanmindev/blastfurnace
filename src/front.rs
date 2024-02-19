@@ -2,6 +2,7 @@ pub mod ast_retriever;
 mod ast_types;
 pub mod file_system;
 pub mod mergers;
+mod exporter;
 
 #[cfg(test)]
 mod tests {
@@ -25,7 +26,8 @@ mod tests {
         program_merger.read_package("test", mock_fs_0);
         program_merger.read_package("library", mock_fs_1);
 
-        let program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         assert_eq!(program.public_functions.len(), 1);
     }
