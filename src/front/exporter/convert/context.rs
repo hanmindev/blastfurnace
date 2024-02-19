@@ -1,10 +1,10 @@
 use crate::front::ast_types::{GlobalResolvedName, NamePath, Reference};
 use crate::front::exporter::convert::global_name_updater;
+use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{Address, AddressOrigin};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashSet};
 use std::rc::Rc;
-use crate::front::mergers::definition_table::DefinitionTable;
 
 struct VarGenerator {
     spare_vars: BinaryHeap<Reverse<u32>>,

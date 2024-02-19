@@ -179,9 +179,7 @@ fn resolve_definition(
     match definition {
         Definition::FnDef(mut fn_def) => {
             fn_def.name.resolve_module(module_merger)?;
-            fn_def
-                .body
-                .resolve_module(module_merger)?;
+            fn_def.body.resolve_module(module_merger)?;
 
             module_merger.insert_fn_definition(
                 fn_def.name.global_resolved.clone().unwrap(),
