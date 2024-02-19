@@ -39,7 +39,7 @@ mod tests {
     use crate::front::ast_types::Type::Void;
     use crate::front::ast_types::{
         AtomicExpression, Block, Expression, ExpressionEnum, FnCall, FnDef, GlobalResolvedName,
-        Reference, Statement, StatementBlock,
+        Reference, Statement,
     };
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
@@ -147,7 +147,7 @@ mod tests {
                 return_type: Void,
                 body: Some(Block {
                     definitions: vec![],
-                    statements: vec![StatementBlock::Statement(Statement::Expression(Box::new(
+                    statements: vec![(Statement::Expression(Box::new(
                         Expression {
                             type_: None,
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(
@@ -232,7 +232,7 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .statements[0],
-            StatementBlock::Statement(Statement::Expression(Box::new(Expression {
+            (Statement::Expression(Box::new(Expression {
                 type_: None,
                 expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(Box::new(
                     FnCall {

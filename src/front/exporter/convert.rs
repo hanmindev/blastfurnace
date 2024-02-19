@@ -2,7 +2,7 @@ pub mod context;
 
 use crate::front::ast_types::{
     AtomicExpression, BinOp, Block, Expression, ExpressionEnum, FnCall, FnDef, For,
-    GlobalResolvedName, If, LiteralValue, Reference, Statement, StatementBlock, UnOp, VarAssign,
+    GlobalResolvedName, If, LiteralValue, Reference, Statement, UnOp, VarAssign,
     VarDecl, While,
 };
 use crate::front::exporter::convert::context::Context;
@@ -539,23 +539,15 @@ fn convert_statement(context: &mut Context, ast_node: &Statement) -> Vec<IrState
         Statement::If(x) => convert_if(context, x),
         Statement::While(x) => convert_while(context, x),
         Statement::For(x) => convert_for(context, x),
+        Statement::Block(x) => vec![IrStatement::Block(convert_block(context, x, false))],
         _ => panic!("Not implemented"),
-    };
-}
-
-fn convert_statement_block(context: &mut Context, ast_node: &StatementBlock) -> Vec<IrStatement> {
-    return match ast_node {
-        StatementBlock::Block(x) => {
-            vec![IrStatement::Block(convert_block(context, x, true))]
-        }
-        StatementBlock::Statement(statement) => convert_statement(context, statement),
     };
 }
 
 fn convert_block(context: &mut Context, ast_node: &Block, can_embed: bool) -> IrBlock {
     let mut statements = vec![];
     for statement_block in &ast_node.statements {
-        statements.append(&mut convert_statement_block(context, statement_block));
+        statements.append(&mut convert_statement(context, statement_block));
     }
 
     IrBlock {

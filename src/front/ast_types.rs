@@ -198,6 +198,7 @@ pub enum Statement {
     Break,
     Continue,
     Expression(Box<Expression>),
+    Block(Block),
 }
 
 #[derive(Debug, PartialEq)]
@@ -216,15 +217,9 @@ pub struct Module {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum StatementBlock {
-    Statement(Statement),
-    Block(Block),
-}
-
-#[derive(Debug, PartialEq)]
 pub struct Block {
     pub definitions: Vec<Definition>,
-    pub statements: Vec<StatementBlock>,
+    pub statements: Vec<Statement>,
 }
 
 #[derive(Debug, PartialEq)]

@@ -7,7 +7,7 @@ mod tests {
     use crate::front::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, Type,
     };
-    use crate::front::ast_types::{ExpressionEnum, StatementBlock};
+    use crate::front::ast_types::{ExpressionEnum};
     use std::rc::Rc;
 
     #[test]
@@ -66,7 +66,7 @@ mod tests {
                 );
 
                 match &fn_def.body.as_ref().unwrap().statements[0] {
-                    StatementBlock::Statement(Statement::Expression(bx)) => match &bx.expr {
+                    (Statement::Expression(bx)) => match &bx.expr {
                         ExpressionEnum::Binary(e0, _, _) => match &e0.expr {
                             ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
                                 name_path,
@@ -89,7 +89,7 @@ mod tests {
                     }
                 };
                 match &fn_def.body.as_ref().unwrap().statements[1] {
-                    StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+                    (Statement::VarDecl(var_decl)) => {
                         assert_eq!(
                             var_decl.var_def.name.clone(),
                             Reference {
@@ -332,7 +332,7 @@ mod tests {
                 );
 
                 match &fn_def.body.as_ref().unwrap().statements[0] {
-                    StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+                    (Statement::VarDecl(var_decl)) => {
                         assert_eq!(
                             var_decl.var_def.type_,
                             Some(Type::Struct(Reference {
@@ -356,7 +356,7 @@ mod tests {
                     }
                 };
                 match &fn_def.body.as_ref().unwrap().statements[1] {
-                    StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
+                    (Statement::VarDecl(var_decl)) => {
                         assert_eq!(
                             var_decl.var_def.type_,
                             Some(Type::Struct(Reference {
