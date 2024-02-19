@@ -1,3 +1,3 @@
 pub mod definition_table;
-pub mod package;
+mod package;
 pub mod program;
