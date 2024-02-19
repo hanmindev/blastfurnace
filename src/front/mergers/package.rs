@@ -37,7 +37,10 @@ impl<T> Packager<T> {
 mod tests {
     use super::*;
     use crate::front::ast_types::Type::Void;
-    use crate::front::ast_types::{AtomicExpression, Block, Expression, ExpressionEnum, FnCall, FnDef, GlobalResolvedName, Reference, Statement, StatementBlock};
+    use crate::front::ast_types::{
+        AtomicExpression, Block, Expression, ExpressionEnum, FnCall, FnDef, GlobalResolvedName,
+        Reference, Statement, StatementBlock,
+    };
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use camino::Utf8PathBuf;
@@ -147,18 +150,20 @@ mod tests {
                     statements: vec![StatementBlock::Statement(Statement::Expression(Box::new(
                         Expression {
                             type_: None,
-                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(Box::new(FnCall {
-                                name: Reference {
-                                    raw: "a".to_string(),
-                                    module_resolved: Some(Rc::from("0_a".to_string())),
-                                    global_resolved: Some(Rc::from(GlobalResolvedName {
-                                        package: Rc::from("pkg"),
-                                        module: Rc::from("/test/example"),
-                                        name: "0_a".to_string(),
-                                    })),
-                                },
-                                args: vec![],
-                            }))),
+                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(
+                                Box::new(FnCall {
+                                    name: Reference {
+                                        raw: "a".to_string(),
+                                        module_resolved: Some(Rc::from("0_a".to_string())),
+                                        global_resolved: Some(Rc::from(GlobalResolvedName {
+                                            package: Rc::from("pkg"),
+                                            module: Rc::from("/test/example"),
+                                            name: "0_a".to_string(),
+                                        })),
+                                    },
+                                    args: vec![],
+                                })
+                            )),
                         },
                     )))],
                 }),
@@ -227,10 +232,10 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .statements[0],
-            StatementBlock::Statement(Statement::Expression(Box::new(
-                Expression {
-                    type_: None,
-                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(Box::new(FnCall {
+            StatementBlock::Statement(Statement::Expression(Box::new(Expression {
+                type_: None,
+                expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(Box::new(
+                    FnCall {
                         name: Reference {
                             raw: "a".to_string(),
                             module_resolved: Some(Rc::from("0_a".to_string())),
@@ -241,9 +246,9 @@ mod tests {
                             })),
                         },
                         args: vec![],
-                    }))),
-                },
-            )))
+                    }
+                ))),
+            },)))
         );
     }
 }

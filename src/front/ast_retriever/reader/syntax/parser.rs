@@ -1,7 +1,12 @@
 use crate::front::ast_retriever::reader::lexical::lexer::{TokenError, TokenInfo};
 use crate::front::ast_retriever::reader::lexical::token_types::Token;
 use crate::front::ast_retriever::reader::lexical::token_types::Token::Any;
-use crate::front::ast_types::{AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression, ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement, StatementBlock, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While};
+use crate::front::ast_types::{
+    AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression,
+    ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath,
+    Reference, Statement, StatementBlock, StructDef, Type, UnOp, Use, UseElement, VarAssign,
+    VarDecl, VarDef, VarMod, While,
+};
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
@@ -782,7 +787,8 @@ impl<T: TokenStream> Parser<T> {
                         (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
                         tok => Err(ParseError::Unexpected(
                             tok,
-                            "Expected variable type annotation for variable declaration".to_string(),
+                            "Expected variable type annotation for variable declaration"
+                                .to_string(),
                         ))?,
                     })
                 } else {
@@ -1048,9 +1054,9 @@ mod tests {
                     definitions: Vec::new(),
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression {
-                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
-                                0
-                            ))),
+                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                                LiteralValue::Int(0)
+                            )),
                             type_: None,
                         }
                     )))],
@@ -1080,12 +1086,11 @@ mod tests {
                     mods: Rc::new(vec![VarMod::Const]),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Int(0))
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(0)
+                    )),
                     type_: None,
-                }
-                )),
+                })),
             }))
         );
         assert_eq!(
@@ -1097,9 +1102,9 @@ mod tests {
                     mods: Rc::new(vec![VarMod::Const]),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Int(1))
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(1)
+                    )),
                     type_: None,
                 })),
             }))
@@ -1113,9 +1118,9 @@ mod tests {
                     mods: Rc::new(Vec::new()),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Int(2))
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(2)
+                    )),
                     type_: None,
                 })),
             }))
@@ -1129,9 +1134,9 @@ mod tests {
                     mods: Rc::new(Vec::new()),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Decimal(3.0))
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Decimal(3.0)
+                    )),
                     type_: None,
                 })),
             }))
@@ -1145,9 +1150,9 @@ mod tests {
                     mods: Rc::new(Vec::new()),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Decimal(4.0))
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Decimal(4.0)
+                    )),
                     type_: None,
                 })),
             }))
@@ -1161,9 +1166,9 @@ mod tests {
                     mods: Rc::new(Vec::new()),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Bool(true))
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Bool(true)
+                    )),
                     type_: None,
                 })),
             }))
@@ -1177,9 +1182,9 @@ mod tests {
                     mods: Rc::new(Vec::new()),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::String("hello".to_string()))
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::String("hello".to_string())
+                    )),
                     type_: None,
                 })),
             }))
@@ -1202,27 +1207,27 @@ mod tests {
             map.insert(
                 "a".to_string(),
                 CompoundValue::Expression(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Int(0)),
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(0),
+                    )),
                     type_: None,
                 })),
             );
             map.insert(
                 "b".to_string(),
                 CompoundValue::Expression(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Int(1)),
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(1),
+                    )),
                     type_: None,
                 })),
             );
             map.insert(
                 "c".to_string(),
                 CompoundValue::Expression(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Int(2)),
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Int(2),
+                    )),
                     type_: None,
                 })),
             );
@@ -1239,9 +1244,9 @@ mod tests {
                     mods: Rc::new(Vec::new()),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(
-                        AtomicExpression::Literal(LiteralValue::Compound(compound))
-                    ),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                        LiteralValue::Compound(compound)
+                    )),
                     type_: None,
                 })),
             }))
@@ -1497,16 +1502,20 @@ mod tests {
                             expr: ExpressionEnum::Binary(
                                 Box::from(Expression {
                                     type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                                        Parser::<Lexer>::string_to_namepath("a")
-                                    )),
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Variable(
+                                            Parser::<Lexer>::string_to_namepath("a")
+                                        )
+                                    ),
                                 }),
                                 BinOp::Add,
                                 Box::from(Expression {
                                     type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                                        Parser::<Lexer>::string_to_namepath("b")
-                                    )),
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Variable(
+                                            Parser::<Lexer>::string_to_namepath("b")
+                                        )
+                                    ),
                                 }),
                             ),
                         }
@@ -1530,33 +1539,34 @@ mod tests {
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::Expression(Box::from(
-                Expression {
-                    type_: None,
-                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(Box::from(FnCall {
+            StatementBlock::Statement(Statement::Expression(Box::from(Expression {
+                type_: None,
+                expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(Box::from(
+                    FnCall {
                         name: Reference::new("add".to_string()),
                         args: vec![
                             Expression {
                                 type_: None,
-                                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
-                                    1
-                                ))),
+                                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                                    LiteralValue::Int(1)
+                                )),
                             },
                             Expression {
                                 type_: None,
-                                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
-                                    2
-                                ))),
+                                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                                    LiteralValue::Int(2)
+                                )),
                             },
                             Expression {
                                 type_: None,
-                                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
-                                    3
-                                ))),
+                                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                                    LiteralValue::Int(3)
+                                )),
                             },
                         ],
-                    }))),
-                })))
+                    }
+                ))),
+            })))
         );
     }
 
@@ -1597,9 +1607,9 @@ mod tests {
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression {
                             type_: None,
-                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
-                                0
-                            ))),
+                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                                LiteralValue::Int(0)
+                            )),
                         }
                     )))],
                 }),
@@ -1646,10 +1656,9 @@ mod tests {
                     statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
                         Expression {
                             type_: None,
-                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(LiteralValue::Int(
-                                0
-                            ))
-                            ),
+                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                                LiteralValue::Int(0)
+                            )),
                         }
                     )))],
                 }),
@@ -1695,9 +1704,9 @@ mod tests {
                             statements: vec![StatementBlock::Statement(Statement::Return(
                                 Box::from(Expression {
                                     type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                                        LiteralValue::Int(2)
-                                    )),
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Literal(LiteralValue::Int(2))
+                                    ),
                                 })
                             ))],
                         }),
@@ -1749,16 +1758,18 @@ mod tests {
                             expr: ExpressionEnum::Binary(
                                 Box::from(Expression {
                                     type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                                        Parser::<Lexer>::string_to_namepath("a")
-                                    )),
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Variable(
+                                            Parser::<Lexer>::string_to_namepath("a")
+                                        )
+                                    ),
                                 }),
                                 BinOp::Add,
                                 Box::from(Expression {
                                     type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                                        LiteralValue::Int(1)
-                                    )),
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Literal(LiteralValue::Int(1))
+                                    ),
                                 }),
                             ),
                         }),
@@ -1790,9 +1801,9 @@ mod tests {
                     },
                     expr: Some(Box::from(Expression {
                         type_: None,
-                        expr: ExpressionEnum::AtomicExpression(
-                            AtomicExpression::Literal(LiteralValue::Int(0))
-                        ),
+                        expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                            LiteralValue::Int(0)
+                        )),
                     })),
                 }))),
                 cond: Some(Box::from(Expression {
@@ -1843,16 +1854,18 @@ mod tests {
                             expr: ExpressionEnum::Binary(
                                 Box::from(Expression {
                                     type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                                        Parser::<Lexer>::string_to_namepath("a")
-                                    )),
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Variable(
+                                            Parser::<Lexer>::string_to_namepath("a")
+                                        )
+                                    ),
                                 }),
                                 BinOp::Add,
                                 Box::from(Expression {
                                     type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                                        LiteralValue::Int(1)
-                                    )),
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Literal(LiteralValue::Int(1))
+                                    ),
                                 }),
                             ),
                         }),
@@ -1924,7 +1937,9 @@ mod tests {
                                                         type_: None,
                                                         expr: ExpressionEnum::AtomicExpression(
                                                             AtomicExpression::Variable(
-                                                                Parser::<Lexer>::string_to_namepath("a"),
+                                                                Parser::<Lexer>::string_to_namepath(
+                                                                    "a"
+                                                                ),
                                                             )
                                                         ),
                                                     }),
@@ -1933,7 +1948,9 @@ mod tests {
                                                         type_: None,
                                                         expr: ExpressionEnum::AtomicExpression(
                                                             AtomicExpression::Variable(
-                                                                Parser::<Lexer>::string_to_namepath("b"),
+                                                                Parser::<Lexer>::string_to_namepath(
+                                                                    "b"
+                                                                ),
                                                             )
                                                         ),
                                                     }),
@@ -1942,18 +1959,22 @@ mod tests {
                                             BinOp::Add,
                                             Box::from(Expression {
                                                 type_: None,
-                                                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                                                    Parser::<Lexer>::string_to_namepath("c"),
-                                                )),
+                                                expr: ExpressionEnum::AtomicExpression(
+                                                    AtomicExpression::Variable(
+                                                        Parser::<Lexer>::string_to_namepath("c"),
+                                                    )
+                                                ),
                                             }),
                                         ),
                                     }),
                                     BinOp::Add,
                                     Box::from(Expression {
                                         type_: None,
-                                        expr: ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                                            Parser::<Lexer>::string_to_namepath("d"),
-                                        )),
+                                        expr: ExpressionEnum::AtomicExpression(
+                                            AtomicExpression::Variable(
+                                                Parser::<Lexer>::string_to_namepath("d"),
+                                            )
+                                        ),
                                     }),
                                 ),
                             }),
@@ -2070,7 +2091,8 @@ mod tests {
             Box::from(Expression {
                 type_: None,
                 expr: ExpressionEnum::Binary(a_plus, BinOp::Sub, mod_f),
-            }));
+            })
+        );
     }
 
     #[test]
@@ -2173,8 +2195,7 @@ mod tests {
             ),
         });
 
-        assert_eq!(expr,
-                   a_plus_b_times_c_minus_d_div_e_mod_f);
+        assert_eq!(expr, a_plus_b_times_c_minus_d_div_e_mod_f);
     }
 
     #[test]
@@ -2251,14 +2272,12 @@ mod tests {
             ),
         });
 
-        let a_eq_b_and_c_or_d_neq_e =
-            Box::from(Expression {
-                type_: None,
-                expr: ExpressionEnum::Binary(a_eq_b_and_c, BinOp::Or, d_neq_e),
-            });
+        let a_eq_b_and_c_or_d_neq_e = Box::from(Expression {
+            type_: None,
+            expr: ExpressionEnum::Binary(a_eq_b_and_c, BinOp::Or, d_neq_e),
+        });
 
-        assert_eq!(expr,
-                   a_eq_b_and_c_or_d_neq_e);
+        assert_eq!(expr, a_eq_b_and_c_or_d_neq_e);
     }
 
     #[test]
@@ -2320,14 +2339,12 @@ mod tests {
             ),
         });
 
-        let deref_a_plus_b_times_deref_d =
-            Box::from(Expression {
-                type_: None,
-                expr: ExpressionEnum::Binary(deref_a, BinOp::Add, b_times_deref_d),
-            });
+        let deref_a_plus_b_times_deref_d = Box::from(Expression {
+            type_: None,
+            expr: ExpressionEnum::Binary(deref_a, BinOp::Add, b_times_deref_d),
+        });
 
-        assert_eq!(expr,
-                   deref_a_plus_b_times_deref_d);
+        assert_eq!(expr, deref_a_plus_b_times_deref_d);
     }
 
     #[test]
@@ -2450,36 +2467,32 @@ mod tests {
                             },
                             expr: None,
                         })),
-                        StatementBlock::Statement(Statement::Expression(Box::from(
-                            Expression {
-                                type_: None,
-                                expr: ExpressionEnum::Binary(
-                                    Box::from(Expression {
-                                        type_: None,
-                                        expr: ExpressionEnum::AtomicExpression(
-                                            AtomicExpression::Variable(
-                                                Parser::<Lexer>::string_to_namepath("a")
-                                            )
-                                        ),
-                                    }),
-                                    BinOp::Add,
-                                    Box::from(Expression {
-                                        type_: None,
-                                        expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                                            LiteralValue::Int(1)
-                                        )),
-                                    }),
-                                ),
-                            }
-                        ))),
-                        StatementBlock::Statement(Statement::Return(Box::from(
-                            Expression {
-                                type_: None,
-                                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                                    LiteralValue::Int(0)
-                                )),
-                            }
-                        ))),
+                        StatementBlock::Statement(Statement::Expression(Box::from(Expression {
+                            type_: None,
+                            expr: ExpressionEnum::Binary(
+                                Box::from(Expression {
+                                    type_: None,
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Variable(
+                                            Parser::<Lexer>::string_to_namepath("a")
+                                        )
+                                    ),
+                                }),
+                                BinOp::Add,
+                                Box::from(Expression {
+                                    type_: None,
+                                    expr: ExpressionEnum::AtomicExpression(
+                                        AtomicExpression::Literal(LiteralValue::Int(1))
+                                    ),
+                                }),
+                            ),
+                        }))),
+                        StatementBlock::Statement(Statement::Return(Box::from(Expression {
+                            type_: None,
+                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                                LiteralValue::Int(0)
+                            )),
+                        }))),
                     ],
                 }),
                 mods: Rc::new(Vec::new()),
