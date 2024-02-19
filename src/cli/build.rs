@@ -1,17 +1,17 @@
-use std::{fs, io};
-use std::fs::File;
-use std::io::{Error, Read, Write};
-use camino::Utf8PathBuf;
-use crate::cli::arg_runner::{ArgRunner, CliMessage};
-use clap::Args;
-use toml::{Table, Value};
+use crate::back::code_generator::flatten_to_hmasm;
 use crate::back::code_generator::generate_code;
+use crate::cli::arg_runner::{ArgRunner, CliMessage};
+use crate::front::file_system::fs::FileSystem;
+use crate::front::file_system::system_fs::SystemFs;
 use crate::front::mergers::program::ProgramMerger;
 use crate::middle::passes::delete_unused::DeleteUnused;
 use crate::middle::passes::optimize;
-use crate::back::code_generator::flatten_to_hmasm;
-use crate::front::file_system::fs::FileSystem;
-use crate::front::file_system::system_fs::SystemFs;
+use camino::Utf8PathBuf;
+use clap::Args;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::{fs, io};
+use toml::{Table, Value};
 
 #[derive(Debug, Args)]
 pub struct BuildArgs {
@@ -27,7 +27,10 @@ impl ArgRunner for BuildArgs {
         let env_path = match Utf8PathBuf::try_from(std::env::current_dir().unwrap()) {
             Ok(p) => p,
             Err(e) => {
-                return CliMessage::Error(format!("Could not parse current directory, perhaps there is a non-Utf8 character?: {}", e));
+                return CliMessage::Error(format!(
+                    "Could not parse current directory, perhaps there is a non-Utf8 character?: {}",
+                    e
+                ));
             }
         };
 
@@ -55,7 +58,9 @@ impl ArgRunner for BuildArgs {
                 return CliMessage::Error("Could not read the blastf.toml file.".to_string());
             }
         } else {
-            return CliMessage::Error("Could not find blastf.toml file, are you in the right directory?".to_string());
+            return CliMessage::Error(
+                "Could not find blastf.toml file, are you in the right directory?".to_string(),
+            );
         }
 
         let package_name = if let Ok(toml) = buf.parse::<Table>() {
@@ -67,10 +72,15 @@ impl ArgRunner for BuildArgs {
                         return CliMessage::Error("The name field in the package section of the blastf.toml file is not a string.".to_string());
                     }
                 } else {
-                    return CliMessage::Error("The package section of the blastf.toml file does not have a name field.".to_string());
+                    return CliMessage::Error(
+                        "The package section of the blastf.toml file does not have a name field."
+                            .to_string(),
+                    );
                 }
             } else {
-                return CliMessage::Error("The blastf.toml file does not have a package section.".to_string());
+                return CliMessage::Error(
+                    "The blastf.toml file does not have a package section.".to_string(),
+                );
             }
         } else {
             return CliMessage::Error("The blastf.toml file is not a valid toml file.".to_string());
@@ -89,10 +99,14 @@ impl ArgRunner for BuildArgs {
         if let Err(e) = fs::create_dir(&abs_path.join("target")) {
             match e.kind() {
                 io::ErrorKind::AlreadyExists => {}
-                _ => return CliMessage::Error(format!("Could not create directory 'target'. Error: {}", e)),
+                _ => {
+                    return CliMessage::Error(format!(
+                        "Could not create directory 'target'. Error: {}",
+                        e
+                    ))
+                }
             }
         }
-
 
         let target = abs_path.join(format!("target/{package_name}.hmasm"));
 

@@ -107,7 +107,7 @@ impl Lexer {
             let mut ident = String::new();
 
             // read word and set to ident
-            while self.curr.is_alphanumeric() || self.curr == '_' || self.curr == '-'{
+            while self.curr.is_alphanumeric() || self.curr == '_' || self.curr == '-' {
                 ident.push(self.eat());
             }
 

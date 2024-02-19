@@ -16,7 +16,6 @@ impl Display for CliMessage {
     }
 }
 
-
 pub trait ArgRunner {
     fn run(&self) -> CliMessage;
 }

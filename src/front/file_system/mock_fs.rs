@@ -1,7 +1,9 @@
 use crate::front::file_system::byte_stream::{ByteStream, StringReader};
-use crate::front::file_system::fs::{AbsUtf8PathBuf, FileSystem, FileSystemError, FileSystemResult, RelUtf8PathBuf};
-use std::collections::{HashMap, HashSet};
+use crate::front::file_system::fs::{
+    AbsUtf8PathBuf, FileSystem, FileSystemError, FileSystemResult, RelUtf8PathBuf,
+};
 use camino::Utf8PathBuf;
+use std::collections::{HashMap, HashSet};
 
 pub struct MockFileSystem {
     rel_dir: RelUtf8PathBuf,
@@ -23,7 +25,8 @@ impl FileSystem for MockFileSystem {
         for (path, _) in self.files.iter() {
             match path.strip_prefix(&self.rel_dir) {
                 Ok(stripped_path) => {
-                    if stripped_path.extension() == Some(extension) && stripped_path.parent() == Some(&Utf8PathBuf::new())
+                    if stripped_path.extension() == Some(extension)
+                        && stripped_path.parent() == Some(&Utf8PathBuf::new())
                     {
                         files.push(path.clone());
                     }
@@ -37,7 +40,9 @@ impl FileSystem for MockFileSystem {
     }
 
     fn read_file(&self, file_path: RelUtf8PathBuf) -> FileSystemResult<ByteStream> {
-        if !file_path.is_relative() { return Err(FileSystemError::NotRelative); }
+        if !file_path.is_relative() {
+            return Err(FileSystemError::NotRelative);
+        }
 
         match self.files.get(&file_path) {
             Some(content) => Ok(ByteStream::new(Box::new(StringReader::new(
@@ -48,13 +53,17 @@ impl FileSystem for MockFileSystem {
     }
 
     fn check_dir(&self, path: RelUtf8PathBuf) -> FileSystemResult<bool> {
-        if !path.is_relative() { return Err(FileSystemError::NotRelative); }
+        if !path.is_relative() {
+            return Err(FileSystemError::NotRelative);
+        }
 
         Ok(self.dirs.contains(&path))
     }
 
     fn enter_dir(&mut self, path: RelUtf8PathBuf) -> FileSystemResult<bool> {
-        if !path.is_relative() { return Err(FileSystemError::NotRelative); }
+        if !path.is_relative() {
+            return Err(FileSystemError::NotRelative);
+        }
 
         Ok(if self.dirs.contains(&path) {
             self.rel_dir = path;

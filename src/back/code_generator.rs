@@ -68,11 +68,11 @@ pub fn flatten_to_hmasm(generated_code: &GeneratedCode) -> String {
 
 #[cfg(test)]
 mod tests {
-    use camino::Utf8PathBuf;
     use crate::back::code_generator::{flatten_to_hmasm, generate_code};
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
+    use camino::Utf8PathBuf;
 
     // TODO: these tests don't do anything at the moment, you should review it and make sure the output is correct.
     // TODO: should add a mcfunction interpreter to test the output of the code generator
