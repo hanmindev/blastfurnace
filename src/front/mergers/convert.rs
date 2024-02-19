@@ -596,6 +596,7 @@ mod tests {
     use crate::middle::format::types::GlobalName;
     use std::collections::HashMap;
     use std::ops::Deref;
+    use camino::Utf8PathBuf;
 
     fn test_calculation(
         run_function: &str,
@@ -733,8 +734,9 @@ mod tests {
 
     #[test]
     fn test_convert_simple() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "pub fn main() { let a: int = 1; }");
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("main.ing"), "pub fn main() { let a: int = 1; }");
 
         let mut program_merger = ProgramMerger::new("pkg");
 
@@ -764,9 +766,9 @@ mod tests {
 
     #[test]
     fn test_simple_expression() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "pub fn main() { let a: int = 8; let b: int = 2 * a / 8 + 9; }",
         );
 
@@ -791,9 +793,9 @@ mod tests {
 
     #[test]
     fn test_complicated_expression() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "pub fn main() { let a: int = 2 * 18 / 9 * (6 - 8 * 3 % 3) + (true && (false || true) && !false); }",
         );
 
@@ -818,9 +820,9 @@ mod tests {
 
     #[test]
     fn test_if_else() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "pub fn main() { let a: int = 3; let r: int = 0; if (a == 1) { r = 1; } else if (a == 2) { r = 2; } else if (a == 3) { r = 3; } }",
         );
 
@@ -845,9 +847,9 @@ mod tests {
 
     #[test]
     fn test_while() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "pub fn main() { let a: int = 3; while (a < 10) { a+=1; } }",
         );
 
@@ -872,9 +874,9 @@ mod tests {
 
     #[test]
     fn test_for() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "pub fn main() { for (let a: int = 0; a < 10; a += 1) { } }",
         );
 

@@ -68,6 +68,7 @@ pub fn flatten_to_hmasm(generated_code: &GeneratedCode) -> String {
 
 #[cfg(test)]
 mod tests {
+    use camino::Utf8PathBuf;
     use crate::back::code_generator::{flatten_to_hmasm, generate_code};
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
@@ -77,9 +78,9 @@ mod tests {
     // TODO: should add a mcfunction interpreter to test the output of the code generator
     #[test]
     fn test_generate_code() {
-        let mut mock_fs = MockFileSystem::new("/".to_string());
+        let mut mock_fs = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_fs.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "pub fn main() { let a: int = 5; if (a - 5 == 0) { a = 7; }; }",
         );
 
@@ -95,9 +96,9 @@ mod tests {
 
     #[test]
     fn test_generate_for_code() {
-        let mut mock_fs = MockFileSystem::new("/".to_string());
+        let mut mock_fs = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_fs.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "pub fn main() { let a: int = 0; for (let i: int = 0; i < 9; i += 1) { a = 5; }; }",
         );
 

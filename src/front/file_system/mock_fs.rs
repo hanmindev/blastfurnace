@@ -1,36 +1,34 @@
-use crate::front::ast_retriever::retriever::FilePath;
 use crate::front::file_system::byte_stream::{ByteStream, StringReader};
-use crate::front::file_system::fs::{FileSystem, FileSystemError, FileSystemResult};
+use crate::front::file_system::fs::{AbsUtf8PathBuf, FileSystem, FileSystemError, FileSystemResult, RelUtf8PathBuf};
 use std::collections::{HashMap, HashSet};
+use camino::Utf8PathBuf;
 
 pub struct MockFileSystem {
-    current_dir: FilePath,
-    files: HashMap<FilePath, String>,
-    dirs: HashSet<FilePath>,
+    rel_dir: RelUtf8PathBuf,
+    files: HashMap<RelUtf8PathBuf, String>,
+    dirs: HashSet<RelUtf8PathBuf>,
 }
 
 impl FileSystem for MockFileSystem {
-    fn new(root: FilePath) -> MockFileSystem {
-        MockFileSystem {
-            current_dir: root,
+    fn new(_root: AbsUtf8PathBuf) -> FileSystemResult<MockFileSystem> {
+        Ok(MockFileSystem {
+            rel_dir: Utf8PathBuf::new(),
             files: Default::default(),
             dirs: Default::default(),
-        }
+        })
     }
 
-    fn ls_files_with_extension(&self, extension: &str) -> Vec<String> {
+    fn ls_files_with_extension(&self, extension: &str) -> Vec<RelUtf8PathBuf> {
         let mut files = Vec::new();
         for (path, _) in self.files.iter() {
-            match path.strip_prefix(&self.current_dir) {
-                Some(stripped_path) => {
-                    if !stripped_path.contains('/')
-                        && stripped_path.ends_with(extension)
-                        && stripped_path.len() != extension.len() + 1
+            match path.strip_prefix(&self.rel_dir) {
+                Ok(stripped_path) => {
+                    if stripped_path.extension() == Some(extension) && stripped_path.parent() == Some(&Utf8PathBuf::new())
                     {
-                        files.push(stripped_path.to_string());
+                        files.push(path.clone());
                     }
                 }
-                None => {
+                Err(_) => {
                     continue;
                 }
             }
@@ -38,8 +36,10 @@ impl FileSystem for MockFileSystem {
         files
     }
 
-    fn read_file(&self, path: &str) -> FileSystemResult<ByteStream> {
-        match self.files.get(path) {
+    fn read_file(&self, file_path: RelUtf8PathBuf) -> FileSystemResult<ByteStream> {
+        if !file_path.is_relative() { return Err(FileSystemError::NotRelative); }
+
+        match self.files.get(&file_path) {
             Some(content) => Ok(ByteStream::new(Box::new(StringReader::new(
                 content.to_string(),
             )))),
@@ -47,46 +47,38 @@ impl FileSystem for MockFileSystem {
         }
     }
 
-    fn check_dir(&self, path: &str) -> bool {
-        self.dirs.contains(path)
+    fn check_dir(&self, path: RelUtf8PathBuf) -> FileSystemResult<bool> {
+        if !path.is_relative() { return Err(FileSystemError::NotRelative); }
+
+        Ok(self.dirs.contains(&path))
     }
 
-    fn enter_dir(&mut self, path: &str) -> bool {
-        assert!(path.starts_with('/'));
-        let path = if path.ends_with('/') {
-            path.to_string()
-        } else {
-            format!("{}/", path)
-        };
+    fn enter_dir(&mut self, path: RelUtf8PathBuf) -> FileSystemResult<bool> {
+        if !path.is_relative() { return Err(FileSystemError::NotRelative); }
 
-        if self.dirs.contains(&path) {
-            self.current_dir = path;
+        Ok(if self.dirs.contains(&path) {
+            self.rel_dir = path;
             true
         } else {
             false
-        }
+        })
     }
 
     fn exit_dir(&mut self) {
-        if self.current_dir != "/" {
-            self.current_dir = self.current_dir.split('/').collect::<Vec<&str>>()
-                [..self.current_dir.split('/').count() - 2]
-                .join("/");
-            self.current_dir.push('/');
-        }
+        self.rel_dir.pop();
     }
 
-    fn return_current_dir(&self) -> FilePath {
-        self.current_dir.clone()
+    fn return_current_dir(&self) -> RelUtf8PathBuf {
+        self.rel_dir.clone()
     }
 }
 
 impl MockFileSystem {
-    pub fn insert_file(&mut self, path: &str, content: &str) {
-        self.files.insert(path.to_string(), content.to_string());
+    pub fn insert_file(&mut self, path: Utf8PathBuf, content: &str) {
+        self.files.insert(path, content.to_string());
     }
 
-    pub fn insert_dir(&mut self, path: &str) {
-        self.dirs.insert(path.to_string());
+    pub fn insert_dir(&mut self, path: Utf8PathBuf) {
+        self.dirs.insert(path);
     }
 }

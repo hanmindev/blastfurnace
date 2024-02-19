@@ -2,13 +2,13 @@ use crate::front::ast_retriever::name_resolution::resolve_module;
 use crate::front::ast_retriever::reader::lexical::lexer::Lexer;
 use crate::front::ast_retriever::reader::syntax::parser::Parser;
 use crate::front::ast_types::Module;
-use crate::front::file_system::fs::FileSystem;
+use crate::front::file_system::fs::{FileSystem, RelUtf8PathBuf};
 use std::collections::HashMap;
-pub type FilePath = String;
+
 pub type ModuleSource = String;
 #[derive(Debug, PartialEq)]
 pub struct ModuleNode {
-    pub file_path: FilePath,
+    pub file_path: RelUtf8PathBuf, // unrelated to module hierarchy
     pub submodules: HashMap<ModuleSource, Option<bool>>,
     pub module: Option<Module>,
 }
@@ -31,31 +31,29 @@ impl<T: FileSystem> FileRetriever<T> {
         f
     }
     fn read_nodes_rec(&mut self, parent_module: &mut ModuleNode) {
-        let modules = self.file_system.ls_files_with_extension("ing");
+        let module_file_paths = self.file_system.ls_files_with_extension("ing");
 
-        for file_name_ext in modules {
-            let file_name = file_name_ext.strip_suffix(".ing").unwrap().to_string();
+        for file_path_ext in module_file_paths {
             let submodules = HashMap::new();
 
-            let mut path = self.file_system.return_current_dir();
-            path.push_str(&file_name);
-
             let mut module = ModuleNode {
-                file_path: path.clone(),
+                file_path: file_path_ext.clone(),
                 submodules,
                 module: None,
             };
 
-            if self.file_system.enter_dir(path.as_str()) {
+            let module_path = file_path_ext.with_extension("");
+
+            if self.file_system.enter_dir(module_path.clone()).unwrap() {
                 self.read_nodes_rec(&mut module);
                 self.file_system.exit_dir();
             }
 
-            let module_source: ModuleSource = if path == "/main" {
-                "/root".to_string()
+            let module_source: ModuleSource = if module_path == RelUtf8PathBuf::from("main") {
+                String::from("/root")
             } else {
-                let mut new_path = "/root".to_string();
-                new_path.push_str(&path);
+                let mut new_path = String::from("/root/");
+                new_path.push_str(&module_path.into_string());
                 new_path
             };
 
@@ -87,11 +85,10 @@ impl<T: FileSystem> FileRetriever<T> {
 
     fn parse_files(&mut self) {
         for (mod_path, module_node) in self.modules.iter_mut() {
-            let mut file_source = module_node.file_path.clone();
+            let file_source = module_node.file_path.clone();
 
             // TODO: add option to read from cached object file
-            file_source.push_str(".ing");
-            if let Ok(byte_stream) = self.file_system.read_file(&file_source) {
+            if let Ok(byte_stream) = self.file_system.read_file(file_source) {
                 let lexer = Lexer::new(byte_stream);
                 let mut parser = Parser::new(lexer);
                 let mut module = parser.parse_module().unwrap();
@@ -119,42 +116,43 @@ impl<T: FileSystem> FileRetriever<T> {
 
 #[cfg(test)]
 mod tests {
+    use camino::Utf8PathBuf;
     use super::*;
     use crate::front::ast_retriever::retriever::ModuleNode;
     use crate::front::file_system::mock_fs::MockFileSystem;
 
     #[test]
     fn test_read_rec() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "fn main() {}");
-        mock_file_system.insert_file("/test.ing", "pub mod example;");
-        mock_file_system.insert_dir("/test/");
-        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(Utf8PathBuf::from("main.ing"), "fn main() {}");
+        mock_file_system.insert_file(Utf8PathBuf::from("test.ing"), "pub mod example;");
+        mock_file_system.insert_dir(Utf8PathBuf::from("test"));
+        mock_file_system.insert_file(Utf8PathBuf::from("test/example.ing"), "pub fn a() {};");
 
-        let mut program = FileRetriever::new(mock_file_system);
-        program.read_nodes();
+        let mut file_retriever = FileRetriever::new(mock_file_system);
+        file_retriever.read_nodes();
 
-        assert_eq!(program.modules.len(), 3);
+        assert_eq!(file_retriever.modules.len(), 3);
         assert_eq!(
-            program.modules.get("/root"),
+            file_retriever.modules.get("/root"),
             Some(&ModuleNode {
-                file_path: "/main".to_string(),
+                file_path: Utf8PathBuf::from("main.ing"),
                 submodules: HashMap::from([("/root/test".to_string(), None)]),
                 module: None,
             })
         );
         assert_eq!(
-            program.modules.get("/root/test"),
+            file_retriever.modules.get("/root/test"),
             Some(&ModuleNode {
-                file_path: "/test".to_string(),
+                file_path:  Utf8PathBuf::from("test.ing"),
                 submodules: HashMap::from([("/root/test/example".to_string(), None)]),
                 module: None,
             })
         );
         assert_eq!(
-            program.modules.get("/root/test/example"),
+            file_retriever.modules.get("/root/test/example"),
             Some(&ModuleNode {
-                file_path: "/test/example".to_string(),
+                file_path:  Utf8PathBuf::from("test/example.ing"),
                 submodules: HashMap::new(),
                 module: None,
             })

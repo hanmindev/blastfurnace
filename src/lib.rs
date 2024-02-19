@@ -4,6 +4,7 @@ pub mod middle;
 
 #[cfg(test)]
 mod tests {
+    use camino::Utf8PathBuf;
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
@@ -12,11 +13,11 @@ mod tests {
 
     #[test]
     fn test_compile_simple() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "mod test; fn main() {}");
-        mock_file_system.insert_file("/test.ing", "pub mod example;");
-        mock_file_system.insert_dir("/test/");
-        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(Utf8PathBuf::from("main.ing"), "mod test; fn main() {}");
+        mock_file_system.insert_file(Utf8PathBuf::from("test.ing"), "pub mod example;");
+        mock_file_system.insert_dir(Utf8PathBuf::from("test"));
+        mock_file_system.insert_file(Utf8PathBuf::from("test/example.ing"), "pub fn a() {};");
 
         let mut program_merger = ProgramMerger::new("pkg");
 
