@@ -1,7 +1,4 @@
-use crate::front::ast_types::{
-    AtomicExpression, Block, Definition, Expression, If, Module, Reference, ResolvedName,
-    Statement, StatementBlock, Use,
-};
+use crate::front::ast_types::{AtomicExpression, Block, Definition, Expression, ExpressionEnum, If, Module, Reference, ResolvedName, Statement, StatementBlock, Use};
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
 use std::rc::Rc;
 
@@ -158,8 +155,8 @@ impl Resolvable for Statement {
 
 impl Resolvable for Expression {
     fn resolve_module(&mut self, module_merger: &mut ModuleMerger) -> ResolveResult<()> {
-        match self {
-            Expression::AtomicExpression(atomic) => match atomic {
+        match &mut self.expr {
+            ExpressionEnum::AtomicExpression(atomic) => match atomic {
                 AtomicExpression::Literal(_) => {}
                 AtomicExpression::Variable(var) => {
                     var.name.resolve_module(module_merger)?;
@@ -168,10 +165,10 @@ impl Resolvable for Expression {
                     fn_call.name.resolve_module(module_merger)?;
                 }
             },
-            Expression::Unary(_, expr) => {
+            ExpressionEnum::Unary(_, expr) => {
                 expr.resolve_module(module_merger)?;
             }
-            Expression::Binary(e0, _, e1) => {
+            ExpressionEnum::Binary(e0, _, e1) => {
                 e0.resolve_module(module_merger)?;
                 e1.resolve_module(module_merger)?;
             }

@@ -4,7 +4,7 @@ mod tests {
     use crate::front::ast_retriever::name_resolution::resolvers::ResolverError::Redefinition;
     use crate::front::ast_retriever::name_resolution::scope_table::ScopeTable;
     use crate::front::ast_retriever::string_to_module;
-    use crate::front::ast_types::StatementBlock;
+    use crate::front::ast_types::{ExpressionEnum, StatementBlock};
     use crate::front::ast_types::{
         AtomicExpression, Definition, Expression, Reference, Statement, Type,
     };
@@ -27,7 +27,7 @@ mod tests {
                     Reference {
                         raw: "a".to_string(),
                         module_resolved: Some(Rc::new("0_a".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
             }
@@ -43,7 +43,7 @@ mod tests {
                     Reference {
                         raw: "main".to_string(),
                         module_resolved: Some(Rc::new("0_main".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
 
@@ -52,7 +52,7 @@ mod tests {
                     Reference {
                         raw: "a".to_string(),
                         module_resolved: Some(Rc::new("1_a".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
 
@@ -61,20 +61,20 @@ mod tests {
                     Reference {
                         raw: "b".to_string(),
                         module_resolved: Some(Rc::new("0_b".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
 
                 match &fn_def.body.as_ref().unwrap().statements[0] {
-                    StatementBlock::Statement(Statement::Expression(bx)) => match bx.as_ref() {
-                        Expression::Binary(e0, _, _) => match e0.as_ref() {
-                            Expression::AtomicExpression(AtomicExpression::Variable(name_path)) => {
+                    StatementBlock::Statement(Statement::Expression(bx)) => match &bx.expr {
+                        ExpressionEnum::Binary(e0, _, _) => match &e0.expr {
+                            ExpressionEnum::AtomicExpression(AtomicExpression::Variable(name_path)) => {
                                 assert_eq!(
                                     name_path.name.clone(),
                                     Reference {
                                         raw: "a".to_string(),
                                         module_resolved: Some(Rc::new("1_a".to_string())),
-                                        global_resolved: None
+                                        global_resolved: None,
                                     }
                                 );
                             }
@@ -93,17 +93,17 @@ mod tests {
                             Reference {
                                 raw: "a".to_string(),
                                 module_resolved: Some(Rc::new("2_a".to_string())),
-                                global_resolved: None
+                                global_resolved: None,
                             }
                         );
-                        match var_decl.expr.as_ref().unwrap().as_ref() {
-                            Expression::AtomicExpression(AtomicExpression::Variable(name_path)) => {
+                        match &var_decl.expr.as_ref().unwrap().expr {
+                            ExpressionEnum::AtomicExpression(AtomicExpression::Variable(name_path)) => {
                                 assert_eq!(
                                     name_path.name.clone(),
                                     Reference {
                                         raw: "a".to_string(),
                                         module_resolved: Some(Rc::new("1_a".to_string())),
-                                        global_resolved: None
+                                        global_resolved: None,
                                     }
                                 );
                             }
@@ -136,11 +136,11 @@ mod tests {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
-                    Type::Struct(Reference {
+                    Some(Type::Struct(Reference {
                         raw: "A".to_string(),
                         module_resolved: Some(Rc::new("0_A".to_string())),
-                        global_resolved: None
-                    })
+                        global_resolved: None,
+                    }))
                 );
 
                 assert_eq!(
@@ -148,7 +148,7 @@ mod tests {
                     Reference {
                         raw: "a".to_string(),
                         module_resolved: Some(Rc::new("0_a".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
             }
@@ -160,11 +160,11 @@ mod tests {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
-                    Type::Struct(Reference {
+                    Some(Type::Struct(Reference {
                         raw: "A".to_string(),
                         module_resolved: Some(Rc::new("0_A".to_string())),
-                        global_resolved: None
-                    })
+                        global_resolved: None,
+                    }))
                 );
 
                 assert_eq!(
@@ -172,7 +172,7 @@ mod tests {
                     Reference {
                         raw: "b".to_string(),
                         module_resolved: Some(Rc::new("0_b".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
             }
@@ -184,11 +184,11 @@ mod tests {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
-                    Type::Struct(Reference {
+                    Some(Type::Struct(Reference {
                         raw: "A".to_string(),
                         module_resolved: Some(Rc::new("0_A".to_string())),
-                        global_resolved: None
-                    })
+                        global_resolved: None,
+                    }))
                 );
 
                 assert_eq!(
@@ -196,7 +196,7 @@ mod tests {
                     Reference {
                         raw: "c".to_string(),
                         module_resolved: Some(Rc::new("0_c".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
             }
@@ -212,7 +212,7 @@ mod tests {
                     Reference {
                         raw: "A".to_string(),
                         module_resolved: Some(Rc::new("0_A".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
             }
@@ -238,7 +238,7 @@ mod tests {
                     Reference {
                         raw: "A".to_string(),
                         module_resolved: Some(Rc::new("0_A".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
                 match &struct_def.map.get("b").unwrap() {
@@ -248,7 +248,7 @@ mod tests {
                             Reference {
                                 raw: "B".to_string(),
                                 module_resolved: Some(Rc::new("0_B".to_string())),
-                                global_resolved: None
+                                global_resolved: None,
                             }
                         );
                     }
@@ -269,7 +269,7 @@ mod tests {
                     Reference {
                         raw: "B".to_string(),
                         module_resolved: Some(Rc::new("0_B".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
                 match &struct_def.map.get("a").unwrap() {
@@ -279,7 +279,7 @@ mod tests {
                             Reference {
                                 raw: "A".to_string(),
                                 module_resolved: Some(Rc::new("0_A".to_string())),
-                                global_resolved: None
+                                global_resolved: None,
                             }
                         );
                     }
@@ -293,6 +293,7 @@ mod tests {
             }
         }
     }
+
     #[test]
     fn struct_def_dupe() {
         let mut scope_table = ScopeTable::new();
@@ -322,7 +323,7 @@ mod tests {
                     Reference {
                         raw: "main".to_string(),
                         module_resolved: Some(Rc::new("0_main".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
 
@@ -330,11 +331,11 @@ mod tests {
                     StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
                         assert_eq!(
                             var_decl.var_def.type_,
-                            Type::Struct(Reference {
+                            Some(Type::Struct(Reference {
                                 raw: "A".to_string(),
                                 module_resolved: Some(Rc::new("0_A".to_string())),
-                                global_resolved: None
-                            })
+                                global_resolved: None,
+                            }))
                         );
 
                         assert_eq!(
@@ -342,7 +343,7 @@ mod tests {
                             Reference {
                                 raw: "a".to_string(),
                                 module_resolved: Some(Rc::new("0_a".to_string())),
-                                global_resolved: None
+                                global_resolved: None,
                             }
                         );
                     }
@@ -354,11 +355,11 @@ mod tests {
                     StatementBlock::Statement(Statement::VarDecl(var_decl)) => {
                         assert_eq!(
                             var_decl.var_def.type_,
-                            Type::Struct(Reference {
+                            Some(Type::Struct(Reference {
                                 raw: "B".to_string(),
                                 module_resolved: Some(Rc::new("0_B".to_string())),
-                                global_resolved: None
-                            })
+                                global_resolved: None,
+                            }))
                         );
 
                         assert_eq!(
@@ -366,7 +367,7 @@ mod tests {
                             Reference {
                                 raw: "b".to_string(),
                                 module_resolved: Some(Rc::new("0_b".to_string())),
-                                global_resolved: None
+                                global_resolved: None,
                             }
                         );
                     }
@@ -387,7 +388,7 @@ mod tests {
                     Reference {
                         raw: "A".to_string(),
                         module_resolved: Some(Rc::new("0_A".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
                 match &struct_def.map.get("b").unwrap() {
@@ -397,7 +398,7 @@ mod tests {
                             Reference {
                                 raw: "B".to_string(),
                                 module_resolved: Some(Rc::new("0_B".to_string())),
-                                global_resolved: None
+                                global_resolved: None,
                             }
                         );
                     }
@@ -418,7 +419,7 @@ mod tests {
                     Reference {
                         raw: "B".to_string(),
                         module_resolved: Some(Rc::new("0_B".to_string())),
-                        global_resolved: None
+                        global_resolved: None,
                     }
                 );
                 match &struct_def.map.get("a").unwrap() {
@@ -428,7 +429,7 @@ mod tests {
                             Reference {
                                 raw: "A".to_string(),
                                 module_resolved: Some(Rc::new("0_A".to_string())),
-                                global_resolved: None
+                                global_resolved: None,
                             }
                         );
                     }

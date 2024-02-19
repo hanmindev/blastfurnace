@@ -119,7 +119,7 @@ pub struct StructDef {
 pub struct VarDef {
     pub mods: Rc<Vec<VarMod>>,
     pub name: Reference,
-    pub type_: Type,
+    pub type_: Option<Type>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -155,12 +155,17 @@ pub enum AtomicExpression {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Expression {
+pub enum ExpressionEnum {
     AtomicExpression(AtomicExpression),
     Unary(UnOp, Box<Expression>),
     Binary(Box<Expression>, BinOp, Box<Expression>),
 }
 
+#[derive(Debug, PartialEq)]
+pub struct Expression {
+    pub expr: ExpressionEnum,
+    pub type_: Option<Type>
+}
 #[derive(Debug, PartialEq)]
 pub struct If {
     pub cond: Box<Expression>,
