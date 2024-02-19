@@ -31,7 +31,6 @@ impl Reference {
 #[derive(Debug, PartialEq)]
 pub enum Type {
     Void,
-    Bool,
     Int,
     Float,
     Double,
@@ -140,7 +139,6 @@ pub struct FnCall {
 #[derive(Debug, PartialEq)]
 pub enum LiteralValue {
     Null,
-    Bool(bool),
     Int(i32),
     Decimal(f64),
     String(String),

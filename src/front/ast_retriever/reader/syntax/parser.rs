@@ -120,7 +120,7 @@ impl<T: TokenStream> Parser<T> {
             (Token::Bool(b), _) => Ok(Expression {
                 type_: None,
                 expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                    LiteralValue::Bool(b),
+                    LiteralValue::Int(b as i32),
                 )),
             }),
             (Token::Int(i), _) => Ok(Expression {
@@ -352,7 +352,7 @@ impl<T: TokenStream> Parser<T> {
                 else_ = Some(Box::from(If {
                     cond: Box::from(Expression {
                         expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                            LiteralValue::Bool(true),
+                            LiteralValue::Int(1),
                         )),
                         type_: None,
                     }),
@@ -695,7 +695,7 @@ impl<T: TokenStream> Parser<T> {
                 (Token::IntType, _) => Type::Int,
                 (Token::FloatType, _) => Type::Float,
                 (Token::DoubleType, _) => Type::Double,
-                (Token::BoolType, _) => Type::Bool,
+                (Token::BoolType, _) => Type::Int,
                 (Token::StringType, _) => Type::String,
                 (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
                 tok => Err(ParseError::Unexpected(
@@ -780,7 +780,7 @@ impl<T: TokenStream> Parser<T> {
                         (Token::IntType, _) => Type::Int,
                         (Token::FloatType, _) => Type::Float,
                         (Token::DoubleType, _) => Type::Double,
-                        (Token::BoolType, _) => Type::Bool,
+                        (Token::BoolType, _) => Type::Int,
                         (Token::StringType, _) => Type::String,
                         (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
                         tok => Err(ParseError::Unexpected(
@@ -813,7 +813,7 @@ impl<T: TokenStream> Parser<T> {
                 (Token::IntType, _) => Type::Int,
                 (Token::FloatType, _) => Type::Float,
                 (Token::DoubleType, _) => Type::Double,
-                (Token::BoolType, _) => Type::Bool,
+                (Token::BoolType, _) => Type::Int,
                 (Token::StringType, _) => Type::String,
                 (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
                 tok => {
@@ -876,7 +876,7 @@ impl<T: TokenStream> Parser<T> {
                 (Token::IntType, _) => Type::Int,
                 (Token::FloatType, _) => Type::Float,
                 (Token::DoubleType, _) => Type::Double,
-                (Token::BoolType, _) => Type::Bool,
+                (Token::BoolType, _) => Type::Int,
                 (Token::StringType, _) => Type::String,
                 (Token::Ident(s), _) => Type::Struct(Reference::new(s)),
                 tok => {
@@ -1157,13 +1157,13 @@ mod tests {
             block.statements[5],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
-                    type_: Some(Type::Bool),
+                    type_: Some(Type::Int),
                     name: Reference::new("f".to_string()),
                     mods: Rc::new(Vec::new()),
                 },
                 expr: Some(Box::from(Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Bool(true)
+                        LiteralValue::Int(1)
                     )),
                     type_: None,
                 })),
@@ -1692,7 +1692,7 @@ mod tests {
                         cond: Box::from(Expression {
                             type_: None,
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                                LiteralValue::Bool(true)
+                                LiteralValue::Int(1)
                             )),
                         }),
                         body: Box::from(Block {
@@ -1892,7 +1892,7 @@ mod tests {
                 cond: Box::from(Expression {
                     type_: None,
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Bool(true)
+                        LiteralValue::Int(1)
                     )),
                 }),
                 body: Box::from(Block {
