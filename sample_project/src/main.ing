@@ -3,5 +3,9 @@ use root::test::helpful::{helpful_function};
 mod test;
 
 pub fn main() {
-    helpful_function(2, 3);
+    // helpful_function(2, 3);
+    let a: int = 0;
+    for (let i: int = 0; i < 9; i += 1) {
+        a = 5;
+    };
 }
