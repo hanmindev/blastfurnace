@@ -1,12 +1,12 @@
-use crate::front::ast_retriever::retriever::FilePath;
 use crate::front::file_system::byte_stream::{ByteStream, ByteStreamable};
-use crate::front::file_system::fs::{FileSystem, FileSystemError, FileSystemResult};
+use crate::front::file_system::fs::{FileSystem, FileSystemError, FileSystemResult, AbsUtf8PathBuf, RelUtf8PathBuf};
 use std::fs;
 use std::fs::File;
 use std::io::Read;
 
 pub struct SystemFs {
-    current_dir: String,
+    root_dir: AbsUtf8PathBuf,
+    current_dir: RelUtf8PathBuf,
 }
 
 pub struct FileReader {
@@ -30,6 +30,7 @@ impl FileReader {
         file_reader
     }
 }
+
 impl ByteStreamable for FileReader {
     fn next(&mut self) -> char {
         if self.index >= self.str.len() {
@@ -43,57 +44,59 @@ impl ByteStreamable for FileReader {
 }
 
 impl FileSystem for SystemFs {
-    fn new(root: FilePath) -> SystemFs {
-        SystemFs { current_dir: root }
+    fn new(root: AbsUtf8PathBuf) -> FileSystemResult<SystemFs> {
+        if !root.is_absolute() { return Err(FileSystemError::NotAbsolute); }
+
+        Ok(SystemFs { root_dir: root, current_dir: RelUtf8PathBuf::new() })
     }
 
-    fn ls_files_with_extension(&self, extension: &str) -> Vec<String> {
+    fn ls_files_with_extension(&self, extension: &str) -> Vec<RelUtf8PathBuf> {
         let mut files = Vec::new();
-        let paths = fs::read_dir(&self.current_dir).unwrap();
-        for path in paths {
-            let path = path.unwrap().path();
-            let path = path.to_str().unwrap();
-            if path.ends_with(extension) {
-                files.push(path.to_string());
+        if let Ok(paths) = fs::read_dir(&self.current_dir) {
+            for dir_entry_res in paths {
+                if let Ok(dir_entry) = dir_entry_res {
+                    if let Ok(path) = RelUtf8PathBuf::try_from(dir_entry.path()) {
+                        if path.extension() == Some(extension) {
+                            files.push(path);
+                        }
+                    }
+                }
             }
         }
         files
     }
 
-    fn read_file(&self, path: &str) -> FileSystemResult<ByteStream> {
-        match File::open(path) {
+    fn read_file(&self, file_path: RelUtf8PathBuf) -> FileSystemResult<ByteStream> {
+        match File::open(self.root_dir.join(file_path)) {
             Ok(file) => Ok(ByteStream::new(Box::new(FileReader::new(file)))),
             Err(_) => Err(FileSystemError::FileNotFound),
         }
     }
 
-    fn check_dir(&self, path: &str) -> bool {
-        if let Ok(metadata) = fs::metadata(path) {
-            metadata.is_dir()
-        } else {
-            false
-        }
+    fn check_dir(&self, path: RelUtf8PathBuf) -> FileSystemResult<bool> {
+        if !path.is_relative() { return Err(FileSystemError::NotRelative); }
+
+        Ok(self.root_dir.join(&path).is_dir())
     }
 
-    fn enter_dir(&mut self, path: &str) -> bool {
-        if self.check_dir(path) {
-            self.current_dir = path.to_string();
+    fn enter_dir(&mut self, path: RelUtf8PathBuf) -> FileSystemResult<bool> {
+        if !path.is_relative() { return Err(FileSystemError::NotRelative); }
+
+        Ok(if self.check_dir(path.clone())? {
+            self.current_dir = path;
             true
         } else {
             false
-        }
+        })
     }
 
     fn exit_dir(&mut self) {
-        if self.current_dir != "/" {
-            self.current_dir = self.current_dir.split('/').collect::<Vec<&str>>()
-                [..self.current_dir.split('/').count() - 2]
-                .join("/");
-            self.current_dir.push('/');
+        if let Some(parent) = self.current_dir.parent() {
+            self.current_dir = parent.to_path_buf();
         }
     }
 
-    fn return_current_dir(&self) -> FilePath {
+    fn return_current_dir(&self) -> RelUtf8PathBuf {
         self.current_dir.clone()
     }
 }

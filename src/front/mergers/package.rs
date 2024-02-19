@@ -44,14 +44,19 @@ mod tests {
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use std::rc::Rc;
+    use camino::Utf8PathBuf;
 
     #[test]
     fn test_parse_files() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
-        mock_file_system.insert_file("/main.ing", "mod test; fn main() {}");
-        mock_file_system.insert_file("/test.ing", "pub mod example;");
-        mock_file_system.insert_dir("/test/");
-        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("main.ing"), "mod test; fn main() {}");
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("test.ing"), "pub mod example;");
+        mock_file_system.insert_dir(
+            Utf8PathBuf::from("test"));
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("test/example.ing"), "pub fn a() {};");
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
 
@@ -112,14 +117,15 @@ mod tests {
 
     #[test]
     fn test_import_files() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "mod test; use root::test::example::a; fn main() { a(); }",
         );
-        mock_file_system.insert_file("/test.ing", "pub mod example;");
-        mock_file_system.insert_dir("/test/");
-        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("test.ing"), "pub mod example;");
+        mock_file_system.insert_dir(Utf8PathBuf::from("test"));
+        mock_file_system.insert_file(Utf8PathBuf::from("test/example.ing"), "pub fn a() {};");
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
 
@@ -193,14 +199,14 @@ mod tests {
 
     #[test]
     fn test_import_cross_package() {
-        let mut mock_file_system = MockFileSystem::new("/".to_string());
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
-            "/main.ing",
+            Utf8PathBuf::from("main.ing"),
             "mod test; use std::test::example::a; fn main() { a(); }",
         );
-        mock_file_system.insert_file("/test.ing", "pub mod example;");
-        mock_file_system.insert_dir("/test/");
-        mock_file_system.insert_file("/test/example.ing", "pub fn a() {};");
+        mock_file_system.insert_file(Utf8PathBuf::from("test.ing"), "pub mod example;");
+        mock_file_system.insert_dir(Utf8PathBuf::from("test/"));
+        mock_file_system.insert_file(Utf8PathBuf::from("test/example.ing"), "pub fn a() {};");
 
         let mut program = Packager::new("pkg", FileRetriever::new(mock_file_system));
 
