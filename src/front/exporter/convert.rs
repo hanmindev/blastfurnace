@@ -66,10 +66,6 @@ fn set_from_atomic(
                     statements: vec![],
                     existing_address: Some(context.const_generator.get_const(0)),
                 },
-                LiteralValue::Bool(b) => ExprEval {
-                    statements: vec![],
-                    existing_address: Some(context.const_generator.get_const(b.clone() as i32)),
-                },
                 LiteralValue::Int(x) => ExprEval {
                     statements: vec![],
                     existing_address: Some(context.const_generator.get_const(x.clone())),
