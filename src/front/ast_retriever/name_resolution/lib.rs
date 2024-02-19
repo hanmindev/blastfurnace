@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::front::ast_retriever::name_resolution::resolvers::Resolvable;
-    use crate::front::ast_retriever::name_resolution::resolvers::ResolverError::Redefinition;
+    use crate::front::ast_retriever::name_resolution::resolvers::ResolverError::{Redefinition, UndefinedVariable};
     use crate::front::ast_retriever::name_resolution::scope_table::ScopeTable;
     use crate::front::ast_retriever::string_to_module;
     use crate::front::ast_types::ExpressionEnum;
@@ -69,8 +69,8 @@ mod tests {
                     Statement::Expression(bx) => match &bx.expr {
                         ExpressionEnum::Binary(e0, _, _) => match &e0.expr {
                             ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                                name_path,
-                            )) => {
+                                                                 name_path,
+                                                             )) => {
                                 assert_eq!(
                                     name_path.name.clone(),
                                     Reference {
@@ -100,8 +100,8 @@ mod tests {
                         );
                         match &var_decl.expr.as_ref().unwrap().expr {
                             ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                                name_path,
-                            )) => {
+                                                                 name_path,
+                                                             )) => {
                                 assert_eq!(
                                     name_path.name.clone(),
                                     Reference {
@@ -125,6 +125,17 @@ mod tests {
                 panic!("Expected FnDef");
             }
         }
+    }
+
+    #[test]
+    fn invalid() {
+        let mut scope_table = ScopeTable::new();
+
+        let statement =
+            "pub fn main(a: int ) { b = a; }";
+        let mut module = string_to_module(statement).unwrap();
+
+        assert_eq!(module.resolve_name(&mut scope_table), Err(UndefinedVariable("b".to_string())));
     }
 
     #[test]
