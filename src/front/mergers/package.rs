@@ -60,7 +60,7 @@ mod tests {
 
         assert_eq!(definition_table.function_definitions.len(), 2);
         assert_eq!(definition_table.struct_definitions.len(), 0);
-        assert_eq!(definition_table.global_var_definitions.len(), 0);
+        assert_eq!(definition_table.var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
             package: Rc::from("pkg"),
@@ -128,7 +128,7 @@ mod tests {
 
         assert_eq!(definition_table.function_definitions.len(), 2);
         assert_eq!(definition_table.struct_definitions.len(), 0);
-        assert_eq!(definition_table.global_var_definitions.len(), 0);
+        assert_eq!(definition_table.var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
             package: Rc::from("pkg"),
@@ -214,7 +214,7 @@ mod tests {
 
         assert_eq!(definition_table.function_definitions.len(), 2);
         assert_eq!(definition_table.struct_definitions.len(), 0);
-        assert_eq!(definition_table.global_var_definitions.len(), 0);
+        assert_eq!(definition_table.var_definitions.len(), 0);
 
         let gr = Rc::from(GlobalResolvedName {
             package: Rc::from("pkg"),
