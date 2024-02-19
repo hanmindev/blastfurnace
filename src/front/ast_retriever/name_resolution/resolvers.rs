@@ -1,7 +1,7 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::ast_types::{
     AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, ExpressionEnum,
-    FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Statement, StatementBlock, StructDef,
+    FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Statement, StructDef,
     Type, Use, VarAssign, VarDecl, VarDef, While,
 };
 
@@ -51,16 +51,6 @@ impl Resolvable for Module {
     }
 }
 
-impl Resolvable for StatementBlock {
-    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
-        match self {
-            StatementBlock::Statement(statement) => statement.resolve_name(scope_table)?,
-            StatementBlock::Block(block) => block.resolve_name(scope_table)?,
-        }
-        Ok(())
-    }
-}
-
 impl Resolvable for Definition {
     fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
         match self {
@@ -82,6 +72,7 @@ impl Resolvable for Statement {
             Statement::For(statement) => statement.resolve_name(scope_table)?,
             Statement::Return(statement) => statement.resolve_name(scope_table)?,
             Statement::Expression(statement) => statement.resolve_name(scope_table)?,
+            Statement::Block(block) => block.resolve_name(scope_table)?,
 
             _ => {}
         };

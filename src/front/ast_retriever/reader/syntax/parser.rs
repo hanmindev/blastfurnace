@@ -4,7 +4,7 @@ use crate::front::ast_retriever::reader::lexical::token_types::Token::Any;
 use crate::front::ast_types::{
     AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression,
     ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath,
-    Reference, Statement, StatementBlock, StructDef, Type, UnOp, Use, UseElement, VarAssign,
+    Reference, Statement, StructDef, Type, UnOp, Use, UseElement, VarAssign,
     VarDecl, VarDef, VarMod, While,
 };
 use std::collections::{HashMap, VecDeque};
@@ -576,9 +576,9 @@ impl<T: TokenStream> Parser<T> {
                                     .push(Definition::VarDecl(self.parse_var_decl()?));
                             }
                         } else {
-                            statements.push(StatementBlock::Statement(Statement::VarDecl(
+                            statements.push(Statement::VarDecl(
                                 self.parse_var_decl()?,
-                            )));
+                            ));
                         }
                         continue;
                     }
@@ -592,7 +592,7 @@ impl<T: TokenStream> Parser<T> {
             }
 
             match self.curr_token {
-                Token::LBrace => statements.push(StatementBlock::Block(self.parse_block()?)),
+                Token::LBrace => statements.push(Statement::Block(self.parse_block()?)),
                 Token::Mod => mods.push(self.parse_module_import()?),
                 Token::Use => uses.push(self.parse_use_import()?),
                 _ => {
@@ -609,7 +609,7 @@ impl<T: TokenStream> Parser<T> {
                             self.eat(&Token::Semicolon)?;
                         }
                     }
-                    statements.push(StatementBlock::Statement(statement));
+                    statements.push(statement);
                 }
             }
         }
@@ -1052,14 +1052,14 @@ mod tests {
                 args: Vec::new(),
                 body: Some(Block {
                     definitions: Vec::new(),
-                    statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                    statements: vec![Statement::Return(Box::from(
                         Expression {
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                                 LiteralValue::Int(0)
                             )),
                             type_: None,
                         }
-                    )))],
+                    ))],
                 }),
                 mods: Rc::new(Vec::new()),
             })
@@ -1079,7 +1079,7 @@ mod tests {
         assert_eq!(block.statements.len(), 7);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
                     name: Reference::new("a".to_string()),
@@ -1095,7 +1095,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[1],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
                     name: Reference::new("b".to_string()),
@@ -1111,7 +1111,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[2],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
                     name: Reference::new("c".to_string()),
@@ -1127,7 +1127,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[3],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Float),
                     name: Reference::new("d".to_string()),
@@ -1143,7 +1143,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[4],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Double),
                     name: Reference::new("e".to_string()),
@@ -1159,7 +1159,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[5],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Bool),
                     name: Reference::new("f".to_string()),
@@ -1175,7 +1175,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[6],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::String),
                     name: Reference::new("g".to_string()),
@@ -1237,7 +1237,7 @@ mod tests {
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Struct(Reference::new("A".to_string()))),
                     name: Reference::new("a".to_string()),
@@ -1266,7 +1266,7 @@ mod tests {
         assert_eq!(block.statements.len(), 7);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+            (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
@@ -1278,7 +1278,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[1],
-            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+            (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("b"),
                 expr: Box::from(Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
@@ -1290,7 +1290,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[2],
-            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+            (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
                     expr: ExpressionEnum::Binary(
@@ -1314,7 +1314,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[3],
-            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+            (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
                     type_: None,
@@ -1338,7 +1338,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[4],
-            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+            (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
                     type_: None,
@@ -1362,7 +1362,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[5],
-            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+            (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
                     type_: None,
@@ -1386,7 +1386,7 @@ mod tests {
         );
         assert_eq!(
             block.statements[6],
-            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+            (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
                     type_: None,
@@ -1423,7 +1423,7 @@ mod tests {
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::VarAssign(VarAssign {
+            (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
                     type_: None,
@@ -1496,7 +1496,7 @@ mod tests {
                 ],
                 body: Some(Block {
                     definitions: vec![],
-                    statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                    statements: vec![(Statement::Return(Box::from(
                         Expression {
                             type_: None,
                             expr: ExpressionEnum::Binary(
@@ -1539,7 +1539,7 @@ mod tests {
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::Expression(Box::from(Expression {
+            (Statement::Expression(Box::from(Expression {
                 type_: None,
                 expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(Box::from(
                     FnCall {
@@ -1583,7 +1583,7 @@ mod tests {
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::If(If {
+            (Statement::If(If {
                 cond: Box::from(Expression {
                     type_: None,
                     expr: ExpressionEnum::Binary(
@@ -1604,7 +1604,7 @@ mod tests {
                 }),
                 body: Box::from(Block {
                     definitions: vec![],
-                    statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                    statements: vec![(Statement::Return(Box::from(
                         Expression {
                             type_: None,
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
@@ -1632,7 +1632,7 @@ mod tests {
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::If(If {
+            (Statement::If(If {
                 cond: Box::from(Expression {
                     type_: None,
                     expr: ExpressionEnum::Binary(
@@ -1653,7 +1653,7 @@ mod tests {
                 }),
                 body: Box::from(Block {
                     definitions: vec![],
-                    statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                    statements: vec![(Statement::Return(Box::from(
                         Expression {
                             type_: None,
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
@@ -1683,7 +1683,7 @@ mod tests {
                     }),
                     body: Box::from(Block {
                         definitions: vec![],
-                        statements: vec![StatementBlock::Statement(Statement::Return(Box::from(
+                        statements: vec![(Statement::Return(Box::from(
                             Expression {
                                 type_: None,
                                 expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
@@ -1701,7 +1701,7 @@ mod tests {
                         }),
                         body: Box::from(Block {
                             definitions: vec![],
-                            statements: vec![StatementBlock::Statement(Statement::Return(
+                            statements: vec![(Statement::Return(
                                 Box::from(Expression {
                                     type_: None,
                                     expr: ExpressionEnum::AtomicExpression(
@@ -1730,7 +1730,7 @@ mod tests {
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::While(While {
+            (Statement::While(While {
                 cond: Box::from(Expression {
                     type_: None,
                     expr: ExpressionEnum::Binary(
@@ -1751,7 +1751,7 @@ mod tests {
                 }),
                 body: Box::from(Block {
                     definitions: vec![],
-                    statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                    statements: vec![(Statement::VarAssign(VarAssign {
                         name_path: Parser::<Lexer>::string_to_namepath("a"),
                         expr: Box::from(Expression {
                             type_: None,
@@ -1792,7 +1792,7 @@ mod tests {
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::For(For {
+            (Statement::For(For {
                 init: Some(Box::from(Statement::VarDecl(VarDecl {
                     var_def: VarDef {
                         type_: Some(Type::Int),
@@ -1847,7 +1847,7 @@ mod tests {
                 }))),
                 body: Block {
                     definitions: vec![],
-                    statements: vec![StatementBlock::Statement(Statement::VarAssign(VarAssign {
+                    statements: vec![(Statement::VarAssign(VarAssign {
                         name_path: Parser::<Lexer>::string_to_namepath("a"),
                         expr: Box::from(Expression {
                             type_: None,
@@ -1888,7 +1888,7 @@ mod tests {
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::While(While {
+            (Statement::While(While {
                 cond: Box::from(Expression {
                     type_: None,
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
@@ -1898,8 +1898,8 @@ mod tests {
                 body: Box::from(Block {
                     definitions: vec![],
                     statements: vec![
-                        StatementBlock::Statement(Statement::Break),
-                        StatementBlock::Statement(Statement::Continue),
+                        (Statement::Break),
+                        (Statement::Continue),
                     ],
                 }),
             }))
@@ -2437,7 +2437,7 @@ mod tests {
         assert_eq!(block.statements.len(), 1);
         assert_eq!(
             block.statements[0],
-            StatementBlock::Statement(Statement::VarDecl(VarDecl {
+            (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
                     name: Reference::new("a".to_string()),
@@ -2459,7 +2459,7 @@ mod tests {
                 body: Some(Block {
                     definitions: vec![],
                     statements: vec![
-                        StatementBlock::Statement(Statement::VarDecl(VarDecl {
+                        (Statement::VarDecl(VarDecl {
                             var_def: VarDef {
                                 type_: Some(Type::Int),
                                 name: Reference::new("a".to_string()),
@@ -2467,7 +2467,7 @@ mod tests {
                             },
                             expr: None,
                         })),
-                        StatementBlock::Statement(Statement::Expression(Box::from(Expression {
+                        (Statement::Expression(Box::from(Expression {
                             type_: None,
                             expr: ExpressionEnum::Binary(
                                 Box::from(Expression {
@@ -2487,7 +2487,7 @@ mod tests {
                                 }),
                             ),
                         }))),
-                        StatementBlock::Statement(Statement::Return(Box::from(Expression {
+                        (Statement::Return(Box::from(Expression {
                             type_: None,
                             expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                                 LiteralValue::Int(0)
