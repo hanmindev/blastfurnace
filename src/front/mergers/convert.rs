@@ -594,9 +594,9 @@ mod tests {
         Address, AddressOrigin, CompareOp, Cond, IrScoreOperationType, IrStatement,
     };
     use crate::middle::format::types::GlobalName;
+    use camino::Utf8PathBuf;
     use std::collections::HashMap;
     use std::ops::Deref;
-    use camino::Utf8PathBuf;
 
     fn test_calculation(
         run_function: &str,
@@ -736,7 +736,9 @@ mod tests {
     fn test_convert_simple() {
         let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
-            Utf8PathBuf::from("main.ing"), "pub fn main() { let a: int = 1; }");
+            Utf8PathBuf::from("main.ing"),
+            "pub fn main() { let a: int = 1; }",
+        );
 
         let mut program_merger = ProgramMerger::new("pkg");
 

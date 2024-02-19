@@ -4,12 +4,12 @@ pub mod middle;
 
 #[cfg(test)]
 mod tests {
-    use camino::Utf8PathBuf;
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
     use crate::middle::passes::delete_unused::DeleteUnused;
     use crate::middle::passes::optimize;
+    use camino::Utf8PathBuf;
 
     #[test]
     fn test_compile_simple() {

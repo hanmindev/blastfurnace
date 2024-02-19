@@ -1,5 +1,7 @@
 use crate::front::file_system::byte_stream::{ByteStream, ByteStreamable};
-use crate::front::file_system::fs::{FileSystem, FileSystemError, FileSystemResult, AbsUtf8PathBuf, RelUtf8PathBuf};
+use crate::front::file_system::fs::{
+    AbsUtf8PathBuf, FileSystem, FileSystemError, FileSystemResult, RelUtf8PathBuf,
+};
 use std::fs;
 use std::fs::File;
 use std::io::Read;
@@ -50,9 +52,14 @@ impl SystemFs {
 }
 impl FileSystem for SystemFs {
     fn new(root: AbsUtf8PathBuf) -> FileSystemResult<SystemFs> {
-        if !root.is_absolute() { return Err(FileSystemError::NotAbsolute); }
+        if !root.is_absolute() {
+            return Err(FileSystemError::NotAbsolute);
+        }
 
-        Ok(SystemFs { root_dir: root, current_dir: RelUtf8PathBuf::new() })
+        Ok(SystemFs {
+            root_dir: root,
+            current_dir: RelUtf8PathBuf::new(),
+        })
     }
 
     fn ls_files_with_extension(&self, extension: &str) -> Vec<RelUtf8PathBuf> {
@@ -79,13 +86,17 @@ impl FileSystem for SystemFs {
     }
 
     fn check_dir(&self, path: RelUtf8PathBuf) -> FileSystemResult<bool> {
-        if !path.is_relative() { return Err(FileSystemError::NotRelative); }
+        if !path.is_relative() {
+            return Err(FileSystemError::NotRelative);
+        }
 
         Ok(self.root_dir.join(&path).is_dir())
     }
 
     fn enter_dir(&mut self, path: RelUtf8PathBuf) -> FileSystemResult<bool> {
-        if !path.is_relative() { return Err(FileSystemError::NotRelative); }
+        if !path.is_relative() {
+            return Err(FileSystemError::NotRelative);
+        }
 
         Ok(if self.check_dir(path.clone())? {
             self.current_dir = path;

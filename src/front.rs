@@ -5,10 +5,10 @@ pub mod mergers;
 
 #[cfg(test)]
 mod tests {
-    use camino::Utf8PathBuf;
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
+    use camino::Utf8PathBuf;
 
     #[test]
     fn test_simple_program() {

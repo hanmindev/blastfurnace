@@ -44,7 +44,11 @@ impl<T: FileSystem> FileRetriever<T> {
 
             let module_path = file_path_ext.with_extension("");
 
-            if self.file_system.enter_dir(module_path.clone()).unwrap_or(false) {
+            if self
+                .file_system
+                .enter_dir(module_path.clone())
+                .unwrap_or(false)
+            {
                 self.read_nodes_rec(&mut module);
                 self.file_system.exit_dir();
             }
@@ -119,10 +123,10 @@ impl<T: FileSystem> FileRetriever<T> {
 
 #[cfg(test)]
 mod tests {
-    use camino::Utf8PathBuf;
     use super::*;
     use crate::front::ast_retriever::retriever::ModuleNode;
     use crate::front::file_system::mock_fs::MockFileSystem;
+    use camino::Utf8PathBuf;
 
     #[test]
     fn test_read_rec() {
@@ -147,7 +151,7 @@ mod tests {
         assert_eq!(
             file_retriever.modules.get("/root/test"),
             Some(&ModuleNode {
-                file_path:  Utf8PathBuf::from("test.ing"),
+                file_path: Utf8PathBuf::from("test.ing"),
                 submodules: HashMap::from([("/root/test/example".to_string(), None)]),
                 module: None,
             })
@@ -155,7 +159,7 @@ mod tests {
         assert_eq!(
             file_retriever.modules.get("/root/test/example"),
             Some(&ModuleNode {
-                file_path:  Utf8PathBuf::from("test/example.ing"),
+                file_path: Utf8PathBuf::from("test/example.ing"),
                 submodules: HashMap::new(),
                 module: None,
             })
