@@ -240,7 +240,7 @@ fn convert_expr_for_comparison(
         ExpressionEnum::AtomicExpression(x) => {
             let a0 = context.get_variable();
             let expr = set_from_atomic(context, x, &a0);
-            let mut s = expr.statements;
+            let s = expr.statements;
             let address = expr.existing_address.unwrap_or(a0.clone());
             context.forfeit_variable(&a0);
             return (
@@ -257,7 +257,7 @@ fn convert_expr_for_comparison(
             if matches!(unop, UnOp::Not) {
                 let a0 = context.get_variable();
                 let expr = rec_convert_expr(context, x, &a0);
-                let mut s = expr.statements;
+                let s = expr.statements;
                 let address = expr.existing_address.unwrap_or(a0.clone());
                 context.forfeit_variable(&a0);
 
@@ -275,7 +275,7 @@ fn convert_expr_for_comparison(
         ExpressionEnum::Binary(e0, binop, e1) => match binop {
             BinOp::Eq | BinOp::Neq | BinOp::Lt | BinOp::Gt | BinOp::Leq | BinOp::Geq => {
                 let a0 = context.get_variable();
-                let mut expr0 = rec_convert_expr(context, e0, &a0);
+                let expr0 = rec_convert_expr(context, e0, &a0);
                 let a1 = context.get_variable();
                 let mut expr1 = rec_convert_expr(context, e1, &a1);
 
@@ -591,7 +591,7 @@ mod tests {
     use std::ops::Deref;
 
     fn test_calculation(
-        run_function: &str,
+        _run_function: &str,
         functions: &HashMap<GlobalName, IrFnDef>,
         result_address: &Address,
     ) -> i32 {
