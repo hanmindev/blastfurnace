@@ -87,7 +87,8 @@ mod tests {
         let mut program_merger = ProgramMerger::new("test");
         program_merger.read_package("test", mock_fs);
 
-        let program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         let hmasm = flatten_to_hmasm(&generate_code(&program));
 
@@ -105,7 +106,8 @@ mod tests {
         let mut program_merger = ProgramMerger::new("test");
         program_merger.read_package("test", mock_fs);
 
-        let program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
 
         let hmasm = flatten_to_hmasm(&generate_code(&program));
 

@@ -1,13 +1,11 @@
 use crate::front::ast_retriever::retriever::FileRetriever;
 use crate::front::file_system::fs::FileSystem;
-use crate::front::mergers::convert::context::ConstGenerator;
-use crate::front::mergers::convert::{convert_fn, global_name_updater};
-use crate::front::mergers::definition_table::DefinitionTable;
 use crate::front::mergers::package::{Package, Packager};
-use crate::middle::format::types::Program;
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 use std::rc::Rc;
+use crate::front::exporter::export::FrontProgram;
+use crate::front::mergers::definition_table::DefinitionTable;
 
 pub struct ProgramMerger<R> {
     root_package: String,
@@ -31,12 +29,7 @@ impl<R: FileSystem> ProgramMerger<R> {
         self.packages.get_mut(package_name).unwrap()
     }
 
-    pub fn export_program(&mut self) -> Program {
-        let mut program = Program {
-            public_functions: HashSet::new(),
-            function_definitions: HashMap::new(),
-        };
-
+    pub fn return_merged(&mut self) -> FrontProgram {
         let mut public_functions = HashSet::new();
         let mut def_table = DefinitionTable::new();
 
@@ -44,7 +37,6 @@ impl<R: FileSystem> ProgramMerger<R> {
             if package_name == self.root_package {
                 for def in &table.merged_module.public_definitions.function_definitions {
                     public_functions.insert(Rc::clone(def.0));
-                    program.public_functions.insert(global_name_updater(&def.0));
                 }
             }
 
@@ -94,17 +86,9 @@ impl<R: FileSystem> ProgramMerger<R> {
             );
         }
 
-        let mut const_generator = ConstGenerator::new();
-
-        for public_function in public_functions {
-            if let Some(fn_) = def_table.function_definitions.get(&public_function) {
-                program.function_definitions.insert(
-                    global_name_updater(&public_function),
-                    convert_fn(fn_, &def_table, &mut const_generator),
-                );
-            }
+        FrontProgram {
+            public_functions,
+            definitions: def_table,
         }
-
-        program
     }
 }

@@ -101,7 +101,8 @@ mod tests {
         program_merger.read_package("test", mock_fs_0);
         program_merger.read_package("library", mock_fs_1);
 
-        let mut program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let mut program = front_program.export_program();
 
         optimize(&mut program, &mut vec![Box::new(DeleteUnused)]);
 

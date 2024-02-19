@@ -92,7 +92,8 @@ impl ArgRunner for BuildArgs {
 
         program_merger.read_package(&package_name, real_fs);
 
-        let mut program = program_merger.export_program();
+        let front_program = program_merger.return_merged();
+        let mut program = front_program.export_program();
 
         optimize(&mut program, &mut vec![Box::new(DeleteUnused)]);
 
