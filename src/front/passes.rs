@@ -10,12 +10,12 @@ pub enum PassError {
 pub type PassResult = Result<(), PassError>;
 
 pub trait Pass {
-    fn optimize(&mut self, program: &mut FrontProgram) -> PassResult;
+    fn pass(&mut self, program: &mut FrontProgram) -> PassResult;
 }
 
-pub fn optimize(program: &mut FrontProgram, passes: &mut Vec<Box<dyn Pass>>) -> PassResult {
+pub fn pass(program: &mut FrontProgram, passes: &mut Vec<Box<dyn Pass>>) -> PassResult {
     for pass in passes {
-        pass.optimize(program)?;
+        pass.pass(program)?;
     }
     Ok(())
 }
