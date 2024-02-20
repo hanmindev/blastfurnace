@@ -1,10 +1,11 @@
 mod null_check;
 
 use std::collections::HashSet;
-use crate::front::ast_types::{AtomicExpression, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For, GlobalResolvedName, If, Statement, VarAssign, VarDecl, VarDef, While};
+use crate::front::ast_types::{AtomicExpression, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, Statement, VarAssign, VarDecl, VarDef, While};
 use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::{Pass, PassError, PassResult};
 use std::hash::Hash;
+use std::ops::DerefMut;
 use crate::front::passes::check_assignment::null_check::NullCheck;
 
 trait CheckNull {
@@ -47,36 +48,48 @@ impl CheckNull for Expression {
 
 impl CheckNull for If {
     fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        // self.cond.check_null(fn_def, null_check);
-        // let mut ifs = vec![NullCheck::new_with_parent(null_check)];
-        // let mut cur = self;
-        //
-        // let mut always_run_one = false;
-        //
-        // while let Some(else_) = &cur.else_ {
-        //     let mut body_null_check = NullCheck::new_with_parent(null_check);
-        //     match else_ {
-        //         Else::If(mut x) => {
-        //             x.cond.check_null(fn_def, null_check);
-        //             x.body.check_null(fn_def, &mut body_null_check);
-        //             ifs.push(body_null_check);
-        //             cur = x.as_mut();
-        //         }
-        //         Else::Block(mut x) => {
-        //             x.check_null(fn_def, &mut body_null_check);
-        //             ifs.push(body_null_check);
-        //             always_run_one = true;
-        //             break;
-        //         }
-        //     }
-        // }
-        //
-        // // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
-        // // should add check to see if it can be determined whether the body runs at least once aside from
-        // // existence of else block
-        // if always_run_one {
-        //     null_check.merge_children(ifs);
-        // }
+        self.cond.check_null(fn_def, null_check);
+
+
+        let mut ifs = vec![];
+
+        let mut nc = Some(NullCheck::new_with_parent(null_check.take().unwrap()));
+        self.body.check_null(fn_def, &mut nc);
+        ifs.push(nc.as_mut().unwrap().take_not_null());
+        *null_check = Some(nc.unwrap().take_parent());
+
+        let mut always_run_one = false;
+
+        let mut cur = self;
+        while let Some(ref mut else_) = &mut cur.else_ {
+            let mut nc = Some(NullCheck::new_with_parent(null_check.take().unwrap()));
+            match else_ {
+                Else::If(ref mut x) => {
+                    x.cond.check_null(fn_def, null_check);
+
+                    x.body.check_null(fn_def, &mut nc);
+                    ifs.push(nc.as_mut().unwrap().take_not_null());
+                    *null_check = Some(nc.unwrap().take_parent());
+
+                    cur = x.as_mut();
+                }
+                Else::Block(ref mut x) => {
+                    x.check_null(fn_def, &mut nc);
+                    ifs.push(nc.as_mut().unwrap().take_not_null());
+                    *null_check = Some(nc.unwrap().take_parent());
+
+                    always_run_one = true;
+                    break;
+                }
+            }
+        }
+
+        // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
+        // should add check to see if it can be determined whether the body runs at least once aside from
+        // existence of else block
+        if always_run_one {
+            null_check.as_mut().unwrap().merge_children(ifs);
+        }
 
         return true;
     }
@@ -107,8 +120,7 @@ impl CheckNull for For {
 
         // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
         // should add check to see if it can be determined whether the body runs at least once
-        let mut taken_null_check = null_check.take().unwrap();
-        let mut body_null_check = Some(NullCheck::new_with_parent(taken_null_check));
+        let mut body_null_check = Some(NullCheck::new_with_parent(null_check.take().unwrap()));
         self.body.check_null(fn_def, &mut body_null_check);
         *null_check = Some(body_null_check.unwrap().take_parent());
 
@@ -180,7 +192,7 @@ impl Pass for DisallowNullAssignment {
 
         let mut all_null_accesses = HashSet::new();
 
-        for (k, v) in &mut program.definitions.function_definitions {
+        for (_, v) in &mut program.definitions.function_definitions {
             let mut null_check = Some(NullCheck::new());
 
             let mut statements = v.body.statements.drain(..).collect::<Vec<Statement>>();
@@ -239,6 +251,34 @@ mod tests {
     fn test_complex_null_assign() {
         let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(Utf8PathBuf::from("main.ing"), "pub fn main() { let a = 5; let b; a = 2 + b * 5 / 9; }");
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut front_program = program_merger.return_merged();
+
+        assert!(pass(&mut front_program, &mut vec![Box::new(DisallowNullAssignment)]).is_err());
+    }
+
+    #[test]
+    fn test_comprehensive_if_null_assign() {
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(Utf8PathBuf::from("main.ing"), "pub fn main() { let c = 0; let a; if (c == 0) { a = 5; } else { a = 6; } let b = a; }");
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut front_program = program_merger.return_merged();
+
+        assert!(pass(&mut front_program, &mut vec![Box::new(DisallowNullAssignment)]).is_ok());
+    }
+
+    #[test]
+    fn test_non_comprehensive_if_null_assign() {
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(Utf8PathBuf::from("main.ing"), "pub fn main() { let c = 0; let a; if (c == 0) { a = 5; } let b = a; }");
 
         let mut program_merger = ProgramMerger::new("pkg");
 
