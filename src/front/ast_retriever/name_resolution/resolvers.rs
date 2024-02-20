@@ -1,9 +1,5 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
-use crate::front::ast_types::{
-    AtomicExpression, Block, Compound, CompoundValue, Definition, Expression, ExpressionEnum,
-    FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Statement, StructDef, Type, Use,
-    VarAssign, VarDecl, VarDef, While,
-};
+use crate::front::ast_types::{AtomicExpression, Block, Compound, CompoundValue, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Statement, StructDef, Type, Use, VarAssign, VarDecl, VarDef, While};
 
 pub trait Resolvable {
     fn resolve_name(&mut self, _scope_table: &mut ScopeTable) -> ResolveResult<()> {
@@ -216,6 +212,16 @@ impl Resolvable for FnCall {
 
         for arg in &mut self.args {
             arg.resolve_name(scope_table)?;
+        }
+        Ok(())
+    }
+}
+
+impl Resolvable for Else {
+    fn resolve_name(&mut self, scope_table: &mut ScopeTable) -> ResolveResult<()> {
+        match self {
+            Else::If(if_) => if_.resolve_name(scope_table)?,
+            Else::Block(block) => block.resolve_name(scope_table)?,
         }
         Ok(())
     }

@@ -164,11 +164,18 @@ pub struct Expression {
     pub expr: ExpressionEnum,
     pub type_: Option<Type>,
 }
+
+#[derive(Debug, PartialEq)]
+pub enum Else {
+    If(Box<If>),
+    Block(Box<Block>),
+}
+
 #[derive(Debug, PartialEq)]
 pub struct If {
     pub cond: Box<Expression>,
     pub body: Box<Block>,
-    pub else_: Option<Box<If>>,
+    pub else_: Option<Else>,
 }
 
 #[derive(Debug, PartialEq)]

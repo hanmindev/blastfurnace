@@ -1,9 +1,6 @@
 pub mod context;
 
-use crate::front::ast_types::{
-    AtomicExpression, BinOp, Block, Expression, ExpressionEnum, FnCall, FnDef, For,
-    GlobalResolvedName, If, LiteralValue, Reference, Statement, UnOp, VarAssign, VarDecl, While,
-};
+use crate::front::ast_types::{AtomicExpression, BinOp, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue, Reference, Statement, UnOp, VarAssign, VarDecl, While};
 use crate::front::exporter::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{
@@ -395,9 +392,21 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
 
     let mut cur = ast_node;
 
-    while let Some(next) = cur.else_.as_ref() {
-        cur = next;
-        elses.push((&next.cond, &next.body));
+    loop {
+        if let Some(next) = cur.else_.as_ref() {
+            match next {
+                Else::If(if_) => {
+                    elses.push((Some(&if_.cond), &if_.body));
+                    cur = &if_;
+                }
+                Else::Block(block) => {
+                    elses.push((None, block));
+                    break;
+                }
+            }
+        } else {
+            break;
+        }
     }
 
     let if_variable = context.get_if_variable();
@@ -447,12 +456,16 @@ fn convert_if(context: &mut Context, ast_node: &If) -> Vec<IrStatement> {
         });
 
         // for if else
-        let else_block = IrStatement::Block(IrBlock {
-            can_embed: true,
-            root_fn_name: context.fn_name.clone(),
-            fn_block_index: context.use_block(),
-            statements: convert_condition(context, condition, false, block),
-        });
+        let else_block = if let Some(cond) = condition {
+            IrStatement::Block(IrBlock {
+                can_embed: true,
+                root_fn_name: context.fn_name.clone(),
+                fn_block_index: context.use_block(),
+                statements: convert_condition(context, cond, false, block),
+            })
+        } else {
+            block
+        };
         // execute if if_check == 1 run {
         s.push(IrStatement::If(IrIf {
             invert: true,
