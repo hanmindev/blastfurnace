@@ -54,14 +54,14 @@ impl NullCheck {
         return true;
     }
 
-    pub fn merge_children(&mut self, mut children: Vec<NullCheck>) {
+    pub fn merge_children(&mut self, mut children: Vec<HashSet<Rc<GlobalResolvedName>>>) {
         // set children that are not null in all branches to not null
 
         if let Some(first) = children.pop() {
-            let mut intersection = first.not_null;
+            let mut intersection = first;
 
             for child in children {
-                intersection.retain(|x| child.not_null.contains(x));
+                intersection.retain(|x| child.contains(x));
 
                 if intersection.is_empty() {
                     return;
@@ -76,6 +76,10 @@ impl NullCheck {
             return parent.as_mut().take().unwrap();
         }
         panic!("NullCheck does not have a parent");
+    }
+
+    pub fn take_not_null(&mut self) -> HashSet<Rc<GlobalResolvedName>> {
+        return self.not_null.drain().collect();
     }
 
     pub fn force_take_used_while_null(&mut self) -> HashSet<Rc<GlobalResolvedName>> {
