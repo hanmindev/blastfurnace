@@ -28,7 +28,7 @@ impl Reference {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     Void,
     Int,
@@ -38,7 +38,7 @@ pub enum Type {
     Struct(Reference),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum UnOp {
     Neg,
     Not,
