@@ -1,4 +1,5 @@
 mod check_assignment;
+mod types;
 
 use crate::front::exporter::export::FrontProgram;
 
