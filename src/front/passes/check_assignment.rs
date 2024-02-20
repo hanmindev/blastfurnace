@@ -176,7 +176,7 @@ impl CheckNull for Block {
 pub struct DisallowNullAssignment;
 
 impl Pass for DisallowNullAssignment {
-    fn optimize(&mut self, program: &mut FrontProgram) -> PassResult {
+    fn pass(&mut self, program: &mut FrontProgram) -> PassResult {
 
         let mut all_null_accesses = HashSet::new();
 
@@ -203,7 +203,7 @@ mod tests {
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
-    use crate::front::passes::optimize;
+    use crate::front::passes::pass;
     use camino::Utf8PathBuf;
     use crate::front::passes::check_assignment::DisallowNullAssignment;
 
@@ -218,7 +218,7 @@ mod tests {
 
         let mut front_program = program_merger.return_merged();
 
-        assert!(optimize(&mut front_program, &mut vec![Box::new(DisallowNullAssignment)]).is_ok());
+        assert!(pass(&mut front_program, &mut vec![Box::new(DisallowNullAssignment)]).is_ok());
     }
 
     #[test]
@@ -232,7 +232,7 @@ mod tests {
 
         let mut front_program = program_merger.return_merged();
 
-        assert!(optimize(&mut front_program, &mut vec![Box::new(DisallowNullAssignment)]).is_err());
+        assert!(pass(&mut front_program, &mut vec![Box::new(DisallowNullAssignment)]).is_err());
     }
 
     #[test]
@@ -246,6 +246,6 @@ mod tests {
 
         let mut front_program = program_merger.return_merged();
 
-        assert!(optimize(&mut front_program, &mut vec![Box::new(DisallowNullAssignment)]).is_err());
+        assert!(pass(&mut front_program, &mut vec![Box::new(DisallowNullAssignment)]).is_err());
     }
 }
