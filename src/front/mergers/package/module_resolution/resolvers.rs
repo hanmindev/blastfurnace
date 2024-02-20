@@ -1,7 +1,4 @@
-use crate::front::ast_types::{
-    AtomicExpression, Block, Definition, Expression, ExpressionEnum, If, Module, Reference,
-    ResolvedName, Statement, Use,
-};
+use crate::front::ast_types::{AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, If, Module, Reference, ResolvedName, Statement, Use};
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
 use std::rc::Rc;
 
@@ -90,6 +87,16 @@ impl Resolvable for Reference {
         self.global_resolved =
             Some(module_merger.resolve_global_name(self.module_resolved.as_ref().unwrap()));
 
+        Ok(())
+    }
+}
+
+impl Resolvable for Else {
+    fn resolve_module(&mut self, module_merger: &mut ModuleMerger) -> ResolveResult<()> {
+        match self {
+            Else::If(if_) => if_.resolve_module(module_merger)?,
+            Else::Block(block) => block.resolve_module(module_merger)?,
+        }
         Ok(())
     }
 }

@@ -94,6 +94,24 @@ mod tests {
 
         println!("{}", hmasm);
     }
+    #[test]
+    fn test_if_else() {
+        let mut mock_fs = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_fs.insert_file(
+            Utf8PathBuf::from("main.ing"),
+            "pub fn main() { let a: int = 0; if (a == 0) { a = 0; } else if (a == 0) { a = 1; } else { a = 2; }; }",
+        );
+
+        let mut program_merger = ProgramMerger::new("test");
+        program_merger.read_package("test", mock_fs);
+
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
+
+        let hmasm = flatten_to_hmasm(&generate_code(&program));
+
+        println!("{}", hmasm);
+    }
 
     #[test]
     fn test_generate_for_code() {

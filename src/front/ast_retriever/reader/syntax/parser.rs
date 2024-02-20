@@ -1,12 +1,7 @@
 use crate::front::ast_retriever::reader::lexical::lexer::{TokenError, TokenInfo};
 use crate::front::ast_retriever::reader::lexical::token_types::Token;
 use crate::front::ast_retriever::reader::lexical::token_types::Token::Any;
-use crate::front::ast_types::{
-    AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Expression,
-    ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath,
-    Reference, Statement, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef,
-    VarMod, While,
-};
+use crate::front::ast_types::{AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While};
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
@@ -347,18 +342,9 @@ impl<T: TokenStream> Parser<T> {
         let mut else_ = None;
         if self.eat(&Token::Else).is_ok() {
             if matches!(self.curr_token, Token::If) {
-                else_ = Some(Box::from(self.parse_if_statement()?));
+                else_ = Some(Else::If(Box::from(self.parse_if_statement()?)));
             } else {
-                else_ = Some(Box::from(If {
-                    cond: Box::from(Expression {
-                        expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                            LiteralValue::Int(1),
-                        )),
-                        type_: None,
-                    }),
-                    body: Box::from(self.parse_block()?),
-                    else_: None,
-                }));
+                else_ = Some(Else::Block(Box::from(self.parse_block()?)));
             }
         }
 
@@ -1658,7 +1644,7 @@ mod tests {
                         })))
                     ],
                 }),
-                else_: Some(Box::from(If {
+                else_: Some(Else::If(Box::from(If {
                     cond: Box::from(Expression {
                         type_: None,
                         expr: ExpressionEnum::Binary(
@@ -1688,27 +1674,18 @@ mod tests {
                             })))
                         ],
                     }),
-                    else_: Some(Box::from(If {
-                        cond: Box::from(Expression {
-                            type_: None,
-                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                                LiteralValue::Int(1)
-                            )),
-                        }),
-                        body: Box::from(Block {
-                            definitions: vec![],
-                            statements: vec![
-                                (Statement::Return(Box::from(Expression {
-                                    type_: None,
-                                    expr: ExpressionEnum::AtomicExpression(
-                                        AtomicExpression::Literal(LiteralValue::Int(2))
-                                    ),
-                                })))
-                            ],
-                        }),
-                        else_: None,
-                    })),
-                })),
+                    else_: Some(Else::Block(Box::from(Block {
+                        definitions: vec![],
+                        statements: vec![
+                            (Statement::Return(Box::from(Expression {
+                                type_: None,
+                                expr: ExpressionEnum::AtomicExpression(
+                                    AtomicExpression::Literal(LiteralValue::Int(2))
+                                ),
+                            })))
+                        ],
+                    }))),
+                }))),
             }))
         );
     }
