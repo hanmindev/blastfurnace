@@ -1,8 +1,6 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::ast_types::visitor::{ASTNodeEnum, Visitable, Visitor};
-use crate::front::ast_types::{
-    AtomicExpression, NamePath, Type,
-};
+use crate::front::ast_types::{AtomicExpression, NamePath, Type};
 
 #[derive(Debug, PartialEq)]
 pub enum ResolverError {
@@ -132,9 +130,16 @@ impl Visitor<ResolverError> for ScopeTable {
                     }
                 }
             }
-            _ => {
-                return Ok(true);
-            }
+
+            ASTNodeEnum::VarDecl(_)
+            | ASTNodeEnum::LiteralValue(_)
+            | ASTNodeEnum::Expression(_)
+            | ASTNodeEnum::If(_)
+            | ASTNodeEnum::Else(_)
+            | ASTNodeEnum::While(_)
+            | ASTNodeEnum::For(_)
+            | ASTNodeEnum::Statement(_)
+            | ASTNodeEnum::Definition(_) => return Ok(true),
         };
         return Ok(false);
     }
