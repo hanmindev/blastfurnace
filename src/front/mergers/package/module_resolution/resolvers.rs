@@ -1,4 +1,7 @@
-use crate::front::ast_types::{AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, If, Module, Reference, ResolvedName, Statement, Use};
+use crate::front::ast_types::{
+    AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, If, Module, Reference,
+    ResolvedName, Statement, Use,
+};
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
 use std::rc::Rc;
 

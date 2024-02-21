@@ -1,9 +1,12 @@
-use std::collections::HashMap;
-use std::rc::Rc;
-use either::Left;
-use crate::front::ast_types::{AtomicExpression, BinOp, Expression, ExpressionEnum, GlobalResolvedName, LiteralValue, Type, UnOp};
+use crate::front::ast_types::{
+    AtomicExpression, BinOp, Expression, ExpressionEnum, GlobalResolvedName, LiteralValue, Type,
+    UnOp,
+};
 use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::types::VarTypeNode;
+use either::Left;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 struct BinOpNode {
     pub op: BinOp,
@@ -16,7 +19,6 @@ struct UnOpNode {
     pub operand: Box<TypeTree>,
 }
 
-
 pub struct TypeDependency {
     deps: Vec<Rc<GlobalResolvedName>>,
     tree: TypeTree,
@@ -27,27 +29,23 @@ impl TypeDependency {
         let mut deps = Vec::new();
 
         let tree = match &expr.expr {
-            ExpressionEnum::AtomicExpression(x) => {
-                match x {
-                    AtomicExpression::Literal(x) => {
-                        TypeTree::Type(match x {
-                            LiteralValue::Null => Type::Void,
-                            LiteralValue::Int(_) => Type::Int,
-                            LiteralValue::Decimal(_) => Type::Double,
-                            LiteralValue::String(_) => Type::String,
-                            LiteralValue::Compound(_) => Type::Void,
-                        })
-                    }
-                    AtomicExpression::Variable(x) => {
-                        let var_name = x.name.global_resolved.as_ref().unwrap().clone();
-                        deps.push(var_name.clone());
-                        TypeTree::Var(var_name)
-                    }
-                    AtomicExpression::FnCall(x) => {
-                        TypeTree::FnCall(x.name.global_resolved.as_ref().unwrap().clone())
-                    }
+            ExpressionEnum::AtomicExpression(x) => match x {
+                AtomicExpression::Literal(x) => TypeTree::Type(match x {
+                    LiteralValue::Null => Type::Void,
+                    LiteralValue::Int(_) => Type::Int,
+                    LiteralValue::Decimal(_) => Type::Double,
+                    LiteralValue::String(_) => Type::String,
+                    LiteralValue::Compound(_) => Type::Void,
+                }),
+                AtomicExpression::Variable(x) => {
+                    let var_name = x.name.global_resolved.as_ref().unwrap().clone();
+                    deps.push(var_name.clone());
+                    TypeTree::Var(var_name)
                 }
-            }
+                AtomicExpression::FnCall(x) => {
+                    TypeTree::FnCall(x.name.global_resolved.as_ref().unwrap().clone())
+                }
+            },
             ExpressionEnum::Unary(unop, x) => {
                 let child = TypeDependency::new(x);
                 deps.extend(child.deps);
@@ -69,13 +67,9 @@ impl TypeDependency {
             }
         };
 
-        TypeDependency {
-            deps,
-            tree,
-        }
+        TypeDependency { deps, tree }
     }
 }
-
 
 pub enum TypeTree {
     BinOp(BinOpNode),
@@ -86,7 +80,11 @@ pub enum TypeTree {
 }
 
 impl TypeTree {
-    pub fn resolve_type(&self, front_program: &FrontProgram, vars: &HashMap<Rc<GlobalResolvedName>, VarTypeNode>) -> TypeResult<Type> {
+    pub fn resolve_type(
+        &self,
+        front_program: &FrontProgram,
+        vars: &HashMap<Rc<GlobalResolvedName>, VarTypeNode>,
+    ) -> TypeResult<Type> {
         match self {
             TypeTree::BinOp(node) => {
                 let left = node.left.resolve_type(front_program, vars)?;
@@ -118,10 +116,7 @@ impl TypeTree {
             }
         }
     }
-
 }
-
-
 
 pub enum TypeError {
     TypeMismatch,

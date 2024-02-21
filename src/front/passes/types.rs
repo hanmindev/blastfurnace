@@ -1,13 +1,16 @@
 mod type_expression;
 
-use crate::front::ast_types::{AtomicExpression, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue, Statement, Type, VarAssign, VarDecl, VarDef, While};
+use crate::front::ast_types::{
+    AtomicExpression, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For,
+    GlobalResolvedName, If, LiteralValue, Statement, Type, VarAssign, VarDecl, VarDef, While,
+};
 use crate::front::exporter::export::FrontProgram;
+use crate::front::passes::types::type_expression::{TypeDependency, TypeTree};
 use crate::front::passes::{Pass, PassResult};
+use either::Either;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::rc::Rc;
-use either::Either;
-use crate::front::passes::types::type_expression::{TypeDependency, TypeTree};
 
 trait CheckUsed {
     fn annotate(&self, fn_def: &FnDef, table: &mut VarDefTable);
@@ -18,7 +21,12 @@ impl CheckUsed for FnCall {
         for mut arg in &self.args {
             arg.annotate(fn_def, table);
         }
-        if let Some(fn_def) = table.program.definitions.function_definitions.get(self.name.global_resolved.as_ref().unwrap().as_ref()) {
+        if let Some(fn_def) = table
+            .program
+            .definitions
+            .function_definitions
+            .get(self.name.global_resolved.as_ref().unwrap().as_ref())
+        {
             // return Some(fn_def.return_type.clone());
         } else {
             panic!("Function not found")
@@ -46,7 +54,6 @@ impl CheckUsed for Else {
         }
     }
 }
-
 
 impl CheckUsed for If {
     fn annotate(&self, fn_def: &FnDef, table: &mut VarDefTable) {
@@ -86,7 +93,10 @@ impl CheckUsed for VarDef {
 impl CheckUsed for VarAssign {
     fn annotate(&self, fn_def: &FnDef, table: &mut VarDefTable) {
         self.expr.annotate(fn_def, table);
-        table.register_variable_expr(self.name_path.name.global_resolved.as_ref().unwrap(), &self.expr);
+        table.register_variable_expr(
+            self.name_path.name.global_resolved.as_ref().unwrap(),
+            &self.expr,
+        );
     }
 }
 
@@ -95,7 +105,8 @@ impl CheckUsed for VarDecl {
         self.var_def.annotate(fn_def, table);
         if let Some(expr) = &self.expr {
             expr.annotate(fn_def, table);
-            table.register_variable_expr(self.var_def.name.global_resolved.as_ref().unwrap(), &expr);
+            table
+                .register_variable_expr(self.var_def.name.global_resolved.as_ref().unwrap(), &expr);
         }
     }
 }
@@ -143,22 +154,37 @@ impl VarDefTable<'_> {
     fn new(program: &'_ FrontProgram) -> VarDefTable<'_> {
         VarDefTable {
             program,
-            var_types: program.definitions.global_var_definitions.iter().map(|(k, v)| (Rc::clone(k), {
-                if let Some(type_) = &v.var_def.type_ {
-                    VarTypeNode { types_: Either::Left(type_.clone()) }
-                } else {
-                    VarTypeNode { types_: Either::Right(TypeDependency::new(&v.expr.as_ref().unwrap())) }
-                }
-            }
-            )).collect(),
+            var_types: program
+                .definitions
+                .global_var_definitions
+                .iter()
+                .map(|(k, v)| {
+                    (Rc::clone(k), {
+                        if let Some(type_) = &v.var_def.type_ {
+                            VarTypeNode {
+                                types_: Either::Left(type_.clone()),
+                            }
+                        } else {
+                            VarTypeNode {
+                                types_: Either::Right(TypeDependency::new(
+                                    &v.expr.as_ref().unwrap(),
+                                )),
+                            }
+                        }
+                    })
+                })
+                .collect(),
         }
     }
 
     fn register_variable_type(&mut self, name: &Rc<GlobalResolvedName>, type_: &Option<Type>) {
         if let Some(type_) = type_ {
-            self.var_types.insert(Rc::clone(name), VarTypeNode {
-                types_: Either::Left(type_.clone()),
-            });
+            self.var_types.insert(
+                Rc::clone(name),
+                VarTypeNode {
+                    types_: Either::Left(type_.clone()),
+                },
+            );
         }
     }
 
@@ -166,9 +192,12 @@ impl VarDefTable<'_> {
         if let Some(_) = &expr.type_ {
             self.register_variable_type(name, &expr.type_);
         } else {
-            self.var_types.insert(Rc::clone(name), VarTypeNode {
-                types_: Either::Right(TypeDependency::new(expr)),
-            });
+            self.var_types.insert(
+                Rc::clone(name),
+                VarTypeNode {
+                    types_: Either::Right(TypeDependency::new(expr)),
+                },
+            );
         }
     }
 }
@@ -195,14 +224,17 @@ mod tests {
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
-    use crate::front::passes::{pass};
-    use camino::Utf8PathBuf;
+    use crate::front::passes::pass;
     use crate::front::passes::types::AnnotateTypes;
+    use camino::Utf8PathBuf;
 
     #[test]
     fn test_type_annotation_simple() {
         let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
-        mock_file_system.insert_file(Utf8PathBuf::from("main.ing"), "pub fn main() { let a = 5; }");
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("main.ing"),
+            "pub fn main() { let a = 5; }",
+        );
 
         let mut program_merger = ProgramMerger::new("pkg");
 
