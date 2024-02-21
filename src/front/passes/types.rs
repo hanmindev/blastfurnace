@@ -1,15 +1,15 @@
 mod type_expression;
 
 use crate::front::ast_types::{
-    AtomicExpression, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For,
-    GlobalResolvedName, If, LiteralValue, Statement, Type, VarAssign, VarDecl, VarDef, While,
+    AtomicExpression, Block, Else, Expression, FnCall, FnDef, For, GlobalResolvedName, If,
+    Statement, Type, VarAssign, VarDecl, VarDef, While,
 };
 use crate::front::exporter::export::FrontProgram;
-use crate::front::passes::types::type_expression::{TypeDependency, TypeTree};
+use crate::front::passes::types::type_expression::TypeDependency;
 use crate::front::passes::{Pass, PassResult};
 use either::Either;
-use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
+use std::collections::HashMap;
+
 use std::rc::Rc;
 
 trait CheckUsed {
@@ -18,10 +18,10 @@ trait CheckUsed {
 
 impl CheckUsed for FnCall {
     fn annotate(&self, fn_def: &FnDef, table: &mut VarDefTable) {
-        for mut arg in &self.args {
+        for arg in &self.args {
             arg.annotate(fn_def, table);
         }
-        if let Some(fn_def) = table
+        if let Some(_fn_def) = table
             .program
             .definitions
             .function_definitions
@@ -35,11 +35,11 @@ impl CheckUsed for FnCall {
 }
 
 impl CheckUsed for AtomicExpression {
-    fn annotate(&self, fn_def: &FnDef, table: &mut VarDefTable) {}
+    fn annotate(&self, _fn_def: &FnDef, _table: &mut VarDefTable) {}
 }
 
 impl CheckUsed for Expression {
-    fn annotate(&self, fn_def: &FnDef, table: &mut VarDefTable) {}
+    fn annotate(&self, _fn_def: &FnDef, _table: &mut VarDefTable) {}
 }
 
 impl CheckUsed for Else {
@@ -85,7 +85,7 @@ impl CheckUsed for For {
 }
 
 impl CheckUsed for VarDef {
-    fn annotate(&self, fn_def: &FnDef, table: &mut VarDefTable) {
+    fn annotate(&self, _fn_def: &FnDef, table: &mut VarDefTable) {
         table.register_variable_type(self.name.global_resolved.as_ref().unwrap(), &self.type_);
     }
 }
@@ -129,7 +129,7 @@ impl CheckUsed for Statement {
 
 impl CheckUsed for Block {
     fn annotate(&self, fn_def: &FnDef, table: &mut VarDefTable) {
-        for mut statement in &self.statements {
+        for statement in &self.statements {
             statement.annotate(fn_def, table);
         }
     }
@@ -207,7 +207,7 @@ pub struct AnnotateTypes;
 
 impl Pass for AnnotateTypes {
     fn pass(&mut self, program: &mut FrontProgram) -> PassResult {
-        let mut table = VarDefTable::new(program);
+        let _table = VarDefTable::new(program);
 
         // for (_, v) in &mut program.definitions.function_definitions {
         //     let mut statements = v.body.statements.drain(..).collect::<Vec<Statement>>();

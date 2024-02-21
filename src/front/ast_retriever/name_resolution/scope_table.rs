@@ -1,4 +1,4 @@
-use crate::front::ast_retriever::name_resolution::resolver::{InternalResolveResult, ResolveResult};
+use crate::front::ast_retriever::name_resolution::resolver::InternalResolveResult;
 use crate::front::ast_retriever::name_resolution::resolver::ResolverError::Redefinition;
 use crate::front::ast_types::{RawName, ResolvedName};
 use std::collections::HashMap;

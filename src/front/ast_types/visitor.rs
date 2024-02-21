@@ -51,7 +51,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for FnCall {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::FnCall(self))?;
         if visit_result {
             self.name.visit(visitor)?;
-            for mut arg in &mut self.args {
+            for arg in &mut self.args {
                 arg.visit(visitor)?;
             }
         }
@@ -100,8 +100,12 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Expression {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Expression(self))?;
         if visit_result {
             match &mut self.expr {
-                ExpressionEnum::AtomicExpression(x) => { x.visit(visitor)?; }
-                ExpressionEnum::Unary(_, x) => { x.visit(visitor)?; }
+                ExpressionEnum::AtomicExpression(x) => {
+                    x.visit(visitor)?;
+                }
+                ExpressionEnum::Unary(_, x) => {
+                    x.visit(visitor)?;
+                }
                 ExpressionEnum::Binary(x, _, y) => {
                     x.visit(visitor)?;
                     y.visit(visitor)?;
@@ -215,14 +219,30 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Statement {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Statement(self))?;
         if visit_result {
             match self {
-                Statement::VarDecl(x) => { x.visit(visitor)?; }
-                Statement::VarAssign(x) => { x.visit(visitor)?; }
-                Statement::If(x) => { x.visit(visitor)?; }
-                Statement::While(x) => { x.visit(visitor)?; }
-                Statement::For(x) => { x.visit(visitor)?; }
-                Statement::Return(x) => { x.visit(visitor)?; }
-                Statement::Expression(x) => { x.visit(visitor)?; }
-                Statement::Block(x) => { x.visit(visitor)?; }
+                Statement::VarDecl(x) => {
+                    x.visit(visitor)?;
+                }
+                Statement::VarAssign(x) => {
+                    x.visit(visitor)?;
+                }
+                Statement::If(x) => {
+                    x.visit(visitor)?;
+                }
+                Statement::While(x) => {
+                    x.visit(visitor)?;
+                }
+                Statement::For(x) => {
+                    x.visit(visitor)?;
+                }
+                Statement::Return(x) => {
+                    x.visit(visitor)?;
+                }
+                Statement::Expression(x) => {
+                    x.visit(visitor)?;
+                }
+                Statement::Block(x) => {
+                    x.visit(visitor)?;
+                }
                 Statement::Continue | Statement::Break => {}
             };
         }
@@ -238,7 +258,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Block {
                 definitions.visit(visitor)?;
             }
 
-            for mut statement in &mut self.statements {
+            for statement in &mut self.statements {
                 statement.visit(visitor)?;
             }
         }
