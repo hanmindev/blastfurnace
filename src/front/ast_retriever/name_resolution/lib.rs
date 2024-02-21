@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::front::ast_retriever::name_resolution::resolvers::ResolverError::{
+    use crate::front::ast_retriever::name_resolution::resolver::ResolverError::{
         Redefinition, UndefinedVariable,
     };
     use crate::front::ast_retriever::name_resolution::scope_table::ScopeTable;

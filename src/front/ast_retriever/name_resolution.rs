@@ -3,7 +3,7 @@ use crate::front::ast_types::visitor::Visitable;
 use crate::front::ast_types::Module;
 
 mod lib;
-mod resolvers;
+mod resolver;
 mod scope_table;
 
 pub fn resolve_module(module: &mut Module) {
