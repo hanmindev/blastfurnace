@@ -32,9 +32,7 @@ impl Pass for AnnotateTypes {
         // topologically sort first assignment graph
         let sorted = topological_sort(&table);
 
-        let mut new_table = ResolvedVarDefTable {
-            var_types: HashMap::new(),
-        };
+        let mut var_types = HashMap::new();
 
         // evaluate types
         for value in sorted {
@@ -56,10 +54,10 @@ impl Pass for AnnotateTypes {
                     types_: Either::Left(type_.clone()),
                 },
             );
-            new_table.var_types.insert(value, type_);
+            var_types.insert(value, type_);
         }
 
-        if let Err(e) = insert_types(program, &mut new_table) {
+        if let Err(e) = insert_types(program, var_types) {
             return Err(PassError::Types(e));
         }
 
