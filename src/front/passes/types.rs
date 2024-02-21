@@ -27,6 +27,7 @@ pub struct AnnotateTypes;
 impl Pass for AnnotateTypes {
     fn pass(&mut self, program: &mut FrontProgram) -> PassResult {
         let mut table = create_first_assignment_graph(program);
+        let program = table.program.take().unwrap();
 
         // topologically sort first assignment graph
         let sorted = topological_sort(&table);

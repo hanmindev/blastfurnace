@@ -12,7 +12,7 @@ pub enum ResolverError {
 
 pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 
-impl Visitor<(), ResolverError> for VarDefTable {
+impl Visitor<(), ResolverError> for VarDefTable<'_> {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
         match ast_node {
             ASTNodeEnum::VarDef(x) => {
@@ -86,12 +86,24 @@ pub fn create_first_assignment_graph(program: &mut FrontProgram) -> VarDefTable 
         })
         .collect();
 
-    for v in program.definitions.function_definitions.values_mut() {
-        for statement in &mut v.body.statements {
+    for fn_name in program.definitions.function_definitions.keys().map(|x| x.clone()).collect::<Vec<_>>() {
+        let fn_body = program.definitions.function_definitions.get_mut(&fn_name).unwrap();
+        let mut statements = fn_body.body.statements.drain(..).collect::<Vec<_>>();
+
+        for statement in &mut statements {
             let mut table = VarDefTable::new(var_types);
+
+            table.program = Some(program);
             statement.visit(&mut table).unwrap();
+            table.program = None;
+
             var_types = table.var_types;
         }
+
+        let fn_body = program.definitions.function_definitions.get_mut(&fn_name).unwrap();
+        fn_body.body.statements = statements;
     }
-    return VarDefTable::new(var_types);
+    let mut table = VarDefTable::new(var_types);
+    table.program = Some(program);
+    table
 }

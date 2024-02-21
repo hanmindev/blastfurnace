@@ -9,14 +9,16 @@ pub struct VarTypeNode {
     pub types_: Either<Type, TypeDependency>,
 }
 
-pub struct VarDefTable {
+pub struct VarDefTable<'a> {
+    pub program: Option<&'a mut FrontProgram>,
     pub var_types: HashMap<Rc<GlobalResolvedName>, VarTypeNode>,
 }
 
-impl VarDefTable {
-    pub fn new(var_types: HashMap<Rc<GlobalResolvedName>, VarTypeNode>) -> VarDefTable {
+impl VarDefTable<'_> {
+    pub fn new(var_types: HashMap<Rc<GlobalResolvedName>, VarTypeNode>) -> VarDefTable<'static> {
         VarDefTable {
-            var_types
+            program: None,
+            var_types,
         }
     }
 
