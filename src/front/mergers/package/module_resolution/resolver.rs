@@ -1,4 +1,4 @@
-use crate::front::ast_types::visitor::{ASTNodeEnum, Visitable, Visitor};
+use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
 use crate::front::ast_types::{AtomicExpression, Definition, ResolvedName};
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
 use std::rc::Rc;
@@ -8,10 +8,10 @@ pub enum ResolverError {
     ImportVisibilityError(String, String, String),
 }
 
-pub type ResolveResult<T> = Result<T, ResolverError>;
+pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 
-impl Visitor<ResolverError> for ModuleMerger {
-    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
+impl Visitor<ResolverError, ()> for ModuleMerger {
+    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
         match ast_node {
             ASTNodeEnum::Block(block) => {
                 while let Some(definition) = block.definitions.pop() {
@@ -87,13 +87,13 @@ impl Visitor<ResolverError> for ModuleMerger {
             | ASTNodeEnum::FnCall(_)
             | ASTNodeEnum::LiteralValue(_)
             | ASTNodeEnum::VarDecl(_)
-            | ASTNodeEnum::AtomicExpression(_) => return Ok(true),
+            | ASTNodeEnum::AtomicExpression(_) => return Ok((true, None)),
 
             ASTNodeEnum::FnDef(_)
             | ASTNodeEnum::StructDef(_)
             | ASTNodeEnum::Definition(_) => panic!("Should not be called directly"),
         };
-        return Ok(false);
+        return Ok((false, None));
     }
 }
 
@@ -135,5 +135,5 @@ fn resolve_definition(
             );
         }
     }
-    Ok(())
+    Ok((true, None))
 }

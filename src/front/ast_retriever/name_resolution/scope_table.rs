@@ -1,4 +1,4 @@
-use crate::front::ast_retriever::name_resolution::resolver::ResolveResult;
+use crate::front::ast_retriever::name_resolution::resolver::{InternalResolveResult, ResolveResult};
 use crate::front::ast_retriever::name_resolution::resolver::ResolverError::Redefinition;
 use crate::front::ast_types::{RawName, ResolvedName};
 use std::collections::HashMap;
@@ -62,7 +62,7 @@ impl ScopeTable {
         &mut self,
         name: &String,
         symbol_type: SymbolType,
-    ) -> ResolveResult<Rc<ResolvedName>> {
+    ) -> InternalResolveResult<Rc<ResolvedName>> {
         let key = (name.clone(), symbol_type);
 
         let node = &mut self.stack.last_mut().unwrap();
