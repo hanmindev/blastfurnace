@@ -29,7 +29,12 @@ impl Visitor<bool, ResolverError> for Option<NullCheck> {
                                 .used_as_null(x.name.global_resolved.as_ref().unwrap().clone()),
                         ),
                     )),
-                    AtomicExpression::FnCall(_) => Ok((true, Some(false))),
+                    AtomicExpression::FnCall(x) => {
+                        for arg in &mut x.args {
+                            arg.visit(self)?;
+                        }
+                        Ok((false, Some(false)))
+                    },
                     AtomicExpression::Literal(_) => Ok((true, Some(false))),
                 }
             }
@@ -311,6 +316,27 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-        .is_err());
+            .is_err());
+    }
+
+    #[test]
+    fn test_null_fn_argument() {
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("main.ing"),
+            "pub fn main(b: int) { let a; main(a); }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut front_program = program_merger.return_merged();
+
+        assert!(pass(
+            &mut front_program,
+            &mut vec![Box::new(DisallowNullAssignment)],
+        )
+            .is_err());
     }
 }
