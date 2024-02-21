@@ -20,8 +20,8 @@ struct UnOpNode {
 }
 
 pub struct TypeDependency {
-    deps: Vec<Rc<GlobalResolvedName>>,
-    tree: TypeTree,
+    pub deps: Vec<Rc<GlobalResolvedName>>,
+    pub tree: TypeTree,
 }
 
 impl TypeDependency {
@@ -30,13 +30,7 @@ impl TypeDependency {
 
         let tree = match &expr.expr {
             ExpressionEnum::AtomicExpression(x) => match x {
-                AtomicExpression::Literal(x) => TypeTree::Type(match x {
-                    LiteralValue::Null => Type::Void,
-                    LiteralValue::Int(_) => Type::Int,
-                    LiteralValue::Decimal(_) => Type::Double,
-                    LiteralValue::String(_) => Type::String,
-                    LiteralValue::Compound(_) => Type::Void,
-                }),
+                AtomicExpression::Literal(x) => TypeTree::Type(literal_types(x)),
                 AtomicExpression::Variable(x) => {
                     let var_name = x.name.global_resolved.as_ref().unwrap().clone();
                     deps.push(var_name.clone());
@@ -118,13 +112,25 @@ impl TypeTree {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum TypeError {
     TypeMismatch,
+    MultipleTypes,
 }
 
 pub type TypeResult<T> = Result<T, TypeError>;
 
-fn binop_type_resolver(op: &BinOp, left: &Type, right: &Type) -> TypeResult<Type> {
+pub fn literal_types(literal: &LiteralValue) -> Type {
+    match literal {
+        LiteralValue::Null => Type::Void,
+        LiteralValue::Int(_) => Type::Int,
+        LiteralValue::Decimal(_) => Type::Double,
+        LiteralValue::String(_) => Type::String,
+        LiteralValue::Compound(_) => Type::Void,
+    }
+}
+
+pub fn binop_type_resolver(op: &BinOp, left: &Type, right: &Type) -> TypeResult<Type> {
     match op {
         BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod => {
             if left == &Type::Int && right == &Type::Int {
@@ -154,7 +160,7 @@ fn binop_type_resolver(op: &BinOp, left: &Type, right: &Type) -> TypeResult<Type
     }
 }
 
-fn unop_type_resolver(op: &UnOp, operand: &Type) -> TypeResult<Type> {
+pub fn unop_type_resolver(op: &UnOp, operand: &Type) -> TypeResult<Type> {
     match op {
         UnOp::Neg => {
             if operand == &Type::Int {

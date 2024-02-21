@@ -2,10 +2,12 @@ mod check_assignment;
 mod types;
 
 use crate::front::exporter::export::FrontProgram;
+use crate::front::passes::types::TypeError;
 
 pub enum PassError {
     Unimplemented,
     Generic(String),
+    Types(TypeError)
 }
 
 pub type PassResult = Result<(), PassError>;
