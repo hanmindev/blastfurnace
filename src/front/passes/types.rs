@@ -1,15 +1,14 @@
 mod first_assignment_graph;
+mod insert_types;
+mod topological_sort;
 mod type_expression;
 mod var_def_table;
-mod topological_sort;
-mod insert_types;
 
-use std::collections::HashMap;
-use either::{Either};
 use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::{Pass, PassError, PassResult};
+use either::Either;
+use std::collections::HashMap;
 
-use crate::front::ast_types::visitor::{Visitable, Visitor};
 use crate::front::passes::types::first_assignment_graph::create_first_assignment_graph;
 use crate::front::passes::types::insert_types::{insert_types, ResolvedVarDefTable};
 use crate::front::passes::types::topological_sort::topological_sort;
@@ -29,7 +28,6 @@ impl Pass for AnnotateTypes {
         // topologically sort first assignment graph
         let sorted = topological_sort(&table);
 
-
         let mut new_table = ResolvedVarDefTable {
             var_types: HashMap::new(),
         };
@@ -38,9 +36,7 @@ impl Pass for AnnotateTypes {
         for value in sorted {
             let types = &table.var_types.get(&value).unwrap().types_;
             let type_ = match &types {
-                Either::Left(l) => {
-                    l.clone()
-                }
+                Either::Left(l) => l.clone(),
                 Either::Right(r) => {
                     if let Ok(type_) = r.tree.resolve_type(program, &table.var_types) {
                         type_
@@ -50,7 +46,12 @@ impl Pass for AnnotateTypes {
                 }
             };
 
-            table.var_types.insert(value.clone(), VarTypeNode { types_: Either::Left(type_.clone()) });
+            table.var_types.insert(
+                value.clone(),
+                VarTypeNode {
+                    types_: Either::Left(type_.clone()),
+                },
+            );
             new_table.var_types.insert(value, type_);
         }
 
@@ -62,15 +63,15 @@ impl Pass for AnnotateTypes {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use crate::front::ast_types::Type;
+    use crate::front::ast_types::{GlobalResolvedName, Statement};
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use crate::front::mergers::program::ProgramMerger;
     use crate::front::passes::pass;
     use crate::front::passes::types::AnnotateTypes;
     use camino::Utf8PathBuf;
-    use crate::front::ast_types::{GlobalResolvedName, Statement};
-    use crate::front::ast_types::Type;
+    use std::rc::Rc;
 
     #[test]
     fn test_type_annotation_simple() {
@@ -88,11 +89,18 @@ mod tests {
 
         pass(&mut front_program, &mut vec![Box::new(AnnotateTypes)]);
 
-        if let Statement::VarDecl(x) = &front_program.definitions.function_definitions.get(&Rc::from(GlobalResolvedName {
-            package: Rc::from("pkg"),
-            module: Rc::from("/root"),
-            name: "0_main".to_string(),
-        })).unwrap().body.statements[0] {
+        if let Statement::VarDecl(x) = &front_program
+            .definitions
+            .function_definitions
+            .get(&Rc::from(GlobalResolvedName {
+                package: Rc::from("pkg"),
+                module: Rc::from("/root"),
+                name: "0_main".to_string(),
+            }))
+            .unwrap()
+            .body
+            .statements[0]
+        {
             assert_eq!(x.var_def.type_.as_ref().unwrap(), &Type::Int);
         } else {
             panic!("Expected VarDecl");
@@ -115,11 +123,18 @@ mod tests {
 
         pass(&mut front_program, &mut vec![Box::new(AnnotateTypes)]);
 
-        if let Statement::VarDecl(x) = &front_program.definitions.function_definitions.get(&Rc::from(GlobalResolvedName {
-            package: Rc::from("pkg"),
-            module: Rc::from("/root"),
-            name: "0_main".to_string(),
-        })).unwrap().body.statements[0] {
+        if let Statement::VarDecl(x) = &front_program
+            .definitions
+            .function_definitions
+            .get(&Rc::from(GlobalResolvedName {
+                package: Rc::from("pkg"),
+                module: Rc::from("/root"),
+                name: "0_main".to_string(),
+            }))
+            .unwrap()
+            .body
+            .statements[0]
+        {
             assert_eq!(x.var_def.type_.as_ref().unwrap(), &Type::Int);
         } else {
             panic!("Expected VarDecl");

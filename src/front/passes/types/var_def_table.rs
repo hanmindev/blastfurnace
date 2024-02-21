@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use std::rc::Rc;
-use either::Either;
 use crate::front::ast_types::{Expression, GlobalResolvedName, Type};
 use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::types::type_expression::TypeDependency;
+use either::Either;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 pub struct VarTypeNode {
     pub types_: Either<Type, TypeDependency>,

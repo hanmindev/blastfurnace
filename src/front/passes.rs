@@ -7,7 +7,7 @@ use crate::front::passes::types::TypeError;
 pub enum PassError {
     Unimplemented,
     Generic(String),
-    Types(TypeError)
+    Types(TypeError),
 }
 
 pub type PassResult = Result<(), PassError>;

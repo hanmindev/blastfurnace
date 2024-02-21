@@ -3,10 +3,10 @@ use crate::front::ast_types::{
     UnOp,
 };
 use crate::front::exporter::export::FrontProgram;
+use crate::front::passes::types::var_def_table::VarTypeNode;
 use either::Left;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::front::passes::types::var_def_table::VarTypeNode;
 
 struct BinOpNode {
     pub op: BinOp,
