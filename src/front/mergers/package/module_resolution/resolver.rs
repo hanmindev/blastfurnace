@@ -18,7 +18,6 @@ impl Visitor<(), ResolverError> for ModuleMerger {
                 while let Some(definition) = block.definitions.pop() {
                     resolve_definition(definition, self, false)?;
                 }
-
                 for statement in &mut block.statements {
                     statement.visit(self)?;
                 }
@@ -31,8 +30,12 @@ impl Visitor<(), ResolverError> for ModuleMerger {
                 while let Some(definition) = module.public_definitions.pop() {
                     resolve_definition(definition, self, true)?;
                 }
-
-                module.block.visit(self)?;
+                while let Some(definition) = module.definitions.pop() {
+                    resolve_definition(definition, self, false)?;
+                }
+                for statement in &mut module.statements {
+                    statement.visit(self)?;
+                }
             }
             ASTNodeEnum::Use(use_) => {
                 for element in &mut use_.elements {

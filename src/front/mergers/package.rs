@@ -37,10 +37,7 @@ impl<T> Packager<T> {
 mod tests {
     use super::*;
     use crate::front::ast_types::Type::Void;
-    use crate::front::ast_types::{
-        AtomicExpression, Block, Expression, ExpressionEnum, FnCall, FnDef, GlobalResolvedName,
-        Reference, Statement,
-    };
+    use crate::front::ast_types::{AtomicExpression, Block, DefinitionMap, Expression, ExpressionEnum, FnCall, FnDef, GlobalResolvedName, Reference, Statement};
     use crate::front::file_system::fs::FileSystem;
     use crate::front::file_system::mock_fs::MockFileSystem;
     use camino::Utf8PathBuf;
@@ -78,7 +75,7 @@ mod tests {
                 },
                 return_type: Void,
                 body: (Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![],
                 }),
                 mods: Rc::new(vec![]),
@@ -102,7 +99,7 @@ mod tests {
                 },
                 return_type: Void,
                 body: (Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![],
                 }),
                 mods: Rc::new(vec![]),
@@ -146,7 +143,7 @@ mod tests {
                 },
                 return_type: Void,
                 body: (Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![
                         (Statement::Expression(Box::new(Expression {
                             type_: None,
@@ -188,7 +185,7 @@ mod tests {
                 },
                 return_type: Void,
                 body: (Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![],
                 }),
                 mods: Rc::new(vec![]),

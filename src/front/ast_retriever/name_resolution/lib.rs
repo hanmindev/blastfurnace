@@ -18,7 +18,7 @@ mod tests {
         let mut module = string_to_module(statement).unwrap();
         module.visit(&mut scope_table).unwrap();
 
-        match &module.public_definitions[0] {
+        match &module.public_definitions.vars[0] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.name.clone(),
@@ -43,7 +43,7 @@ mod tests {
         let mut module = string_to_module(statement).unwrap();
         module.visit(&mut scope_table).unwrap();
 
-        match &module.public_definitions[0] {
+        match &module.public_definitions.functions[0] {
             Definition::FnDef(fn_def) => {
                 assert_eq!(
                     fn_def.name.clone(),
@@ -83,7 +83,7 @@ mod tests {
         let mut module = string_to_module(statement).unwrap();
         module.visit(&mut scope_table).unwrap();
 
-        match &module.public_definitions[0] {
+        match &module.public_definitions.functions[0] {
             Definition::FnDef(fn_def) => {
                 assert_eq!(
                     fn_def.name.clone(),
@@ -156,7 +156,7 @@ mod tests {
         let mut module = string_to_module(statement).unwrap();
         module.visit(&mut scope_table).unwrap();
 
-        match &module.public_definitions[0] {
+        match &module.public_definitions.functions[0] {
             Definition::FnDef(fn_def) => {
                 assert_eq!(
                     fn_def.name.clone(),
@@ -206,7 +206,7 @@ mod tests {
         let mut module = string_to_module(statement).unwrap();
         module.visit(&mut scope_table).unwrap();
 
-        match &module.public_definitions[0] {
+        match &module.public_definitions.vars[0] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.name.clone(),
@@ -222,7 +222,7 @@ mod tests {
             }
         };
 
-        match &module.public_definitions[1] {
+        match &module.public_definitions.functions[0] {
             Definition::FnDef(fn_def) => {
                 assert_eq!(
                     fn_def.name.clone(),
@@ -335,7 +335,7 @@ mod tests {
 
         module.visit(&mut scope_table).unwrap();
 
-        match &module.public_definitions[0] {
+        match &module.public_definitions.vars[0] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
@@ -359,7 +359,7 @@ mod tests {
                 panic!("Expected VarDecl");
             }
         };
-        match &module.public_definitions[1] {
+        match &module.public_definitions.vars[1] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
@@ -383,7 +383,7 @@ mod tests {
                 panic!("Expected VarDecl");
             }
         };
-        match &module.public_definitions[2] {
+        match &module.public_definitions.vars[2] {
             Definition::VarDecl(var_decl) => {
                 assert_eq!(
                     var_decl.var_def.type_,
@@ -408,7 +408,7 @@ mod tests {
             }
         };
 
-        match &module.public_definitions[3] {
+        match &module.public_definitions.structs[0] {
             Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
@@ -430,11 +430,11 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "struct A { b: B } struct B { a: A }";
-        let mut block = string_to_module(statement).unwrap().block;
+        let mut module = string_to_module(statement).unwrap();
 
-        block.visit(&mut scope_table).unwrap();
+        module.visit(&mut scope_table).unwrap();
 
-        match &block.definitions[0] {
+        match &module.definitions.structs[0] {
             Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
@@ -465,7 +465,7 @@ mod tests {
             }
         }
 
-        match &block.definitions[1] {
+        match &module.definitions.structs[1] {
             Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
@@ -502,9 +502,9 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "struct A { b: int } struct A { a: int }";
-        let mut block = string_to_module(statement).unwrap().block;
+        let mut module = string_to_module(statement).unwrap();
 
-        if let Err(error) = block.visit(&mut scope_table) {
+        if let Err(error) = module.visit(&mut scope_table) {
             assert_eq!(error, Redefinition("A".to_string()));
         } else {
             panic!("Expected error");
@@ -516,10 +516,10 @@ mod tests {
         let mut scope_table = ScopeTable::new();
 
         let statement = "fn main() { let a: A; let b: B; } struct A { b: B } struct B { a: A }";
-        let mut block = string_to_module(statement).unwrap().block;
+        let mut module = string_to_module(statement).unwrap();
 
-        block.visit(&mut scope_table).unwrap();
-        match &block.definitions[2] {
+        module.visit(&mut scope_table).unwrap();
+        match &module.definitions.functions[0] {
             Definition::FnDef(fn_def) => {
                 assert_eq!(
                     fn_def.name.clone(),
@@ -584,7 +584,7 @@ mod tests {
             }
         }
 
-        match &block.definitions[0] {
+        match &module.definitions.structs[0] {
             Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),
@@ -615,7 +615,7 @@ mod tests {
             }
         }
 
-        match &block.definitions[1] {
+        match &module.definitions.structs[1] {
             Definition::StructDef(struct_def) => {
                 assert_eq!(
                     struct_def.type_name.clone(),

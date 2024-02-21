@@ -215,16 +215,52 @@ pub enum Definition {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct DefinitionMap {
+    pub functions: Vec<Definition>,
+    pub structs: Vec<Definition>,
+    pub vars: Vec<Definition>,
+}
+
+impl DefinitionMap {
+    pub fn new() -> DefinitionMap {
+        DefinitionMap {
+            functions: Vec::new(),
+            structs: Vec::new(),
+            vars: Vec::new(),
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.functions.is_empty() && self.structs.is_empty() && self.vars.is_empty()
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item=&mut Definition> {
+        self.functions.iter_mut().chain(self.structs.iter_mut()).chain(self.vars.iter_mut())
+    }
+    pub fn pop(&mut self) -> Option<Definition> {
+        self.functions.pop().or_else(|| self.structs.pop()).or_else(|| self.vars.pop())
+    }
+}
+
+pub fn module_definition_iter<'a>(public_definitions: &'a mut DefinitionMap, definitions: &'a mut DefinitionMap) -> impl Iterator<Item=&'a mut Definition> {
+    public_definitions.structs.iter_mut()
+        .chain(definitions.structs.iter_mut())
+        .chain(public_definitions.vars.iter_mut())
+        .chain(definitions.vars.iter_mut())
+        .chain(public_definitions.functions.iter_mut())
+        .chain(definitions.functions.iter_mut())
+}
+
+#[derive(Debug, PartialEq)]
 pub struct Module {
     pub mods: Vec<ModuleImport>,
     pub uses: Vec<Use>,
-    pub public_definitions: Vec<Definition>,
-    pub block: Block,
+    pub public_definitions: DefinitionMap,
+    pub definitions: DefinitionMap,
+    pub statements: Vec<Statement>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Block {
-    pub definitions: Vec<Definition>,
+    pub definitions: DefinitionMap,
     pub statements: Vec<Statement>,
 }
 

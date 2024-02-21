@@ -1,6 +1,6 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
-use crate::front::ast_types::{AtomicExpression, NamePath, Type};
+use crate::front::ast_types::{AtomicExpression, module_definition_iter, NamePath, Type};
 
 #[derive(Debug, PartialEq)]
 pub enum ResolverError {
@@ -92,7 +92,7 @@ impl Visitor<(), ResolverError> for ScopeTable {
             }
             ASTNodeEnum::Block(block) => {
                 self.scope_enter();
-                for definitions in &mut block.definitions {
+                for definitions in &mut block.definitions.iter_mut() {
                     definitions.visit(self)?;
                 }
                 for statement in &mut block.statements {
@@ -105,12 +105,12 @@ impl Visitor<(), ResolverError> for ScopeTable {
                 for use_ in &mut module.uses {
                     use_.visit(self)?;
                 }
-
-                for definitions in &mut module.public_definitions {
+                for definitions in &mut module_definition_iter(&mut module.public_definitions, &mut module.definitions) {
                     definitions.visit(self)?;
                 }
-
-                module.block.visit(self)?;
+                for statement in &mut module.statements {
+                    statement.visit(self)?;
+                }
                 self.scope_exit();
             }
             ASTNodeEnum::StructDef(struct_def) => {

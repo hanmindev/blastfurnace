@@ -1,7 +1,7 @@
 use crate::front::ast_retriever::reader::lexical::lexer::{TokenError, TokenInfo};
 use crate::front::ast_retriever::reader::lexical::token_types::Token;
 use crate::front::ast_retriever::reader::lexical::token_types::Token::{Any, Colon};
-use crate::front::ast_types::{AtomicExpression, BinOp, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement, StructDef, StructInit, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While};
+use crate::front::ast_types::{AtomicExpression, BinOp, Block, Definition, DefinitionMap, Else, Expression, ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement, StructDef, StructInit, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While};
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
@@ -540,12 +540,8 @@ impl<T: TokenStream> Parser<T> {
         let mut mods = Vec::new();
         let mut uses = Vec::new();
 
-        let mut definitions = Vec::new();
-        let mut struct_var_definitions = Vec::new();
-        let mut fn_definitions = Vec::new();
-
-        let mut pub_struct_var_definitions = Vec::new();
-        let mut pub_fn_definitions = Vec::new();
+        let mut definitions = DefinitionMap::new();
+        let mut public_definitions = DefinitionMap::new();
 
         let mut statements = Vec::new();
         loop {
@@ -565,18 +561,18 @@ impl<T: TokenStream> Parser<T> {
                 match type_ {
                     Token::Fn => {
                         if pub_ {
-                            pub_fn_definitions.push(Definition::FnDef(self.parse_fn_def()?));
+                            public_definitions.functions.push(Definition::FnDef(self.parse_fn_def()?));
                         } else {
-                            fn_definitions.push(Definition::FnDef(self.parse_fn_def()?));
+                            definitions.functions.push(Definition::FnDef(self.parse_fn_def()?));
                         }
                         continue;
                     }
                     Token::StructType => {
                         if pub_ {
-                            pub_struct_var_definitions
+                            public_definitions.structs
                                 .push(Definition::StructDef(self.parse_struct_def()?));
                         } else {
-                            struct_var_definitions
+                            definitions.structs
                                 .push(Definition::StructDef(self.parse_struct_def()?));
                         }
                         continue;
@@ -584,10 +580,10 @@ impl<T: TokenStream> Parser<T> {
                     Token::Let => {
                         if global {
                             if pub_ {
-                                pub_struct_var_definitions
+                                public_definitions.vars
                                     .push(Definition::VarDecl(self.parse_var_decl()?));
                             } else {
-                                struct_var_definitions
+                                definitions.vars
                                     .push(Definition::VarDecl(self.parse_var_decl()?));
                             }
                         } else {
@@ -627,19 +623,12 @@ impl<T: TokenStream> Parser<T> {
             }
         }
 
-        definitions.append(&mut struct_var_definitions);
-        definitions.append(&mut fn_definitions);
-
-        pub_struct_var_definitions.append(&mut pub_fn_definitions);
-
         Ok(Module {
             uses,
             mods,
-            public_definitions: pub_struct_var_definitions,
-            block: Block {
-                definitions,
-                statements,
-            },
+            public_definitions,
+            definitions,
+            statements,
         })
     }
 
@@ -652,7 +641,10 @@ impl<T: TokenStream> Parser<T> {
             panic!("public definitions in block")
         }
 
-        Ok(module.block)
+        Ok(Block {
+            definitions: module.definitions,
+            statements: module.statements,
+        })
     }
 
     fn parse_var_decl(&mut self) -> ParseResult<VarDecl> {
@@ -1023,17 +1015,16 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.definitions.len(), 1);
         assert_eq!(
-            block.definitions[0],
+            module.definitions.functions[0],
             Definition::FnDef(FnDef {
                 return_type: Type::Void,
                 name: Reference::new("main".to_string()),
                 args: Vec::new(),
                 body: Block {
-                    definitions: Vec::new(),
+                    definitions: DefinitionMap::new(),
                     statements: vec![Statement::Return(Box::from(Expression {
                         expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                             LiteralValue::Int(0)
@@ -1054,11 +1045,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 7);
+        assert_eq!(module.statements.len(), 7);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
@@ -1074,7 +1065,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[1],
+            module.statements[1],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
@@ -1090,7 +1081,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[2],
+            module.statements[2],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
@@ -1106,7 +1097,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[3],
+            module.statements[3],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Float),
@@ -1122,7 +1113,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[4],
+            module.statements[4],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Double),
@@ -1138,7 +1129,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[5],
+            module.statements[5],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
@@ -1154,7 +1145,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[6],
+            module.statements[6],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::String),
@@ -1180,7 +1171,7 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
         let struct_def = {
             let mut map = HashMap::new();
@@ -1214,9 +1205,9 @@ mod tests {
             map
         };
 
-        assert_eq!(block.statements.len(), 2);
+        assert_eq!(module.statements.len(), 2);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Struct(Reference::new("A".to_string()))),
@@ -1242,11 +1233,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 7);
+        assert_eq!(module.statements.len(), 7);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
@@ -1258,7 +1249,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[1],
+            module.statements[1],
             (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("b"),
                 expr: Box::from(Expression {
@@ -1270,7 +1261,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[2],
+            module.statements[2],
             (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
@@ -1294,7 +1285,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[3],
+            module.statements[3],
             (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
@@ -1318,7 +1309,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[4],
+            module.statements[4],
             (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
@@ -1342,7 +1333,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[5],
+            module.statements[5],
             (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
@@ -1366,7 +1357,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.statements[6],
+            module.statements[6],
             (Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
@@ -1399,11 +1390,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 2);
+        assert_eq!(module.statements.len(), 2);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
@@ -1454,11 +1445,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.definitions.len(), 1);
+        assert_eq!(module.definitions.functions.len(), 1);
         assert_eq!(
-            block.definitions[0],
+            module.definitions.functions[0],
             (Definition::FnDef(FnDef {
                 return_type: Type::Int,
                 name: Reference::new("add".to_string()),
@@ -1475,7 +1466,7 @@ mod tests {
                     },
                 ],
                 body: (Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![
                         (Statement::Return(Box::from(Expression {
                             type_: None,
@@ -1514,11 +1505,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(module.statements.len(), 1);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::Expression(Box::from(Expression {
                 type_: None,
                 expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(Box::from(
@@ -1558,11 +1549,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(module.statements.len(), 1);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::If(If {
                 cond: Box::from(Expression {
                     type_: None,
@@ -1583,7 +1574,7 @@ mod tests {
                     ),
                 }),
                 body: Box::from(Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![
                         (Statement::Return(Box::from(Expression {
                             type_: None,
@@ -1607,11 +1598,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(module.statements.len(), 1);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::If(If {
                 cond: Box::from(Expression {
                     type_: None,
@@ -1632,7 +1623,7 @@ mod tests {
                     ),
                 }),
                 body: Box::from(Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![
                         (Statement::Return(Box::from(Expression {
                             type_: None,
@@ -1662,7 +1653,7 @@ mod tests {
                         ),
                     }),
                     body: Box::from(Block {
-                        definitions: vec![],
+                        definitions: DefinitionMap::new(),
                         statements: vec![
                             (Statement::Return(Box::from(Expression {
                                 type_: None,
@@ -1673,7 +1664,7 @@ mod tests {
                         ],
                     }),
                     else_: Some(Else::Block(Box::from(Block {
-                        definitions: vec![],
+                        definitions: DefinitionMap::new(),
                         statements: vec![
                             (Statement::Return(Box::from(Expression {
                                 type_: None,
@@ -1696,11 +1687,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(module.statements.len(), 1);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::While(While {
                 cond: Box::from(Expression {
                     type_: None,
@@ -1721,7 +1712,7 @@ mod tests {
                     ),
                 }),
                 body: Box::from(Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![
                         (Statement::VarAssign(VarAssign {
                             name_path: Parser::<Lexer>::string_to_namepath("a"),
@@ -1760,11 +1751,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(module.statements.len(), 1);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::For(For {
                 init: Some(Box::from(Statement::VarDecl(VarDecl {
                     var_def: VarDef {
@@ -1819,7 +1810,7 @@ mod tests {
                     }),
                 }))),
                 body: Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![
                         (Statement::VarAssign(VarAssign {
                             name_path: Parser::<Lexer>::string_to_namepath("a"),
@@ -1858,11 +1849,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(module.statements.len(), 1);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::While(While {
                 cond: Box::from(Expression {
                     type_: None,
@@ -1871,7 +1862,7 @@ mod tests {
                     )),
                 }),
                 body: Box::from(Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![(Statement::Break), (Statement::Continue)],
                 }),
             }))
@@ -2372,11 +2363,11 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.definitions.len(), 1);
+        assert_eq!(module.definitions.structs.len(), 1);
         assert_eq!(
-            block.definitions[0],
+            module.definitions.structs[0],
             Definition::StructDef(StructDef {
                 mods: Rc::new(Vec::new()),
                 type_name: Reference::new("A".to_string()),
@@ -2403,12 +2394,12 @@ mod tests {
         ))));
         let mut parser = Parser::new(lexer);
 
-        let block = parser.parse_module_no_brace(false).unwrap().block;
+        let module = parser.parse_module_no_brace(false).unwrap();
 
-        assert_eq!(block.definitions.len(), 1);
-        assert_eq!(block.statements.len(), 1);
+        assert_eq!(module.definitions.functions.len(), 1);
+        assert_eq!(module.statements.len(), 1);
         assert_eq!(
-            block.statements[0],
+            module.statements[0],
             (Statement::VarDecl(VarDecl {
                 var_def: VarDef {
                     type_: Some(Type::Int),
@@ -2419,7 +2410,7 @@ mod tests {
             }))
         );
         assert_eq!(
-            block.definitions[0],
+            module.definitions.functions[0],
             (Definition::FnDef(FnDef {
                 return_type: Type::Void,
                 name: Reference::new("main".to_string()),
@@ -2429,7 +2420,7 @@ mod tests {
                     name: Reference::new("a".to_string()),
                 }],
                 body: (Block {
-                    definitions: vec![],
+                    definitions: DefinitionMap::new(),
                     statements: vec![
                         (Statement::VarDecl(VarDecl {
                             var_def: VarDef {

@@ -1,4 +1,4 @@
-use crate::front::ast_types::{AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Reference, Statement, StructDef, StructInit, Type, Use, VarAssign, VarDecl, VarDef, While};
+use crate::front::ast_types::{AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, LiteralValue, Module, module_definition_iter, NamePath, Reference, Statement, StructDef, StructInit, Type, Use, VarAssign, VarDecl, VarDef, While};
 
 pub enum ASTNodeEnum<'a> {
     NamePath(&'a mut NamePath),
@@ -265,7 +265,7 @@ impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Block {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Block(self))?;
         if visit_result {
-            for definitions in &mut self.definitions {
+            for definitions in &mut self.definitions.iter_mut() {
                 definitions.visit(visitor)?;
             }
 
@@ -321,10 +321,12 @@ impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Module {
                 use_.visit(visitor)?;
             }
 
-            for definitions in &mut self.public_definitions {
+            for definitions in &mut module_definition_iter(&mut self.public_definitions, &mut self.definitions) {
                 definitions.visit(visitor)?;
             }
-            self.block.visit(visitor)?;
+            for statement in &mut self.statements {
+                statement.visit(visitor)?;
+            }
         }
         Ok(res)
     }
