@@ -124,7 +124,8 @@ pub fn literal_types(literal: &LiteralValue) -> Type {
     match literal {
         LiteralValue::Null => Type::Void,
         LiteralValue::Int(_) => Type::Int,
-        LiteralValue::Decimal(_) => Type::Double,
+        LiteralValue::Float(_) => Type::Float,
+        LiteralValue::Double(_) => Type::Double,
         LiteralValue::String(_) => Type::String,
         LiteralValue::Compound(_) => Type::Void,
     }

@@ -142,7 +142,8 @@ pub struct FnCall {
 pub enum LiteralValue {
     Null,
     Int(i32),
-    Decimal(f64),
+    Float(f32),
+    Double(f64),
     String(String),
     Compound(Compound),
 }

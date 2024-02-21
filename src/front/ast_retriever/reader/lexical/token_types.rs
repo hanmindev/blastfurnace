@@ -6,7 +6,8 @@ pub enum Token {
     Ident(String),
     Bool(bool),
     Int(i32),
-    Decimal(f64),
+    Float(f32),
+    Double(f64),
     String(String), // anything between double quotes
 
     // Operators

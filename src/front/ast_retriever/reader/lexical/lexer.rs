@@ -170,7 +170,14 @@ impl Lexer {
 
             return Ok(if dec {
                 match number.parse() {
-                    Ok(n) => Token::Decimal(n),
+                    Ok(n) => {
+                        if self.curr == 'd' {
+                            self.eat();
+                            Token::Double(n)
+                        } else {
+                            Token::Float(n as f32)
+                        }
+                    }
                     Err(_) => return Err(TokenError::InvalidToken(number)),
                 }
             } else {
@@ -290,8 +297,8 @@ mod tests {
         ))));
 
         assert_eq!(lexer.next().unwrap().0, Token::Int(643214));
-        assert_eq!(lexer.next().unwrap().0, Token::Decimal(3243.24321));
-        assert_eq!(lexer.next().unwrap().0, Token::Decimal(0.432432));
+        assert_eq!(lexer.next().unwrap().0, Token::Double(3243.24321));
+        assert_eq!(lexer.next().unwrap().0, Token::Double(0.432432));
         assert_eq!(lexer.next().err().unwrap(), TokenError::MultipleDecimals);
     }
 
