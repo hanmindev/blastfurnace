@@ -1,9 +1,7 @@
 mod null_check;
 
-use crate::front::ast_types::{
-    AtomicExpression, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, Statement,
-    VarAssign, VarDecl, VarDef, While,
-};
+use crate::front::ast_types::visitor::{ASTNodeEnum, Visitable, Visitor};
+use crate::front::ast_types::{AtomicExpression, Else, Statement};
 use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::check_assignment::null_check::NullCheck;
 use crate::front::passes::{Pass, PassError, PassResult};
@@ -11,189 +9,138 @@ use std::collections::HashSet;
 use std::hash::Hash;
 use std::ops::DerefMut;
 
-trait CheckNull {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool;
+#[derive(Debug, PartialEq)]
+pub enum ResolverError {
+    Unknown,
 }
 
-impl CheckNull for FnCall {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        for mut arg in &mut self.args {
-            arg.check_null(fn_def, null_check);
-        }
-        return false;
-    }
-}
+pub type ResolveResult<T> = Result<T, ResolverError>;
 
-impl CheckNull for AtomicExpression {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        match self {
-            AtomicExpression::Variable(x) => null_check
-                .as_mut()
-                .unwrap()
-                .used_as_null(x.name.global_resolved.as_ref().unwrap().clone()),
-            AtomicExpression::FnCall(x) => x.check_null(fn_def, null_check),
-            AtomicExpression::Literal(_) => false,
-        }
-    }
-}
+impl Visitor<ResolverError> for Option<NullCheck> {
+    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
+        match ast_node {
+            ASTNodeEnum::AtomicExpression(atomic) => match atomic {
+                AtomicExpression::Variable(x) => {
+                    self.as_mut()
+                        .unwrap()
+                        .used_as_null(x.name.global_resolved.as_ref().unwrap().clone());
+                }
+                AtomicExpression::FnCall(_) => return Ok(true),
+                AtomicExpression::Literal(_) => return Ok(true),
+            },
+            ASTNodeEnum::If(if_) => {
+                if_.cond.visit(self)?;
 
-impl CheckNull for Expression {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        return match &mut self.expr {
-            ExpressionEnum::AtomicExpression(e) => e.check_null(fn_def, null_check),
-            ExpressionEnum::Unary(_, e) => e.check_null(fn_def, null_check),
-            ExpressionEnum::Binary(e0, _, e1) => {
-                let t0 = e0.check_null(fn_def, null_check);
-                let t1 = e1.check_null(fn_def, null_check);
-                t0 || t1
+                let mut ifs = vec![];
+
+                let mut nc = Some(NullCheck::new_with_parent(self.take().unwrap()));
+                if_.body.visit(&mut nc)?;
+                ifs.push(nc.as_mut().unwrap().take_not_null());
+                *self = Some(nc.unwrap().take_parent());
+
+                let mut always_run_one = false;
+
+                let mut cur = if_.deref_mut();
+                while let Some(ref mut else_) = &mut cur.else_ {
+                    let mut nc = Some(NullCheck::new_with_parent(self.take().unwrap()));
+                    match else_ {
+                        Else::If(ref mut x) => {
+                            x.cond.visit(self)?;
+                            x.body.visit(&mut nc)?;
+                            ifs.push(nc.as_mut().unwrap().take_not_null());
+                            *self = Some(nc.unwrap().take_parent());
+
+                            cur = x.as_mut();
+                        }
+                        Else::Block(ref mut x) => {
+                            x.visit(&mut nc)?;
+                            ifs.push(nc.as_mut().unwrap().take_not_null());
+                            *self = Some(nc.unwrap().take_parent());
+
+                            always_run_one = true;
+                            break;
+                        }
+                    }
+                }
+
+                // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
+                // should add check to see if it can be determined whether the body runs at least once aside from
+                // existence of else block
+                if always_run_one {
+                    self.as_mut().unwrap().merge_children(ifs);
+                }
             }
+
+            ASTNodeEnum::While(while_) => {
+                while_.cond.visit(self)?;
+
+                // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
+                // should add check to see if it can be determined whether the body runs at least once
+
+                let mut body_null_check = Some(NullCheck::new_with_parent(self.take().unwrap()));
+                while_.body.visit(&mut body_null_check)?;
+                *self = Some(body_null_check.unwrap().take_parent());
+            }
+
+            ASTNodeEnum::For(for_) => {
+                if let Some(ref mut init) = &mut for_.init {
+                    init.visit(self)?;
+                }
+                if let Some(ref mut cond) = &mut for_.cond {
+                    cond.visit(self)?;
+                }
+
+                // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
+                // should add check to see if it can be determined whether the body runs at least once
+                let mut body_null_check = Some(NullCheck::new_with_parent(self.take().unwrap()));
+                for_.body.visit(&mut body_null_check)?;
+                *self = Some(body_null_check.unwrap().take_parent());
+            }
+            ASTNodeEnum::VarAssign(var_assign) => {
+                var_assign.expr.visit(self)?; // TODO: ensure that expr is not null
+                self.as_mut().unwrap().confirm_not_null(
+                    var_assign
+                        .name_path
+                        .name
+                        .global_resolved
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
+                );
+            }
+
+            ASTNodeEnum::VarDecl(var_decl) => {
+                var_decl.var_def.visit(self)?;
+                if let Some(expr) = &mut var_decl.expr {
+                    expr.visit(self)?; // TODO: ensure that expr is not null
+                    self.as_mut().unwrap().confirm_not_null(
+                        var_decl
+                            .var_def
+                            .name
+                            .global_resolved
+                            .as_ref()
+                            .unwrap()
+                            .clone(),
+                    );
+                }
+            }
+
+            ASTNodeEnum::FnCall(_)
+            | ASTNodeEnum::Expression(_)
+            | ASTNodeEnum::VarDef(_)
+            | ASTNodeEnum::Statement(_)
+            | ASTNodeEnum::Block(_)
+            | ASTNodeEnum::NamePath(_)
+            | ASTNodeEnum::Reference(_)
+            | ASTNodeEnum::FnDef(_)
+            | ASTNodeEnum::StructDef(_)
+            | ASTNodeEnum::LiteralValue(_)
+            | ASTNodeEnum::Else(_)
+            | ASTNodeEnum::Definition(_)
+            | ASTNodeEnum::Module(_)
+            | ASTNodeEnum::Use(_) => return Ok(true),
         };
-    }
-}
-
-impl CheckNull for If {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        self.cond.check_null(fn_def, null_check);
-
-        let mut ifs = vec![];
-
-        let mut nc = Some(NullCheck::new_with_parent(null_check.take().unwrap()));
-        self.body.check_null(fn_def, &mut nc);
-        ifs.push(nc.as_mut().unwrap().take_not_null());
-        *null_check = Some(nc.unwrap().take_parent());
-
-        let mut always_run_one = false;
-
-        let mut cur = self;
-        while let Some(ref mut else_) = &mut cur.else_ {
-            let mut nc = Some(NullCheck::new_with_parent(null_check.take().unwrap()));
-            match else_ {
-                Else::If(ref mut x) => {
-                    x.cond.check_null(fn_def, null_check);
-
-                    x.body.check_null(fn_def, &mut nc);
-                    ifs.push(nc.as_mut().unwrap().take_not_null());
-                    *null_check = Some(nc.unwrap().take_parent());
-
-                    cur = x.as_mut();
-                }
-                Else::Block(ref mut x) => {
-                    x.check_null(fn_def, &mut nc);
-                    ifs.push(nc.as_mut().unwrap().take_not_null());
-                    *null_check = Some(nc.unwrap().take_parent());
-
-                    always_run_one = true;
-                    break;
-                }
-            }
-        }
-
-        // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
-        // should add check to see if it can be determined whether the body runs at least once aside from
-        // existence of else block
-        if always_run_one {
-            null_check.as_mut().unwrap().merge_children(ifs);
-        }
-
-        return true;
-    }
-}
-
-impl CheckNull for While {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        self.cond.check_null(fn_def, null_check);
-
-        // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
-        // should add check to see if it can be determined whether the body runs at least once
-
-        let mut body_null_check = Some(NullCheck::new_with_parent(null_check.take().unwrap()));
-        self.body.check_null(fn_def, &mut body_null_check);
-        *null_check = Some(body_null_check.unwrap().take_parent());
-        return true;
-    }
-}
-
-impl CheckNull for For {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        if let Some(ref mut init) = &mut self.init {
-            init.check_null(fn_def, null_check);
-        }
-        if let Some(ref mut cond) = &mut self.cond {
-            cond.check_null(fn_def, null_check);
-        }
-
-        // body may not necessarily run, so any "unnulled" variables in the body are not necessarily unnulled
-        // should add check to see if it can be determined whether the body runs at least once
-        let mut body_null_check = Some(NullCheck::new_with_parent(null_check.take().unwrap()));
-        self.body.check_null(fn_def, &mut body_null_check);
-        *null_check = Some(body_null_check.unwrap().take_parent());
-
-        return true;
-    }
-}
-
-impl CheckNull for VarDef {
-    fn check_null(&mut self, _fn_def: &FnDef, _null_check: &mut Option<NullCheck>) -> bool {
-        return true;
-    }
-}
-
-impl CheckNull for VarAssign {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        if !self.expr.check_null(fn_def, null_check) {
-            null_check.as_mut().unwrap().confirm_not_null(
-                self.name_path
-                    .name
-                    .global_resolved
-                    .as_ref()
-                    .unwrap()
-                    .clone(),
-            );
-        }
-        return true;
-    }
-}
-
-impl CheckNull for VarDecl {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        self.var_def.check_null(fn_def, null_check);
-        if let Some(expr) = &mut self.expr {
-            if !expr.check_null(fn_def, null_check) {
-                null_check
-                    .as_mut()
-                    .unwrap()
-                    .confirm_not_null(self.var_def.name.global_resolved.as_ref().unwrap().clone());
-            }
-        }
-        return true;
-    }
-}
-
-impl CheckNull for Statement {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        match self {
-            Statement::VarDecl(x) => x.check_null(fn_def, null_check),
-            Statement::VarAssign(x) => x.check_null(fn_def, null_check),
-            Statement::If(x) => x.check_null(fn_def, null_check),
-            Statement::While(x) => x.check_null(fn_def, null_check),
-            Statement::For(x) => x.check_null(fn_def, null_check),
-            Statement::Return(x) => {
-                x.check_null(fn_def, null_check);
-                true
-            }
-            Statement::Expression(x) => x.check_null(fn_def, null_check),
-            Statement::Block(x) => x.check_null(fn_def, null_check),
-            Statement::Continue | Statement::Break => true,
-        }
-    }
-}
-
-impl CheckNull for Block {
-    fn check_null(&mut self, fn_def: &FnDef, null_check: &mut Option<NullCheck>) -> bool {
-        for mut statement in &mut self.statements {
-            statement.check_null(fn_def, null_check);
-        }
-        return true;
+        return Ok(false);
     }
 }
 
@@ -209,7 +156,7 @@ impl Pass for DisallowNullAssignment {
 
             let mut statements = v.body.statements.drain(..).collect::<Vec<Statement>>();
             statements.iter_mut().for_each(|s| {
-                s.check_null(v, &mut null_check);
+                s.visit(&mut null_check).expect("Null check failed");
             });
 
             v.body.statements = statements;
@@ -252,7 +199,7 @@ mod tests {
 
         assert!(pass(
             &mut front_program,
-            &mut vec![Box::new(DisallowNullAssignment)]
+            &mut vec![Box::new(DisallowNullAssignment)],
         )
         .is_ok());
     }
@@ -273,7 +220,7 @@ mod tests {
 
         assert!(pass(
             &mut front_program,
-            &mut vec![Box::new(DisallowNullAssignment)]
+            &mut vec![Box::new(DisallowNullAssignment)],
         )
         .is_err());
     }
@@ -294,7 +241,7 @@ mod tests {
 
         assert!(pass(
             &mut front_program,
-            &mut vec![Box::new(DisallowNullAssignment)]
+            &mut vec![Box::new(DisallowNullAssignment)],
         )
         .is_err());
     }
@@ -315,7 +262,7 @@ mod tests {
 
         assert!(pass(
             &mut front_program,
-            &mut vec![Box::new(DisallowNullAssignment)]
+            &mut vec![Box::new(DisallowNullAssignment)],
         )
         .is_ok());
     }
@@ -336,7 +283,7 @@ mod tests {
 
         assert!(pass(
             &mut front_program,
-            &mut vec![Box::new(DisallowNullAssignment)]
+            &mut vec![Box::new(DisallowNullAssignment)],
         )
         .is_err());
     }
