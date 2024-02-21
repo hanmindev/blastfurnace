@@ -97,7 +97,6 @@ fn set_from_atomic(
 
             for field in &x.fields {
                 let struct_name = x.type_.global_resolved.as_ref().unwrap().clone();
-                println!("{:?}", struct_name);
                 let struct_def = context.definition_table.struct_definitions
                     .get(&struct_name).unwrap();
                 let result_var = struct_var_getter(result_var_name, struct_def, &field.0);
