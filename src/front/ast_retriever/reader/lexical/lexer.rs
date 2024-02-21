@@ -151,7 +151,7 @@ impl Lexer {
         }
 
         // numbers
-        if self.curr.is_ascii_digit() || self.curr == '.' {
+        if self.curr.is_ascii_digit() {
             let mut number = String::new();
             let mut dec = false;
 
@@ -291,14 +291,14 @@ mod tests {
 
     #[test]
     fn number_comprehension() {
-        let statement = "643214 3243.24321 .432432 2342.342315.321534";
+        let statement = "643214 3243.24321 0.432432d 2342.342315.321534";
         let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
             statement.to_string(),
         ))));
 
         assert_eq!(lexer.next().unwrap().0, Token::Int(643214));
         assert_eq!(lexer.next().unwrap().0, Token::Float(3243.24321));
-        assert_eq!(lexer.next().unwrap().0, Token::Float(0.432432));
+        assert_eq!(lexer.next().unwrap().0, Token::Double(0.432432));
         assert_eq!(lexer.next().err().unwrap(), TokenError::MultipleDecimals);
     }
 
@@ -371,11 +371,12 @@ mod tests {
 
     #[test]
     fn singleton_symbol_test() {
-        let statement = "=,;:(){}[]<>+-*/%!&";
+        let statement = ". =,;:(){}[]<>+-*/%!&";
         let mut lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
             statement.to_string(),
         ))));
 
+        assert_eq!(lexer.next().unwrap().0, Token::Dot);
         assert_eq!(lexer.next().unwrap().0, Token::Assign);
         assert_eq!(lexer.next().unwrap().0, Token::Comma);
         assert_eq!(lexer.next().unwrap().0, Token::Semicolon);
