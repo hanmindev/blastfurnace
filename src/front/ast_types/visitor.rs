@@ -36,17 +36,17 @@ pub enum ASTNodeEnum<'a> {
 
 pub type GenericResolveResult<K, V> = Result<(bool, Option<K>), V>;
 
-pub trait Visitor<V, K> {
+pub trait Visitor<K, V> {
     fn apply(&mut self, _ast_node: &mut ASTNodeEnum) -> GenericResolveResult<K, V> {
         return Ok((true, None));
     }
 }
 
-pub trait Visitable<T: Visitor<V, K>, V, K> {
+pub trait Visitable<T: Visitor<K, V>, K, V> {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V>;
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for FnCall {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for FnCall {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::FnCall(self))?;
         if visit_result {
@@ -59,19 +59,19 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for FnCall {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for LiteralValue {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for LiteralValue {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         Ok(visitor.apply(&mut ASTNodeEnum::LiteralValue(self))?.1)
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Reference {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Reference {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         Ok(visitor.apply(&mut ASTNodeEnum::Reference(self))?.1)
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for NamePath {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for NamePath {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::NamePath(self))?;
         if visit_result {
@@ -81,7 +81,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for NamePath {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for AtomicExpression {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for AtomicExpression {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::AtomicExpression(self))?;
         if visit_result {
@@ -95,7 +95,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for AtomicExpression {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Expression {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Expression {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Expression(self))?;
         if visit_result {
@@ -116,7 +116,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Expression {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Else {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Else {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Else(self))?;
         if visit_result {
@@ -133,7 +133,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Else {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for If {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for If {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::If(self))?;
         if visit_result {
@@ -147,7 +147,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for If {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for While {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for While {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::While(self))?;
         if visit_result {
@@ -158,7 +158,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for While {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for For {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for For {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::For(self))?;
         if visit_result {
@@ -177,7 +177,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for For {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for VarDef {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for VarDef {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::VarDef(self))?;
         if visit_result {
@@ -190,7 +190,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for VarDef {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for VarAssign {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for VarAssign {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::VarAssign(self))?;
         if visit_result {
@@ -201,7 +201,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for VarAssign {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for VarDecl {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for VarDecl {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::VarDecl(self))?;
         if visit_result {
@@ -214,7 +214,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for VarDecl {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Statement {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Statement {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Statement(self))?;
         if visit_result {
@@ -250,7 +250,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Statement {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Block {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Block {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Block(self))?;
         if visit_result {
@@ -266,7 +266,7 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Block {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for FnDef {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for FnDef {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::FnDef(self))?;
         if visit_result {
@@ -276,13 +276,13 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for FnDef {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for StructDef {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for StructDef {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         Ok(visitor.apply(&mut ASTNodeEnum::StructDef(self))?.1)
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Definition {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Definition {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Definition(self))?;
         if visit_result {
@@ -296,13 +296,13 @@ impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Definition {
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Use {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Use {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         Ok(visitor.apply(&mut ASTNodeEnum::Use(self))?.1)
     }
 }
 
-impl<T: Visitor<V, K>, V, K> Visitable<T, V, K> for Module {
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Module {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::Module(self))?;
         if visit_result {

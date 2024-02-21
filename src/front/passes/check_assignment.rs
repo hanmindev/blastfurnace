@@ -16,7 +16,7 @@ pub enum ResolverError {
 
 pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 
-impl Visitor<ResolverError, bool> for Option<NullCheck> {
+impl Visitor<bool, ResolverError> for Option<NullCheck> {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
         match ast_node {
             ASTNodeEnum::AtomicExpression(atomic) => {

@@ -11,7 +11,7 @@ pub enum ResolverError {
 pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 pub type InternalResolveResult<T> = Result<T, ResolverError>;
 
-impl Visitor<ResolverError, ()> for ModuleMerger {
+impl Visitor<(), ResolverError> for ModuleMerger {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
         match ast_node {
             ASTNodeEnum::Block(block) => {
