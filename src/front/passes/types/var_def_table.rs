@@ -14,28 +14,9 @@ pub struct VarDefTable {
 }
 
 impl VarDefTable {
-    pub fn new(program: &FrontProgram) -> VarDefTable {
+    pub fn new(var_types: HashMap<Rc<GlobalResolvedName>, VarTypeNode>) -> VarDefTable {
         VarDefTable {
-            var_types: program
-                .definitions
-                .global_var_definitions
-                .iter()
-                .map(|(k, v)| {
-                    (Rc::clone(k), {
-                        if let Some(type_) = &v.var_def.type_ {
-                            VarTypeNode {
-                                types_: Either::Left(type_.clone()),
-                            }
-                        } else {
-                            VarTypeNode {
-                                types_: Either::Right(TypeDependency::new(
-                                    &v.expr.as_ref().unwrap(),
-                                )),
-                            }
-                        }
-                    })
-                })
-                .collect(),
+            var_types
         }
     }
 

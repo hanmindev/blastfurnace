@@ -1,6 +1,9 @@
+use std::rc::Rc;
+use either::Either;
 use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
 use crate::front::exporter::export::FrontProgram;
-use crate::front::passes::types::var_def_table::VarDefTable;
+use crate::front::passes::types::type_expression::TypeDependency;
+use crate::front::passes::types::var_def_table::{VarDefTable, VarTypeNode};
 
 #[derive(Debug, PartialEq)]
 pub enum ResolverError {
@@ -62,12 +65,33 @@ impl Visitor<(), ResolverError> for VarDefTable {
 }
 
 pub fn create_first_assignment_graph(program: &mut FrontProgram) -> VarDefTable {
-    let mut table = VarDefTable::new(program);
+    let mut var_types = program
+        .definitions
+        .global_var_definitions
+        .iter()
+        .map(|(k, v)| {
+            (Rc::clone(k), {
+                if let Some(type_) = &v.var_def.type_ {
+                    VarTypeNode {
+                        types_: Either::Left(type_.clone()),
+                    }
+                } else {
+                    VarTypeNode {
+                        types_: Either::Right(TypeDependency::new(
+                            &v.expr.as_ref().unwrap(),
+                        )),
+                    }
+                }
+            })
+        })
+        .collect();
 
     for v in program.definitions.function_definitions.values_mut() {
         for statement in &mut v.body.statements {
+            let mut table = VarDefTable::new(var_types);
             statement.visit(&mut table).unwrap();
+            var_types = table.var_types;
         }
     }
-    return table;
+    return VarDefTable::new(var_types);
 }

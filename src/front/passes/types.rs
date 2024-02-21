@@ -113,6 +113,23 @@ mod tests {
     }
 
     #[test]
+    fn test_illegal_type_annotation_simple() {
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("main.ing"),
+            "pub fn main() { let a: float = 5; }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut front_program = program_merger.return_merged();
+
+        assert!(pass(&mut front_program, &mut vec![Box::new(AnnotateTypes)]).is_err());
+    }
+
+    #[test]
     fn test_type_annotation_complex() {
         let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
         mock_file_system.insert_file(
@@ -161,5 +178,26 @@ mod tests {
 
         let mut front_program = program_merger.return_merged();
         assert!(pass(&mut front_program, &mut vec![Box::new(AnnotateTypes)]).is_err());
+    }
+
+    #[test]
+    fn test_struct_field_assignment() {
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("main.ing"),
+            "struct A { a: int, b: int } pub fn main() { let a = A { a: 1, b: 2 }; a.b = 5.0; }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut front_program = program_merger.return_merged();
+        pass(&mut front_program, &mut vec![Box::new(AnnotateTypes)]);
+
+        println!("{:?}", front_program.definitions.function_definitions.get(&Rc::from(GlobalResolvedName {
+            name: "0_main".to_string(),
+            module: Rc::from("/root"),
+            package: Rc::from("pkg") })).unwrap().body.statements);
     }
 }
