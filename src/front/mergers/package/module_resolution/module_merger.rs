@@ -1,9 +1,9 @@
 use crate::front::ast_retriever::retriever::{ModuleNode, ModuleSource};
 use crate::front::ast_types::{FnDef, GlobalResolvedName, ResolvedName, StructDef, VarDecl};
 use crate::front::mergers::package::module_resolution::merged_module::MergedModule;
-use crate::front::mergers::package::module_resolution::resolvers::Resolvable;
 use std::collections::{HashMap, LinkedList};
 use std::rc::Rc;
+use crate::front::ast_types::visitor::Visitable;
 
 #[derive(Debug)]
 pub enum ModuleMergeError {
@@ -152,7 +152,7 @@ impl ModuleMerger {
             module
                 .module
                 .unwrap()
-                .resolve_module(self)
+                .visit(self)
                 .expect("Expected Module, got None");
         }
 
