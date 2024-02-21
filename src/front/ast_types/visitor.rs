@@ -1,12 +1,17 @@
-use crate::front::ast_types::{AtomicExpression, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, LiteralValue, Statement, VarAssign, VarDecl, VarDef, While};
+use crate::front::ast_types::{AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Reference, Statement, StructDef, Type, Use, VarAssign, VarDecl, VarDef, While};
 
 pub enum ASTNodeEnum<'a> {
+    NamePath(&'a mut NamePath),
+    Reference(&'a mut Reference),
+
     VarDecl(&'a mut VarDecl),
     VarAssign(&'a mut VarAssign),
     VarDef(&'a mut VarDef),
 
     FnDef(&'a mut FnDef),
     FnCall(&'a mut FnCall),
+
+    StructDef(&'a mut StructDef),
 
     LiteralValue(&'a mut LiteralValue),
     AtomicExpression(&'a mut AtomicExpression),
@@ -18,7 +23,11 @@ pub enum ASTNodeEnum<'a> {
     For(&'a mut For),
 
     Statement(&'a mut Statement),
+    Definition(&'a mut Definition),
     Block(&'a mut Block),
+    Module(&'a mut Module),
+
+    Use(&'a mut Use),
 }
 
 pub trait Visitor<V> {
@@ -50,13 +59,27 @@ impl<T: Visitor<V>, V> Visitable<T, V> for LiteralValue {
     }
 }
 
+impl<T: Visitor<V>, V> Visitable<T, V> for Reference {
+    fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
+        visitor.apply(&mut ASTNodeEnum::Reference(self))?;
+        Ok(())
+    }
+}
+
+impl<T: Visitor<V>, V> Visitable<T, V> for NamePath {
+    fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
+        visitor.apply(&mut ASTNodeEnum::NamePath(self))?;
+        Ok(())
+    }
+}
+
 impl<T: Visitor<V>, V> Visitable<T, V> for AtomicExpression {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
         if visitor.apply(&mut ASTNodeEnum::AtomicExpression(self))? {
             match self {
                 AtomicExpression::Literal(x) => { x.visit(visitor)? }
                 AtomicExpression::FnCall(x) => { x.visit(visitor)? }
-                AtomicExpression::Variable(_) => {}
+                AtomicExpression::Variable(x) => { x.visit(visitor)? }
             }
         }
         Ok(())
@@ -128,6 +151,9 @@ impl<T: Visitor<V>, V> Visitable<T, V> for For {
             if let Some(cond) = &mut self.cond {
                 cond.visit(visitor)?;
             }
+            if let Some(step) = &mut self.step {
+                step.visit(visitor)?;
+            }
             self.body.visit(visitor)?;
         }
         Ok(())
@@ -136,7 +162,12 @@ impl<T: Visitor<V>, V> Visitable<T, V> for For {
 
 impl<T: Visitor<V>, V> Visitable<T, V> for VarDef {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
-        visitor.apply(&mut ASTNodeEnum::VarDef(self))?;
+        if visitor.apply(&mut ASTNodeEnum::VarDef(self))? {
+            if let Some(Type::Struct(struct_name)) = &mut self.type_ {
+                struct_name.visit(visitor)?;
+            }
+            self.name.visit(visitor)?;
+        }
         Ok(())
     }
 }
@@ -145,6 +176,7 @@ impl<T: Visitor<V>, V> Visitable<T, V> for VarAssign {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
         if visitor.apply(&mut ASTNodeEnum::VarAssign(self))? {
             self.expr.visit(visitor)?;
+            self.name_path.visit(visitor)?;
         }
         Ok(())
     }
@@ -153,10 +185,10 @@ impl<T: Visitor<V>, V> Visitable<T, V> for VarAssign {
 impl<T: Visitor<V>, V> Visitable<T, V> for VarDecl {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
         if visitor.apply(&mut ASTNodeEnum::VarDecl(self))? {
-            self.var_def.visit(visitor)?;
             if let Some(expr) = &mut self.expr {
                 expr.visit(visitor)?;
             }
+            self.var_def.visit(visitor)?;
         }
         Ok(())
     }
@@ -184,6 +216,10 @@ impl<T: Visitor<V>, V> Visitable<T, V> for Statement {
 impl<T: Visitor<V>, V> Visitable<T, V> for Block {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
         if visitor.apply(&mut ASTNodeEnum::Block(self))? {
+            for definitions in &mut self.definitions {
+                definitions.visit(visitor)?;
+            }
+
             for mut statement in &mut self.statements {
                 statement.visit(visitor)?;
             }
@@ -196,6 +232,49 @@ impl<T: Visitor<V>, V> Visitable<T, V> for FnDef {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
         if visitor.apply(&mut ASTNodeEnum::FnDef(self))? {
             self.body.visit(visitor)?;
+        }
+        Ok(())
+    }
+}
+
+impl<T: Visitor<V>, V> Visitable<T, V> for StructDef {
+    fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
+        visitor.apply(&mut ASTNodeEnum::StructDef(self))?;
+        Ok(())
+    }
+}
+
+impl<T: Visitor<V>, V> Visitable<T, V> for Definition {
+    fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
+        if visitor.apply(&mut ASTNodeEnum::Definition(self))? {
+            match self {
+                Definition::VarDecl(x) => x.visit(visitor)?,
+                Definition::StructDef(x) => x.visit(visitor)?,
+                Definition::FnDef(x) => x.visit(visitor)?,
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<T: Visitor<V>, V> Visitable<T, V> for Use {
+    fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
+        visitor.apply(&mut ASTNodeEnum::Use(self))?;
+        Ok(())
+    }
+}
+
+impl<T: Visitor<V>, V> Visitable<T, V> for Module {
+    fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
+        if visitor.apply(&mut ASTNodeEnum::Module(self))? {
+            for use_ in &mut self.uses {
+                use_.visit(visitor)?;
+            }
+
+            for definitions in &mut self.public_definitions {
+                definitions.visit(visitor)?;
+            }
+            self.block.visit(visitor)?;
         }
         Ok(())
     }
