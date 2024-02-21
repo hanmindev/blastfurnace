@@ -34,7 +34,7 @@ impl Visitor<bool, ResolverError> for Option<NullCheck> {
                             arg.visit(self)?;
                         }
                         Ok((false, Some(false)))
-                    },
+                    }
                     AtomicExpression::Literal(_) => Ok((true, Some(false))),
                 }
             }
@@ -316,7 +316,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-            .is_err());
+        .is_err());
     }
 
     #[test]
@@ -337,6 +337,6 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-            .is_err());
+        .is_err());
     }
 }

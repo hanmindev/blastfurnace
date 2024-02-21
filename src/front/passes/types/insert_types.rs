@@ -1,9 +1,11 @@
+use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
+use crate::front::ast_types::{AtomicExpression, ExpressionEnum, GlobalResolvedName, Type};
+use crate::front::exporter::export::FrontProgram;
+use crate::front::passes::types::type_expression::{
+    binop_type_resolver, literal_types, unop_type_resolver, TypeError,
+};
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::front::ast_types::{AtomicExpression, ExpressionEnum, GlobalResolvedName, Type};
-use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
-use crate::front::exporter::export::FrontProgram;
-use crate::front::passes::types::type_expression::{binop_type_resolver, literal_types, TypeError, unop_type_resolver};
 
 #[derive(Debug, PartialEq)]
 pub enum ResolverError {
@@ -16,7 +18,12 @@ impl Visitor<Type, ResolverError> for ResolvedVarDefTable {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<Type> {
         match ast_node {
             ASTNodeEnum::VarDef(&mut ref mut x) => {
-                x.type_ = Some(self.var_types.get(x.name.global_resolved.as_ref().unwrap()).unwrap().clone());
+                x.type_ = Some(
+                    self.var_types
+                        .get(x.name.global_resolved.as_ref().unwrap())
+                        .unwrap()
+                        .clone(),
+                );
             }
 
             ASTNodeEnum::VarDecl(&mut ref mut x) => {
@@ -29,31 +36,35 @@ impl Visitor<Type, ResolverError> for ResolvedVarDefTable {
             }
 
             ASTNodeEnum::VarAssign(&mut ref mut x) => {
-                if self.var_types.get(x.name_path.name.global_resolved.as_ref().unwrap()).unwrap().clone() != x.expr.visit(self)?.unwrap() {
+                if self
+                    .var_types
+                    .get(x.name_path.name.global_resolved.as_ref().unwrap())
+                    .unwrap()
+                    .clone()
+                    != x.expr.visit(self)?.unwrap()
+                {
                     return Err(ResolverError::TypeError(TypeError::MultipleTypes));
                 }
             }
 
             ASTNodeEnum::Expression(&mut ref mut x) => {
                 x.type_ = Some(match &mut x.expr {
-                    ExpressionEnum::AtomicExpression(atomic) => {
-                        match atomic {
-                            AtomicExpression::Variable(name_path) => {
-                                self.var_types.get(name_path.name.global_resolved.as_ref().unwrap()).unwrap().clone()
-                            }
-                            AtomicExpression::FnCall(fn_call) => {
-                                self.var_types.get(fn_call.name.global_resolved.as_ref().unwrap()).unwrap().clone()
-                            }
-                            AtomicExpression::Literal(literal) => {
-                                literal_types(literal)
-                            }
-                        }
-                    }
+                    ExpressionEnum::AtomicExpression(atomic) => match atomic {
+                        AtomicExpression::Variable(name_path) => self
+                            .var_types
+                            .get(name_path.name.global_resolved.as_ref().unwrap())
+                            .unwrap()
+                            .clone(),
+                        AtomicExpression::FnCall(fn_call) => self
+                            .var_types
+                            .get(fn_call.name.global_resolved.as_ref().unwrap())
+                            .unwrap()
+                            .clone(),
+                        AtomicExpression::Literal(literal) => literal_types(literal),
+                    },
                     ExpressionEnum::Unary(unop, x) => {
                         match unop_type_resolver(unop, &x.visit(self)?.unwrap()) {
-                            Ok(type_) => {
-                                type_
-                            }
+                            Ok(type_) => type_,
                             Err(type_error) => {
                                 return Err(ResolverError::TypeError(type_error));
                             }
@@ -64,9 +75,7 @@ impl Visitor<Type, ResolverError> for ResolvedVarDefTable {
                         let t1 = e1.visit(self)?.unwrap();
 
                         match binop_type_resolver(binop, &t0, &t1) {
-                            Ok(type_) => {
-                                type_
-                            }
+                            Ok(type_) => type_,
                             Err(type_error) => {
                                 return Err(ResolverError::TypeError(type_error));
                             }
@@ -86,7 +95,7 @@ impl Visitor<Type, ResolverError> for ResolvedVarDefTable {
             | ASTNodeEnum::FnCall(_)
             | ASTNodeEnum::AtomicExpression(_) => return Ok((true, None)),
 
-            | ASTNodeEnum::NamePath(_)
+            ASTNodeEnum::NamePath(_)
             | ASTNodeEnum::Reference(_)
             | ASTNodeEnum::StructDef(_)
             | ASTNodeEnum::LiteralValue(_)

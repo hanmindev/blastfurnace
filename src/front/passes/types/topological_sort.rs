@@ -1,9 +1,8 @@
-use std::collections::HashSet;
-use std::rc::Rc;
-use either::Either;
 use crate::front::ast_types::GlobalResolvedName;
 use crate::front::passes::types::var_def_table::VarDefTable;
-
+use either::Either;
+use std::collections::HashSet;
+use std::rc::Rc;
 
 fn topological_sort_visit(
     name: &Rc<GlobalResolvedName>,
@@ -26,9 +25,7 @@ fn topological_sort_visit(
     result.push(Rc::clone(name));
 }
 
-pub fn topological_sort(
-    table: &VarDefTable,
-) -> Vec<Rc<GlobalResolvedName>> {
+pub fn topological_sort(table: &VarDefTable) -> Vec<Rc<GlobalResolvedName>> {
     let mut result = Vec::new();
     let mut visited = HashSet::new();
 
