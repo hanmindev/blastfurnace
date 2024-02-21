@@ -129,10 +129,16 @@ impl<T: TokenStream> Parser<T> {
                     LiteralValue::Int(i),
                 )),
             }),
-            (Token::Decimal(f), _) => Ok(Expression {
+            (Token::Float(f), _) => Ok(Expression {
                 type_: None,
                 expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                    LiteralValue::Decimal(f),
+                    LiteralValue::Float(f),
+                )),
+            }),
+            (Token::Double(f), _) => Ok(Expression {
+                type_: None,
+                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
+                    LiteralValue::Double(f),
                 )),
             }),
             (Token::String(s), _) => Ok(Expression {
@@ -1122,7 +1128,7 @@ mod tests {
                 },
                 expr: Some(Box::from(Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Decimal(3.0)
+                        LiteralValue::Double(3.0)
                     )),
                     type_: None,
                 })),
@@ -1138,7 +1144,7 @@ mod tests {
                 },
                 expr: Some(Box::from(Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Decimal(4.0)
+                        LiteralValue::Double(4.0)
                     )),
                     type_: None,
                 })),
@@ -1269,7 +1275,7 @@ mod tests {
                 name_path: Parser::<Lexer>::string_to_namepath("b"),
                 expr: Box::from(Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Decimal(2.4)
+                        LiteralValue::Double(2.4)
                     )),
                     type_: None,
                 }),
