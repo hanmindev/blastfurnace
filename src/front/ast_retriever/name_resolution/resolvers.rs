@@ -1,9 +1,7 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
 use crate::front::ast_types::visitor::{ASTNodeEnum, Visitable, Visitor};
 use crate::front::ast_types::{
-    AtomicExpression, Block, Compound, CompoundValue, Definition, Else, Expression, ExpressionEnum,
-    FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Reference, Statement, StructDef, Type,
-    Use, VarAssign, VarDecl, VarDef, While,
+    AtomicExpression, NamePath, Type,
 };
 
 #[derive(Debug, PartialEq)]
@@ -27,10 +25,10 @@ fn name_path_lookup(scope_table: &ScopeTable, name_path: &mut NamePath) -> Resol
 impl Visitor<ResolverError> for ScopeTable {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
         match ast_node {
-            ASTNodeEnum::NamePath(name_path) => {
+            ASTNodeEnum::NamePath(_) => {
                 panic!("NamePath should not be visited directly")
             }
-            ASTNodeEnum::Reference(reference) => {
+            ASTNodeEnum::Reference(_) => {
                 panic!("Reference should not be visited directly")
             }
             ASTNodeEnum::AtomicExpression(atomic_expression) => match atomic_expression {
