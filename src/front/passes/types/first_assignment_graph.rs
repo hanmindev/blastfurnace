@@ -67,7 +67,7 @@ impl Visitor<(), ResolverError> for VarDefTable<'_> {
 pub fn create_first_assignment_graph(program: &mut FrontProgram) -> VarDefTable {
     let mut var_types = program
         .definitions
-        .global_var_definitions
+        .var_definitions
         .iter()
         .map(|(k, v)| {
             (Rc::clone(k), {
