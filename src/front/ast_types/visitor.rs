@@ -47,6 +47,7 @@ pub trait Visitable<T: Visitor<V>, V> {
 impl<T: Visitor<V>, V> Visitable<T, V> for FnCall {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
         if visitor.apply(&mut ASTNodeEnum::FnCall(self))? {
+            self.name.visit(visitor)?;
             for mut arg in &mut self.args {
                 arg.visit(visitor)?;
             }
@@ -71,7 +72,9 @@ impl<T: Visitor<V>, V> Visitable<T, V> for Reference {
 
 impl<T: Visitor<V>, V> Visitable<T, V> for NamePath {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
-        visitor.apply(&mut ASTNodeEnum::NamePath(self))?;
+        if visitor.apply(&mut ASTNodeEnum::NamePath(self))? {
+            self.name.visit(visitor)?;
+        }
         Ok(())
     }
 }
