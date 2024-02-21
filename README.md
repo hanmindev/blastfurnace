@@ -11,10 +11,10 @@ Front-End:
 - [x] Lexer
 - [x] Parser
 - [x] AST
-- [ ] Semantic Analyzer
+- [x] Semantic Analyzer
   - [x] Name Resolution
   - [x] Object Binding
-  - [ ] Type Checking
+  - [x] Type Checking / Inference
 
 Middle-End:
 - [ ] Constant Folding
