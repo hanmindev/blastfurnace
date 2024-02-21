@@ -6,7 +6,7 @@ use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::check_assignment::null_check::NullCheck;
 use crate::front::passes::{Pass, PassError, PassResult};
 use std::collections::HashSet;
-use std::hash::Hash;
+
 use std::ops::DerefMut;
 
 #[derive(Debug, PartialEq)]
@@ -19,20 +19,20 @@ pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 impl Visitor<ResolverError, bool> for Option<NullCheck> {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
         match ast_node {
-            ASTNodeEnum::AtomicExpression(atomic) => match atomic {
-                AtomicExpression::Variable(x) => {
-                    return Ok((
+            ASTNodeEnum::AtomicExpression(atomic) => {
+                return match atomic {
+                    AtomicExpression::Variable(x) => Ok((
                         false,
                         Some(
                             self.as_mut()
                                 .unwrap()
                                 .used_as_null(x.name.global_resolved.as_ref().unwrap().clone()),
                         ),
-                    ));
+                    )),
+                    AtomicExpression::FnCall(_) => Ok((true, Some(false))),
+                    AtomicExpression::Literal(_) => Ok((true, Some(false))),
                 }
-                AtomicExpression::FnCall(_) => return Ok((true, Some(false))),
-                AtomicExpression::Literal(_) => return Ok((true, Some(false))),
-            },
+            }
             ASTNodeEnum::If(if_) => {
                 if_.cond.visit(self)?;
 
@@ -102,7 +102,11 @@ impl Visitor<ResolverError, bool> for Option<NullCheck> {
                 *self = Some(body_null_check.unwrap().take_parent());
             }
             ASTNodeEnum::VarAssign(var_assign) => {
-                if !self.apply(&mut ASTNodeEnum::Expression(&mut var_assign.expr))?.1.unwrap() {
+                if !self
+                    .apply(&mut ASTNodeEnum::Expression(&mut var_assign.expr))?
+                    .1
+                    .unwrap()
+                {
                     self.as_mut().unwrap().confirm_not_null(
                         var_assign
                             .name_path
@@ -223,7 +227,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-            .is_ok());
+        .is_ok());
     }
 
     #[test]
@@ -244,7 +248,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-            .is_err());
+        .is_err());
     }
 
     #[test]
@@ -265,7 +269,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-            .is_err());
+        .is_err());
     }
 
     #[test]
@@ -286,7 +290,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-            .is_ok());
+        .is_ok());
     }
 
     #[test]
@@ -307,6 +311,6 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-            .is_err());
+        .is_err());
     }
 }

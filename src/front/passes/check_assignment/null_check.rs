@@ -1,6 +1,6 @@
 use crate::front::ast_types::GlobalResolvedName;
 use std::collections::HashSet;
-use std::ops::{Deref, DerefMut};
+
 use std::rc::Rc;
 
 enum ParentOrUsedWhileNull {
