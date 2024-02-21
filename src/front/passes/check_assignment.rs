@@ -1,6 +1,6 @@
 mod null_check;
 
-use crate::front::ast_types::visitor::{ASTNodeEnum, Visitable, Visitor};
+use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
 use crate::front::ast_types::{AtomicExpression, Else, Statement};
 use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::check_assignment::null_check::NullCheck;
@@ -14,10 +14,10 @@ pub enum ResolverError {
     Unknown,
 }
 
-pub type ResolveResult<T> = Result<T, ResolverError>;
+pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 
-impl Visitor<ResolverError> for Option<NullCheck> {
-    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
+impl Visitor<ResolverError, ()> for Option<NullCheck> {
+    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
         match ast_node {
             ASTNodeEnum::AtomicExpression(atomic) => match atomic {
                 AtomicExpression::Variable(x) => {
@@ -25,8 +25,8 @@ impl Visitor<ResolverError> for Option<NullCheck> {
                         .unwrap()
                         .used_as_null(x.name.global_resolved.as_ref().unwrap().clone());
                 }
-                AtomicExpression::FnCall(_) => return Ok(true),
-                AtomicExpression::Literal(_) => return Ok(true),
+                AtomicExpression::FnCall(_) => return Ok((true, None)),
+                AtomicExpression::Literal(_) => return Ok((true, None)),
             },
             ASTNodeEnum::If(if_) => {
                 if_.cond.visit(self)?;
@@ -138,9 +138,9 @@ impl Visitor<ResolverError> for Option<NullCheck> {
             | ASTNodeEnum::Else(_)
             | ASTNodeEnum::Definition(_)
             | ASTNodeEnum::Module(_)
-            | ASTNodeEnum::Use(_) => return Ok(true),
+            | ASTNodeEnum::Use(_) => return Ok((true, None)),
         };
-        return Ok(false);
+        return Ok((false, None));
     }
 }
 
@@ -201,7 +201,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-        .is_ok());
+            .is_ok());
     }
 
     #[test]
@@ -222,7 +222,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-        .is_err());
+            .is_err());
     }
 
     #[test]
@@ -243,7 +243,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-        .is_err());
+            .is_err());
     }
 
     #[test]
@@ -264,7 +264,7 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-        .is_ok());
+            .is_ok());
     }
 
     #[test]
@@ -285,6 +285,6 @@ mod tests {
             &mut front_program,
             &mut vec![Box::new(DisallowNullAssignment)],
         )
-        .is_err());
+            .is_err());
     }
 }

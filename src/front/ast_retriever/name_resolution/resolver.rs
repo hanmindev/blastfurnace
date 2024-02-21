@@ -1,5 +1,5 @@
 use crate::front::ast_retriever::name_resolution::scope_table::{ScopeTable, SymbolType};
-use crate::front::ast_types::visitor::{ASTNodeEnum, Visitable, Visitor};
+use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
 use crate::front::ast_types::{AtomicExpression, NamePath, Type};
 
 #[derive(Debug, PartialEq)]
@@ -8,20 +8,21 @@ pub enum ResolverError {
     Redefinition(String),
 }
 
-pub type ResolveResult<T> = Result<T, ResolverError>;
+pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
+pub type InternalResolveResult<T> = Result<T, ResolverError>;
 
 fn name_path_lookup(scope_table: &ScopeTable, name_path: &mut NamePath) -> ResolveResult<()> {
     match scope_table.scope_lookup(&name_path.name.raw, SymbolType::Var) {
         Some(name) => {
             name_path.name.module_resolved = Some(name.clone());
-            Ok(())
+            Ok((true, None))
         }
         None => Err(ResolverError::UndefinedVariable(name_path.name.raw.clone())),
     }
 }
 
-impl Visitor<ResolverError> for ScopeTable {
-    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
+impl Visitor<ResolverError, ()> for ScopeTable {
+    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
         match ast_node {
             ASTNodeEnum::NamePath(_) => {
                 panic!("NamePath should not be visited directly")
@@ -39,7 +40,7 @@ impl Visitor<ResolverError> for ScopeTable {
                     }
                 }
                 _ => {
-                    return Ok(true);
+                    return Ok((true, None));
                 }
             },
 
@@ -139,8 +140,8 @@ impl Visitor<ResolverError> for ScopeTable {
             | ASTNodeEnum::While(_)
             | ASTNodeEnum::For(_)
             | ASTNodeEnum::Statement(_)
-            | ASTNodeEnum::Definition(_) => return Ok(true),
+            | ASTNodeEnum::Definition(_) => return Ok((true, None)),
         };
-        return Ok(false);
+        return Ok((false, None));
     }
 }
