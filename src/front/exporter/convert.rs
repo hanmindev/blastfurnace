@@ -930,8 +930,6 @@ mod tests {
             10
         );
     }
-
-
     #[test]
     fn test_struct() {
         let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();

@@ -7,6 +7,7 @@ use crate::front::passes::types::var_def_table::VarTypeNode;
 use either::Left;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::front::passes::types::TypeError;
 
 struct BinOpNode {
     pub op: BinOp,
@@ -113,12 +114,6 @@ impl TypeTree {
             }
         }
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum TypeError {
-    TypeMismatch,
-    MultipleTypes,
 }
 
 pub type TypeResult<T> = Result<T, TypeError>;

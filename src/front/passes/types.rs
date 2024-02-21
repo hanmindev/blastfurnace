@@ -14,8 +14,11 @@ use crate::front::passes::types::insert_types::{insert_types, ResolvedVarDefTabl
 use crate::front::passes::types::topological_sort::topological_sort;
 use crate::front::passes::types::var_def_table::VarTypeNode;
 
+#[derive(Debug, PartialEq)]
 pub enum TypeError {
-    NotEnoughInformation,
+    TypeMismatch,
+    MultipleTypes,
+    NotEnoughInformation
 }
 
 #[derive(Debug)]
@@ -55,7 +58,9 @@ impl Pass for AnnotateTypes {
             new_table.var_types.insert(value, type_);
         }
 
-        insert_types(program, &mut new_table);
+        if let Err(e) = insert_types(program, &mut new_table) {
+            return Err(PassError::Types(e));
+        }
 
         Ok(())
     }
@@ -139,5 +144,22 @@ mod tests {
         } else {
             panic!("Expected VarDecl");
         }
+    }
+
+
+    #[test]
+    fn test_illegal_struct_assignment() {
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("main.ing"),
+            "struct A { a: int, b: int } pub fn main() { let a: A = A { a: 1, b: 2 }; a = 5; }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let mut front_program = program_merger.return_merged();
+        assert!(pass(&mut front_program, &mut vec![Box::new(AnnotateTypes)]).is_err());
     }
 }

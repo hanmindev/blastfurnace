@@ -2,10 +2,11 @@ use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visita
 use crate::front::ast_types::{AtomicExpression, ExpressionEnum, GlobalResolvedName, Type};
 use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::types::type_expression::{
-    binop_type_resolver, literal_types, unop_type_resolver, TypeError,
+    binop_type_resolver, literal_types, unop_type_resolver,
 };
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::front::passes::types::TypeError;
 
 #[derive(Debug, PartialEq)]
 pub enum ResolverError {
@@ -115,10 +116,17 @@ pub struct ResolvedVarDefTable {
     pub var_types: HashMap<Rc<GlobalResolvedName>, Type>,
 }
 
-pub fn insert_types(program: &mut FrontProgram, table: &mut ResolvedVarDefTable) {
+pub fn insert_types(program: &mut FrontProgram, table: &mut ResolvedVarDefTable) -> Result<(), TypeError> {
     for v in program.definitions.function_definitions.values_mut() {
         for statement in &mut v.body.statements {
-            statement.visit(table).unwrap();
+            if let Err(e) = statement.visit(table) {
+                return match e {
+                    ResolverError::TypeError(type_error) => {
+                        Err(type_error)
+                    }
+                }
+            }
         }
     }
+    Ok(())
 }
