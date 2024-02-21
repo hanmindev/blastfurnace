@@ -297,8 +297,8 @@ mod tests {
         ))));
 
         assert_eq!(lexer.next().unwrap().0, Token::Int(643214));
-        assert_eq!(lexer.next().unwrap().0, Token::Double(3243.24321));
-        assert_eq!(lexer.next().unwrap().0, Token::Double(0.432432));
+        assert_eq!(lexer.next().unwrap().0, Token::Float(3243.24321));
+        assert_eq!(lexer.next().unwrap().0, Token::Float(0.432432));
         assert_eq!(lexer.next().err().unwrap(), TokenError::MultipleDecimals);
     }
 
