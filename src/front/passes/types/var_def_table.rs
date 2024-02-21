@@ -10,7 +10,7 @@ pub struct VarTypeNode {
 }
 
 pub struct VarDefTable {
-    var_types: HashMap<Rc<GlobalResolvedName>, VarTypeNode>,
+    pub var_types: HashMap<Rc<GlobalResolvedName>, VarTypeNode>,
 }
 
 impl VarDefTable {
