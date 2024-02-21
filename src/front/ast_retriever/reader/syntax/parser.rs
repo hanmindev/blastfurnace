@@ -1061,7 +1061,7 @@ mod tests {
 
     #[test]
     fn variable_declarations_test() {
-        let statement = "const a: int = 0; const b: int = 1; let c: int = 2; let d: float = 3.0; let e: double = 4.0; let f: bool = true; let g: string = \"hello\";";
+        let statement = "const a: int = 0; const b: int = 1; let c: int = 2; let d: float = 3.0; let e: double = 4.0d; let f: bool = true; let g: string = \"hello\";";
         let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
             statement.to_string(),
         ))));
@@ -1128,7 +1128,7 @@ mod tests {
                 },
                 expr: Some(Box::from(Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Double(3.0)
+                        LiteralValue::Float(3.0)
                     )),
                     type_: None,
                 })),
@@ -1275,7 +1275,7 @@ mod tests {
                 name_path: Parser::<Lexer>::string_to_namepath("b"),
                 expr: Box::from(Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Double(2.4)
+                        LiteralValue::Float(2.4)
                     )),
                     type_: None,
                 }),
