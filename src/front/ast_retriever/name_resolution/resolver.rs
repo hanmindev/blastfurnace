@@ -21,7 +21,7 @@ fn name_path_lookup(scope_table: &ScopeTable, name_path: &mut NamePath) -> Resol
     }
 }
 
-impl Visitor<ResolverError, ()> for ScopeTable {
+impl Visitor<(), ResolverError> for ScopeTable {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
         match ast_node {
             ASTNodeEnum::NamePath(_) => {

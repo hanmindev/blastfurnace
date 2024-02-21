@@ -17,7 +17,7 @@ pub enum ResolverError {
 
 pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 
-impl Visitor<ResolverError, ()> for VarDefTable<'_> {
+impl Visitor<(), ResolverError> for VarDefTable<'_> {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
         match ast_node {
             ASTNodeEnum::FnCall(x) => {
