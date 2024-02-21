@@ -44,6 +44,15 @@ impl Visitor<(), ResolverError> for ScopeTable {
                 }
             },
 
+            ASTNodeEnum::StructInit(struct_init) => {
+                struct_init.type_.module_resolved =
+                    Some(self.scope_lookup_force(&struct_init.type_.raw, SymbolType::Struct));
+
+                for (_, expr) in &mut struct_init.fields {
+                    expr.visit(self)?;
+                }
+            }
+
             ASTNodeEnum::VarDef(var_def) => {
                 if let Some(Type::Struct(struct_name)) = &mut var_def.type_ {
                     struct_name.module_resolved =
@@ -108,7 +117,7 @@ impl Visitor<(), ResolverError> for ScopeTable {
                 struct_def.type_name.module_resolved =
                     Some(self.scope_bind(&struct_def.type_name.raw, SymbolType::Struct)?);
 
-                for v in &mut struct_def.map.values_mut() {
+                for v in &mut struct_def.fields.values_mut() {
                     if let Type::Struct(struct_name) = v {
                         struct_name.module_resolved =
                             Some(self.scope_lookup_force(&struct_name.raw, SymbolType::Struct));

@@ -92,14 +92,6 @@ pub struct VarAssign {
     pub expr: Box<Expression>,
 }
 
-pub type Compound = HashMap<String, CompoundValue>;
-
-#[derive(Debug, PartialEq)]
-pub enum CompoundValue {
-    Expression(Box<Expression>),
-    Compound(Box<Compound>),
-}
-
 #[derive(Debug, PartialEq)]
 pub enum FnMod {
     Rec,
@@ -113,7 +105,7 @@ pub enum StructMod {}
 pub struct StructDef {
     pub mods: Rc<Vec<StructMod>>,
     pub type_name: Reference,
-    pub map: HashMap<String, Type>,
+    pub fields: HashMap<String, Type>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -145,7 +137,6 @@ pub enum LiteralValue {
     Float(f32),
     Double(f64),
     String(String),
-    Compound(Compound),
 }
 
 #[derive(Debug, PartialEq)]
@@ -153,6 +144,13 @@ pub enum AtomicExpression {
     Literal(LiteralValue),
     Variable(NamePath),
     FnCall(Box<FnCall>),
+    StructInit(StructInit),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct StructInit {
+    pub type_: Reference,
+    pub fields: HashMap<String, Expression>,
 }
 
 #[derive(Debug, PartialEq)]

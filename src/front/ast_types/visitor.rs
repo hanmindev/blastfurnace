@@ -1,8 +1,4 @@
-use crate::front::ast_types::{
-    AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If,
-    LiteralValue, Module, NamePath, Reference, Statement, StructDef, Type, Use, VarAssign, VarDecl,
-    VarDef, While,
-};
+use crate::front::ast_types::{AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Reference, Statement, StructDef, StructInit, Type, Use, VarAssign, VarDecl, VarDef, While};
 
 pub enum ASTNodeEnum<'a> {
     NamePath(&'a mut NamePath),
@@ -18,6 +14,7 @@ pub enum ASTNodeEnum<'a> {
     StructDef(&'a mut StructDef),
 
     LiteralValue(&'a mut LiteralValue),
+    StructInit(&'a mut StructInit),
     AtomicExpression(&'a mut AtomicExpression),
     Expression(&'a mut Expression),
 
@@ -65,6 +62,19 @@ impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for LiteralValue {
     }
 }
 
+impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for StructInit {
+    fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
+        let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::StructInit(self))?;
+        if visit_result {
+            for (_, expr) in &mut self.fields {
+                expr.visit(visitor)?;
+            }
+            self.type_.visit(visitor)?;
+        }
+        Ok(res)
+    }
+}
+
 impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for Reference {
     fn visit(&mut self, visitor: &mut T) -> Result<Option<K>, V> {
         Ok(visitor.apply(&mut ASTNodeEnum::Reference(self))?.1)
@@ -86,9 +96,10 @@ impl<T: Visitor<K, V>, K, V> Visitable<T, K, V> for AtomicExpression {
         let (visit_result, res) = visitor.apply(&mut ASTNodeEnum::AtomicExpression(self))?;
         if visit_result {
             match self {
-                AtomicExpression::Literal(x) => x.visit(visitor)?,
-                AtomicExpression::FnCall(x) => x.visit(visitor)?,
-                AtomicExpression::Variable(x) => x.visit(visitor)?,
+                AtomicExpression::Literal(x) => { x.visit(visitor)?; }
+                AtomicExpression::FnCall(x) => { x.visit(visitor)?; }
+                AtomicExpression::Variable(x) => { x.visit(visitor)?; }
+                AtomicExpression::StructInit(x) => {x.visit(visitor)?; }
             };
         }
         Ok(res)

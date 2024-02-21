@@ -1,4 +1,4 @@
-use crate::front::ast_types::{GlobalResolvedName, NamePath, Reference};
+use crate::front::ast_types::{GlobalResolvedName, NamePath, Reference, StructDef, StructInit, Type};
 use crate::front::exporter::convert::global_name_updater;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{Address, AddressOrigin};
@@ -39,6 +39,32 @@ impl VarGenerator {
     }
 }
 
+pub fn struct_var_getter(parent_address: &Address, struct_def: &StructDef, field_name: &str) -> Address {
+    let mut field_offset = 0;
+
+    let mut structs = 0;
+    let mut other_fields = 0;
+
+    let mut fields = struct_def.fields.iter().collect::<Vec<(&String, &Type)>>();
+    fields.sort_by(|a, b| a.0.cmp(b.0));
+
+    for field in fields {
+        if field.0 == field_name {
+            field_offset  = structs + other_fields; // TODO for now assume all fields take one memory region, including nested structs
+            break;
+        } else if matches!(field.1, Type::Struct(_)) {
+            structs += 1;
+        } else {
+            other_fields += 1;
+        }
+    }
+
+    Address {
+        name: parent_address.name.clone(),
+        offset: parent_address.offset + field_offset,
+    }
+}
+
 pub struct ConstGenerator {
     consts: HashSet<i32>,
 }
@@ -63,7 +89,7 @@ pub struct Context<'a> {
     pub fn_name: String,
     pub block_count: usize,
     var_generator: VarGenerator,
-    definition_table: &'a DefinitionTable<Rc<GlobalResolvedName>>,
+    pub definition_table: &'a DefinitionTable<Rc<GlobalResolvedName>>,
     pub const_generator: &'a mut ConstGenerator,
 }
 

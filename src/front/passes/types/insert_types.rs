@@ -61,6 +61,9 @@ impl Visitor<Type, ResolverError> for ResolvedVarDefTable {
                             .unwrap()
                             .clone(),
                         AtomicExpression::Literal(literal) => literal_types(literal),
+                        AtomicExpression::StructInit(struct_init) => {
+                            Type::Struct(struct_init.type_.clone())
+                        }
                     },
                     ExpressionEnum::Unary(unop, x) => {
                         match unop_type_resolver(unop, &x.visit(self)?.unwrap()) {
@@ -93,7 +96,8 @@ impl Visitor<Type, ResolverError> for ResolvedVarDefTable {
             | ASTNodeEnum::Block(_)
             | ASTNodeEnum::FnDef(_)
             | ASTNodeEnum::FnCall(_)
-            | ASTNodeEnum::AtomicExpression(_) => return Ok((true, None)),
+            | ASTNodeEnum::AtomicExpression(_)
+            | ASTNodeEnum::StructInit(_) => return Ok((true, None)),
 
             ASTNodeEnum::NamePath(_)
             | ASTNodeEnum::Reference(_)

@@ -444,7 +444,7 @@ mod tests {
                         global_resolved: None,
                     }
                 );
-                match &struct_def.map.get("b").unwrap() {
+                match &struct_def.fields.get("b").unwrap() {
                     Type::Struct(struct_name) => {
                         assert_eq!(
                             struct_name.clone(),
@@ -475,7 +475,7 @@ mod tests {
                         global_resolved: None,
                     }
                 );
-                match &struct_def.map.get("a").unwrap() {
+                match &struct_def.fields.get("a").unwrap() {
                     Type::Struct(struct_name) => {
                         assert_eq!(
                             struct_name.clone(),
@@ -594,7 +594,7 @@ mod tests {
                         global_resolved: None,
                     }
                 );
-                match &struct_def.map.get("b").unwrap() {
+                match &struct_def.fields.get("b").unwrap() {
                     Type::Struct(struct_name) => {
                         assert_eq!(
                             struct_name.clone(),
@@ -625,7 +625,7 @@ mod tests {
                         global_resolved: None,
                     }
                 );
-                match &struct_def.map.get("a").unwrap() {
+                match &struct_def.fields.get("a").unwrap() {
                     Type::Struct(struct_name) => {
                         assert_eq!(
                             struct_name.clone(),

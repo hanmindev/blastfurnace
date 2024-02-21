@@ -1,12 +1,7 @@
 use crate::front::ast_retriever::reader::lexical::lexer::{TokenError, TokenInfo};
 use crate::front::ast_retriever::reader::lexical::token_types::Token;
-use crate::front::ast_retriever::reader::lexical::token_types::Token::Any;
-use crate::front::ast_types::{
-    AtomicExpression, BinOp, Block, Compound, CompoundValue, Definition, Else, Expression,
-    ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath,
-    Reference, Statement, StructDef, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef,
-    VarMod, While,
-};
+use crate::front::ast_retriever::reader::lexical::token_types::Token::{Any, Colon};
+use crate::front::ast_types::{AtomicExpression, BinOp, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, FnMod, For, If, LiteralValue, Module, ModuleImport, NamePath, Reference, Statement, StructDef, StructInit, Type, UnOp, Use, UseElement, VarAssign, VarDecl, VarDef, VarMod, While};
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
@@ -99,17 +94,7 @@ impl<T: TokenStream> Parser<T> {
         NamePath { name, path }
     }
 
-    fn parse_atomic_expression(&mut self) -> ParseResult<Expression> {
-        if matches!(self.curr_token, Token::LBrace) {
-            let compound = self.parse_compound()?;
-            return Ok(Expression {
-                type_: None,
-                expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                    LiteralValue::Compound(compound),
-                )),
-            });
-        }
-
+    fn parse_single_expression(&mut self) -> ParseResult<Expression> {
         match self.eat(&Any)? {
             (Token::Null, _) => Ok(Expression {
                 type_: None,
@@ -148,54 +133,87 @@ impl<T: TokenStream> Parser<T> {
                 )),
             }),
             (Token::Ident(s), _) => {
-                if matches!(self.curr_token, Token::LParen) {
-                    let mut fn_call = Box::from(FnCall {
-                        name: Reference::new(s),
-                        args: Vec::new(),
-                    });
-                    self.eat(&Token::LParen)?;
+                match self.curr_token {
+                    Token::LParen => {
+                        let mut fn_call = Box::from(FnCall {
+                            name: Reference::new(s),
+                            args: Vec::new(),
+                        });
+                        self.eat(&Token::LParen)?;
 
-                    if self.eat(&Token::RParen).is_err() {
-                        loop {
-                            fn_call.args.push(*self.parse_expression()?);
-                            match self.eat(&Token::Comma) {
-                                Ok(_) => {}
-                                Err(_) => {
-                                    break;
+                        if self.eat(&Token::RParen).is_err() {
+                            loop {
+                                fn_call.args.push(*self.parse_expression()?);
+                                match self.eat(&Token::Comma) {
+                                    Ok(_) => {}
+                                    Err(_) => {
+                                        break;
+                                    }
                                 }
                             }
+                            self.eat(&Token::RParen)?; // eat RParen
                         }
-                        self.eat(&Token::RParen)?; // eat RParen
-                    }
 
-                    // function call
-                    Ok(Expression {
-                        expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(fn_call)),
-                        type_: None,
-                    })
-                } else {
-                    let var = Expression {
-                        expr: ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
-                            Parser::<T>::string_to_namepath(&s),
-                        )),
-                        type_: None,
-                    };
-                    match self.curr_token {
-                        Token::PlusPlus => {
-                            self.eat(&Token::PlusPlus)?;
-                            Ok(Expression {
-                                expr: ExpressionEnum::Unary(UnOp::PostInc, Box::from(var)),
-                                type_: None,
-                            })
+                        // function call
+                        Ok(Expression {
+                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::FnCall(fn_call)),
+                            type_: None,
+                        })
+                    }
+                    Token::LBrace => {
+                        self.eat(&Token::LBrace)?;
+                        let mut struct_init = StructInit {
+                            type_: Reference::new(s),
+                            fields: HashMap::new(),
+                        };
+
+                        if self.eat(&Token::RBrace).is_err() {
+                            loop {
+                                if let (Token::Ident(s), _) = self.eat(&Any)? {
+                                    self.eat(&Colon)?;
+                                    struct_init.fields.insert(s, *self.parse_expression()?);
+                                    if self.eat(&Token::Comma).is_err() {
+                                        break;
+                                    }
+                                } else {
+                                    return Err(ParseError::Unexpected(
+                                        self.curr_token_info(),
+                                        "Expected identifier for struct field name".to_string(),
+                                    ));
+                                }
+                            }
+                            self.eat(&Token::RBrace)?; // eat RParen
                         }
-                        Token::MinusMinus => {
-                            self.eat(&Token::MinusMinus)?;
-                            Ok(Expression {
-                                expr: ExpressionEnum::Unary(UnOp::PostDec, Box::from(var)),
-                                type_: None,
-                            })
+
+                        Ok(Expression {
+                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::StructInit(struct_init)),
+                            type_: None,
+                        })
+                    }
+                    _ => {
+                        let var = Expression {
+                            expr: ExpressionEnum::AtomicExpression(AtomicExpression::Variable(
+                                Parser::<T>::string_to_namepath(&s),
+                            )),
+                            type_: None,
+                        };
+                        match self.curr_token {
+                            Token::PlusPlus => {
+                                self.eat(&Token::PlusPlus)?;
+                                Ok(Expression {
+                                    expr: ExpressionEnum::Unary(UnOp::PostInc, Box::from(var)),
+                                    type_: None,
+                                })
+                            }
+                            Token::MinusMinus => {
+                                self.eat(&Token::MinusMinus)?;
+                                Ok(Expression {
+                                    expr: ExpressionEnum::Unary(UnOp::PostDec, Box::from(var)),
+                                    type_: None,
+                                })
+                            }
+                            _ => Ok(var),
                         }
-                        _ => Ok(var),
                     }
                 }
             }
@@ -321,7 +339,7 @@ impl<T: TokenStream> Parser<T> {
 
                     _ => {
                         // not prefixed unary
-                        let expr = Box::from(self.parse_atomic_expression()?);
+                        let expr = Box::from(self.parse_single_expression()?);
                         return Ok(expr);
                     }
                 };
@@ -637,37 +655,6 @@ impl<T: TokenStream> Parser<T> {
         Ok(module.block)
     }
 
-    fn parse_compound_value(&mut self) -> ParseResult<CompoundValue> {
-        match self.curr_token {
-            Token::LBrace => Ok(CompoundValue::Compound(Box::from(self.parse_compound()?))),
-            _ => Ok(CompoundValue::Expression(self.parse_expression()?)),
-        }
-    }
-
-    fn parse_compound(&mut self) -> ParseResult<Compound> {
-        let mut compound: Compound = HashMap::new();
-
-        self.eat(&Token::LBrace)?;
-
-        while let Token::Ident(key) = &mut self.curr_token {
-            let key = key.clone();
-
-            self.eat(&Any)?;
-            self.eat(&Token::Colon)?;
-            compound.insert(key, self.parse_compound_value()?);
-
-            if matches!(self.curr_token, Token::RBrace) {
-                break;
-            } else {
-                self.eat(&Token::Comma)?;
-            }
-        }
-
-        self.eat(&Token::RBrace)?;
-
-        Ok(compound)
-    }
-
     fn parse_var_decl(&mut self) -> ParseResult<VarDecl> {
         let mut mods: Vec<VarMod> = Vec::new();
         let _ = self.eat(&Token::Pub);
@@ -896,7 +883,7 @@ impl<T: TokenStream> Parser<T> {
         Ok(StructDef {
             mods: Rc::new(mods),
             type_name: Reference::new(struct_name),
-            map,
+            fields: map,
         })
     }
 
@@ -1187,7 +1174,7 @@ mod tests {
     #[test]
     fn struct_declarations_test() {
         let statement =
-            "let a: A = { a: 0, b: 1, c: 2 }; let b: B = { a: 0, b: \"hello\", c: 2.54 };";
+            "let a: A = A { a: 0, b: 1, c: 2 }; let b: B = B { a: 0, b: \"hello\", c: 2.54 };";
         let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
             statement.to_string(),
         ))));
@@ -1195,34 +1182,34 @@ mod tests {
 
         let block = parser.parse_module_no_brace(false).unwrap().block;
 
-        let compound = {
+        let struct_def = {
             let mut map = HashMap::new();
             map.insert(
                 "a".to_string(),
-                CompoundValue::Expression(Box::from(Expression {
+                Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                         LiteralValue::Int(0),
                     )),
                     type_: None,
-                })),
+                },
             );
             map.insert(
                 "b".to_string(),
-                CompoundValue::Expression(Box::from(Expression {
+                Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                         LiteralValue::Int(1),
                     )),
                     type_: None,
-                })),
+                },
             );
             map.insert(
                 "c".to_string(),
-                CompoundValue::Expression(Box::from(Expression {
+                Expression {
                     expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
                         LiteralValue::Int(2),
                     )),
                     type_: None,
-                })),
+                },
             );
             map
         };
@@ -1237,9 +1224,10 @@ mod tests {
                     mods: Rc::new(Vec::new()),
                 },
                 expr: Some(Box::from(Expression {
-                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Compound(compound)
-                    )),
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::StructInit(StructInit {
+                        type_: Reference::new("A".to_string()),
+                        fields: struct_def,
+                    })),
                     type_: None,
                 })),
             }))
@@ -1405,7 +1393,7 @@ mod tests {
 
     #[test]
     fn struct_assignment_tests() {
-        let statement = "a = { a: 0, b: 1, c: 2 }; b = { a: 0, b: \"hello\", c: 2.54 };";
+        let statement = "a = A { a: 0, b: 1, c: 2 }; b = B { a: 0, b: \"hello\", c: 2.54 };";
         let lexer = Lexer::new(ByteStream::new(Box::from(StringReader::new(
             statement.to_string(),
         ))));
@@ -1416,47 +1404,46 @@ mod tests {
         assert_eq!(block.statements.len(), 2);
         assert_eq!(
             block.statements[0],
-            (Statement::VarAssign(VarAssign {
+            Statement::VarAssign(VarAssign {
                 name_path: Parser::<Lexer>::string_to_namepath("a"),
                 expr: Box::from(Expression {
                     type_: None,
-                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::Literal(
-                        LiteralValue::Compound({
+                    expr: ExpressionEnum::AtomicExpression(AtomicExpression::StructInit(StructInit {
+                        type_: Reference::new("A".to_string()),
+                        fields: {
                             let mut map = HashMap::new();
                             map.insert(
                                 "a".to_string(),
-                                CompoundValue::Expression(Box::from(Expression {
+                                Expression {
                                     type_: None,
                                     expr: ExpressionEnum::AtomicExpression(
                                         AtomicExpression::Literal(LiteralValue::Int(0)),
                                     ),
-                                })),
+                                },
                             );
                             map.insert(
                                 "b".to_string(),
-                                CompoundValue::Expression(Box::from(Expression {
+                                Expression {
                                     type_: None,
                                     expr: ExpressionEnum::AtomicExpression(
                                         AtomicExpression::Literal(LiteralValue::Int(1)),
                                     ),
-                                })),
+                                },
                             );
                             map.insert(
                                 "c".to_string(),
-                                CompoundValue::Expression(Box::from(Expression {
+                                Expression {
                                     type_: None,
                                     expr: ExpressionEnum::AtomicExpression(
                                         AtomicExpression::Literal(LiteralValue::Int(2)),
                                     ),
-                                })),
+                                },
                             );
-
                             map
-                        })
-                    )),
+                        },
+                    })),
                 }),
             }))
-        );
     }
 
     #[test]
@@ -1885,7 +1872,7 @@ mod tests {
                 }),
                 body: Box::from(Block {
                     definitions: vec![],
-                    statements: vec![(Statement::Break), (Statement::Continue),],
+                    statements: vec![(Statement::Break), (Statement::Continue)],
                 }),
             }))
         );
@@ -2393,7 +2380,7 @@ mod tests {
             Definition::StructDef(StructDef {
                 mods: Rc::new(Vec::new()),
                 type_name: Reference::new("A".to_string()),
-                map: {
+                fields: {
                     let mut map = HashMap::new();
                     map.insert("a".to_string(), Type::Int);
                     map.insert("b".to_string(), Type::Float);

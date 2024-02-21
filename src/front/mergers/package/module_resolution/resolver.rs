@@ -1,5 +1,5 @@
 use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
-use crate::front::ast_types::{Definition, ResolvedName};
+use crate::front::ast_types::{AtomicExpression, Definition, ResolvedName};
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
 use std::rc::Rc;
 
@@ -88,7 +88,8 @@ impl Visitor<(), ResolverError> for ModuleMerger {
             | ASTNodeEnum::FnCall(_)
             | ASTNodeEnum::LiteralValue(_)
             | ASTNodeEnum::VarDecl(_)
-            | ASTNodeEnum::AtomicExpression(_) => return Ok((true, None)),
+            | ASTNodeEnum::AtomicExpression(_)
+            | ASTNodeEnum::StructInit(_) => return Ok((true, None)),
 
             ASTNodeEnum::FnDef(_) | ASTNodeEnum::StructDef(_) | ASTNodeEnum::Definition(_) => {
                 panic!("Should not be called directly")

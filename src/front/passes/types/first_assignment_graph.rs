@@ -32,6 +32,11 @@ impl Visitor<(), ResolverError> for VarDefTable {
                     );
                 }
             }
+            ASTNodeEnum::StructInit(x) => {
+                for (_, expr) in &mut x.fields {
+                    expr.visit(self)?;
+                }
+            }
 
             ASTNodeEnum::If(_)
             | ASTNodeEnum::Else(_)

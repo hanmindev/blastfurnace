@@ -4,7 +4,7 @@ use crate::front::ast_types::{
     AtomicExpression, BinOp, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For,
     GlobalResolvedName, If, LiteralValue, Reference, Statement, UnOp, VarAssign, VarDecl, While,
 };
-use crate::front::exporter::convert::context::Context;
+use crate::front::exporter::convert::context::{Context, struct_var_getter};
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{
     Address, CheckVal, CompareOp, CompareVal, Cond, IrBlock, IrFnCall, IrFnDef, IrIf,
@@ -57,7 +57,7 @@ fn convert_fn_call(context: &mut Context, ast_node: &FnCall) -> Vec<IrStatement>
 fn set_from_atomic(
     context: &mut Context,
     ast_node: &AtomicExpression,
-    _result_var_name: &Address,
+    result_var_name: &Address,
 ) -> ExprEval {
     match ast_node {
         AtomicExpression::Literal(x) => {
@@ -90,6 +90,27 @@ fn set_from_atomic(
             ExprEval {
                 statements: s,
                 existing_address: Some(context.get_return_variable()),
+            }
+        }
+        AtomicExpression::StructInit(ref x) => {
+            let mut s = vec![];
+
+            for field in &x.fields {
+                let struct_name = x.type_.global_resolved.as_ref().unwrap().clone();
+                println!("{:?}", struct_name);
+                let struct_def = context.definition_table.struct_definitions
+                    .get(&struct_name).unwrap();
+                let result_var = struct_var_getter(result_var_name, struct_def, &field.0);
+                s.extend(convert_expr(
+                    context,
+                    &field.1,
+                    &result_var,
+                ));
+            }
+
+            ExprEval {
+                statements: s,
+                existing_address: None,
             }
         }
     }
@@ -909,5 +930,24 @@ mod tests {
             ),
             10
         );
+    }
+
+
+    #[test]
+    fn test_struct() {
+        let mut mock_file_system = MockFileSystem::new(Utf8PathBuf::new()).unwrap();
+        mock_file_system.insert_file(
+            Utf8PathBuf::from("main.ing"),
+            "struct A { a: int, b: int } pub fn main() { let a: A = A { a: 1, b: 2 }; }",
+        );
+
+        let mut program_merger = ProgramMerger::new("pkg");
+
+        program_merger.read_package("pkg", mock_file_system);
+
+        let front_program = program_merger.return_merged();
+        let program = front_program.export_program();
+
+        println!("{:?}", program.function_definitions);
     }
 }

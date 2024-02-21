@@ -19,6 +19,13 @@ pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 impl Visitor<bool, ResolverError> for Option<NullCheck> {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
         match ast_node {
+            ASTNodeEnum::StructInit(ref mut e) => {
+                for (_, v) in &mut e.fields {
+                    if self.apply(&mut ASTNodeEnum::Expression(v))?.1.unwrap() {
+                        return Ok((false, Some(true)))
+                    }
+                }
+            }
             ASTNodeEnum::AtomicExpression(atomic) => {
                 return match atomic {
                     AtomicExpression::Variable(x) => Ok((
@@ -35,7 +42,7 @@ impl Visitor<bool, ResolverError> for Option<NullCheck> {
                         }
                         Ok((false, Some(false)))
                     }
-                    AtomicExpression::Literal(_) => Ok((true, Some(false))),
+                    AtomicExpression::Literal(_) | AtomicExpression::StructInit(_) => Ok((true, Some(false))),
                 }
             }
             ASTNodeEnum::If(if_) => {

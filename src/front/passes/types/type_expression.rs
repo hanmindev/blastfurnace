@@ -39,6 +39,9 @@ impl TypeDependency {
                 AtomicExpression::FnCall(x) => {
                     TypeTree::FnCall(x.name.global_resolved.as_ref().unwrap().clone())
                 }
+                AtomicExpression::StructInit(struct_init) => {
+                    TypeTree::Type(Type::Struct(struct_init.type_.clone()))
+                }
             },
             ExpressionEnum::Unary(unop, x) => {
                 let child = TypeDependency::new(x);
@@ -127,7 +130,6 @@ pub fn literal_types(literal: &LiteralValue) -> Type {
         LiteralValue::Float(_) => Type::Float,
         LiteralValue::Double(_) => Type::Double,
         LiteralValue::String(_) => Type::String,
-        LiteralValue::Compound(_) => Type::Void,
     }
 }
 
