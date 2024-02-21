@@ -133,7 +133,7 @@ fn resolve_definition(
                 expr.visit(module_merger)?;
             }
 
-            module_merger.insert_global_var_definition(
+            module_merger.insert_var_definition(
                 var_decl.var_def.name.global_resolved.clone().unwrap(),
                 var_decl,
                 is_public,
