@@ -72,28 +72,8 @@ impl Visitor<ResolverError> for ModuleMerger {
                     Some(self.resolve_global_name(reference.module_resolved.as_ref().unwrap()));
             }
 
-            ASTNodeEnum::VarDecl(var_decl) => {
-                if let Some(expr) = &mut var_decl.expr {
-                    expr.visit(self)?;
-                }
-                var_decl.var_def.name.visit(self)?;
-            }
-
-            ASTNodeEnum::VarAssign(var_assign) => {
-                var_assign.expr.visit(self)?;
-                var_assign.name_path.name.visit(self)?;
-            }
-
-            ASTNodeEnum::AtomicExpression(atomic) => {
-                match atomic {
-                    AtomicExpression::Literal(_) => {}
-                    AtomicExpression::Variable(var) => {
-                        var.name.visit(self)?;
-                    }
-                    AtomicExpression::FnCall(fn_call) => {
-                        fn_call.name.visit(self)?;
-                    }
-                }
+            ASTNodeEnum::NamePath(name_path) => {
+                name_path.name.visit(self)?;
             }
 
             ASTNodeEnum::Else(_)
@@ -101,16 +81,17 @@ impl Visitor<ResolverError> for ModuleMerger {
             | ASTNodeEnum::While(_)
             | ASTNodeEnum::For(_)
             | ASTNodeEnum::Statement(_)
-            | ASTNodeEnum::Expression(_) => return Ok(true),
+            | ASTNodeEnum::Expression(_)
+            | ASTNodeEnum::VarAssign(_)
+            | ASTNodeEnum::VarDef(_)
+            | ASTNodeEnum::FnCall(_)
+            | ASTNodeEnum::LiteralValue(_)
+            | ASTNodeEnum::VarDecl(_)
+            | ASTNodeEnum::AtomicExpression(_) => return Ok(true),
 
             ASTNodeEnum::FnDef(_)
             | ASTNodeEnum::StructDef(_)
             | ASTNodeEnum::Definition(_) => panic!("Should not be called directly"),
-
-            ASTNodeEnum::VarDef(_)
-            | ASTNodeEnum::NamePath(_)
-            | ASTNodeEnum::FnCall(_)
-            | ASTNodeEnum::LiteralValue(_) => return Ok(false),
         };
         return Ok(false);
     }
