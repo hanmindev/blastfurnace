@@ -1,7 +1,7 @@
 mod null_check;
 
 use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
-use crate::front::ast_types::{AtomicExpression, Else, Statement};
+use crate::front::ast_types::{AtomicExpression, Else, ExpressionEnum, Statement};
 use crate::front::exporter::export::FrontProgram;
 use crate::front::passes::check_assignment::null_check::NullCheck;
 use crate::front::passes::{Pass, PassError, PassResult};
@@ -16,17 +16,22 @@ pub enum ResolverError {
 
 pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
 
-impl Visitor<ResolverError, ()> for Option<NullCheck> {
-    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
+impl Visitor<ResolverError, bool> for Option<NullCheck> {
+    fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<bool> {
         match ast_node {
             ASTNodeEnum::AtomicExpression(atomic) => match atomic {
                 AtomicExpression::Variable(x) => {
-                    self.as_mut()
-                        .unwrap()
-                        .used_as_null(x.name.global_resolved.as_ref().unwrap().clone());
+                    return Ok((
+                        false,
+                        Some(
+                            self.as_mut()
+                                .unwrap()
+                                .used_as_null(x.name.global_resolved.as_ref().unwrap().clone()),
+                        ),
+                    ));
                 }
-                AtomicExpression::FnCall(_) => return Ok((true, None)),
-                AtomicExpression::Literal(_) => return Ok((true, None)),
+                AtomicExpression::FnCall(_) => return Ok((true, Some(false))),
+                AtomicExpression::Literal(_) => return Ok((true, Some(false))),
             },
             ASTNodeEnum::If(if_) => {
                 if_.cond.visit(self)?;
@@ -97,25 +102,10 @@ impl Visitor<ResolverError, ()> for Option<NullCheck> {
                 *self = Some(body_null_check.unwrap().take_parent());
             }
             ASTNodeEnum::VarAssign(var_assign) => {
-                var_assign.expr.visit(self)?; // TODO: ensure that expr is not null
-                self.as_mut().unwrap().confirm_not_null(
-                    var_assign
-                        .name_path
-                        .name
-                        .global_resolved
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
-                );
-            }
-
-            ASTNodeEnum::VarDecl(var_decl) => {
-                var_decl.var_def.visit(self)?;
-                if let Some(expr) = &mut var_decl.expr {
-                    expr.visit(self)?; // TODO: ensure that expr is not null
+                if !self.apply(&mut ASTNodeEnum::Expression(&mut var_assign.expr))?.1.unwrap() {
                     self.as_mut().unwrap().confirm_not_null(
-                        var_decl
-                            .var_def
+                        var_assign
+                            .name_path
                             .name
                             .global_resolved
                             .as_ref()
@@ -125,8 +115,40 @@ impl Visitor<ResolverError, ()> for Option<NullCheck> {
                 }
             }
 
+            ASTNodeEnum::VarDecl(var_decl) => {
+                var_decl.var_def.visit(self)?;
+                if let Some(expr) = &mut var_decl.expr {
+                    if !self.apply(&mut ASTNodeEnum::Expression(expr))?.1.unwrap() {
+                        self.as_mut().unwrap().confirm_not_null(
+                            var_decl
+                                .var_def
+                                .name
+                                .global_resolved
+                                .as_ref()
+                                .unwrap()
+                                .clone(),
+                        );
+                    }
+                }
+            }
+            ASTNodeEnum::Expression(expr) => {
+                return match &mut expr.expr {
+                    ExpressionEnum::AtomicExpression(ref mut e) => {
+                        Ok((false, self.apply(&mut ASTNodeEnum::AtomicExpression(e))?.1))
+                    }
+                    ExpressionEnum::Unary(_, ref mut e) => Ok((
+                        false,
+                        self.apply(&mut ASTNodeEnum::Expression(e.as_mut()))?.1,
+                    )),
+                    ExpressionEnum::Binary(ref mut e0, _, ref mut e1) => {
+                        let t0 = self.apply(&mut ASTNodeEnum::Expression(e0))?.1.unwrap();
+                        let t1 = self.apply(&mut ASTNodeEnum::Expression(e1))?.1.unwrap();
+                        Ok((false, Some(t0 || t1)))
+                    }
+                };
+            }
+
             ASTNodeEnum::FnCall(_)
-            | ASTNodeEnum::Expression(_)
             | ASTNodeEnum::VarDef(_)
             | ASTNodeEnum::Statement(_)
             | ASTNodeEnum::Block(_)
