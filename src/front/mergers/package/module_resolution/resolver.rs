@@ -1,5 +1,5 @@
 use crate::front::ast_types::visitor::{ASTNodeEnum, GenericResolveResult, Visitable, Visitor};
-use crate::front::ast_types::{AtomicExpression, Definition, ResolvedName};
+use crate::front::ast_types::{Definition, ResolvedName};
 use crate::front::mergers::package::module_resolution::module_merger::ModuleMerger;
 use std::rc::Rc;
 
@@ -9,6 +9,7 @@ pub enum ResolverError {
 }
 
 pub type ResolveResult<T> = GenericResolveResult<T, ResolverError>;
+pub type InternalResolveResult<T> = Result<T, ResolverError>;
 
 impl Visitor<ResolverError, ()> for ModuleMerger {
     fn apply(&mut self, ast_node: &mut ASTNodeEnum) -> ResolveResult<()> {
@@ -89,9 +90,9 @@ impl Visitor<ResolverError, ()> for ModuleMerger {
             | ASTNodeEnum::VarDecl(_)
             | ASTNodeEnum::AtomicExpression(_) => return Ok((true, None)),
 
-            ASTNodeEnum::FnDef(_)
-            | ASTNodeEnum::StructDef(_)
-            | ASTNodeEnum::Definition(_) => panic!("Should not be called directly"),
+            ASTNodeEnum::FnDef(_) | ASTNodeEnum::StructDef(_) | ASTNodeEnum::Definition(_) => {
+                panic!("Should not be called directly")
+            }
         };
         return Ok((false, None));
     }
@@ -101,7 +102,7 @@ fn resolve_definition(
     definition: Definition,
     module_merger: &mut ModuleMerger,
     is_public: bool,
-) -> ResolveResult<()> {
+) -> InternalResolveResult<()> {
     match definition {
         Definition::FnDef(mut fn_def) => {
             fn_def.name.visit(module_merger)?;
@@ -135,5 +136,5 @@ fn resolve_definition(
             );
         }
     }
-    Ok((true, None))
+    Ok(())
 }
