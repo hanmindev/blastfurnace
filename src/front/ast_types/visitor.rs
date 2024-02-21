@@ -1,4 +1,8 @@
-use crate::front::ast_types::{AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If, LiteralValue, Module, NamePath, Reference, Statement, StructDef, Type, Use, VarAssign, VarDecl, VarDef, While};
+use crate::front::ast_types::{
+    AtomicExpression, Block, Definition, Else, Expression, ExpressionEnum, FnCall, FnDef, For, If,
+    LiteralValue, Module, NamePath, Reference, Statement, StructDef, Type, Use, VarAssign, VarDecl,
+    VarDef, While,
+};
 
 pub enum ASTNodeEnum<'a> {
     NamePath(&'a mut NamePath),
@@ -40,7 +44,6 @@ pub trait Visitable<T: Visitor<V>, V> {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V>;
 }
 
-
 impl<T: Visitor<V>, V> Visitable<T, V> for FnCall {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
         if visitor.apply(&mut ASTNodeEnum::FnCall(self))? {
@@ -77,9 +80,9 @@ impl<T: Visitor<V>, V> Visitable<T, V> for AtomicExpression {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {
         if visitor.apply(&mut ASTNodeEnum::AtomicExpression(self))? {
             match self {
-                AtomicExpression::Literal(x) => { x.visit(visitor)? }
-                AtomicExpression::FnCall(x) => { x.visit(visitor)? }
-                AtomicExpression::Variable(x) => { x.visit(visitor)? }
+                AtomicExpression::Literal(x) => x.visit(visitor)?,
+                AtomicExpression::FnCall(x) => x.visit(visitor)?,
+                AtomicExpression::Variable(x) => x.visit(visitor)?,
             }
         }
         Ok(())
@@ -117,7 +120,6 @@ impl<T: Visitor<V>, V> Visitable<T, V> for Else {
         Ok(())
     }
 }
-
 
 impl<T: Visitor<V>, V> Visitable<T, V> for If {
     fn visit(&mut self, visitor: &mut T) -> Result<(), V> {

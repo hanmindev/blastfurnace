@@ -1,6 +1,9 @@
 pub mod context;
 
-use crate::front::ast_types::{AtomicExpression, BinOp, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For, GlobalResolvedName, If, LiteralValue, Reference, Statement, UnOp, VarAssign, VarDecl, While};
+use crate::front::ast_types::{
+    AtomicExpression, BinOp, Block, Else, Expression, ExpressionEnum, FnCall, FnDef, For,
+    GlobalResolvedName, If, LiteralValue, Reference, Statement, UnOp, VarAssign, VarDecl, While,
+};
 use crate::front::exporter::convert::context::Context;
 use crate::front::mergers::definition_table::DefinitionTable;
 use crate::middle::format::ir_types::{

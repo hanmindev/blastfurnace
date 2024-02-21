@@ -1,7 +1,7 @@
+use crate::front::ast_types::GlobalResolvedName;
 use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-use crate::front::ast_types::GlobalResolvedName;
 
 enum ParentOrUsedWhileNull {
     Parent(Box<Option<NullCheck>>),
@@ -48,8 +48,10 @@ impl NullCheck {
         }
 
         match &mut self.pouwn {
-            ParentOrUsedWhileNull::Parent(x) => { return x.as_mut().as_mut().unwrap().used_as_null(name); }
-            ParentOrUsedWhileNull::UsedWhileNull(x) => { x.insert(name) }
+            ParentOrUsedWhileNull::Parent(x) => {
+                return x.as_mut().as_mut().unwrap().used_as_null(name);
+            }
+            ParentOrUsedWhileNull::UsedWhileNull(x) => x.insert(name),
         };
         return true;
     }
